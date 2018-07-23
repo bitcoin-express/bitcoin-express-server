@@ -4,7 +4,8 @@ var fs = require('fs');
 var https = require('https');
 
 var ObjectId = require('mongodb').ObjectId;
-var db = require('./db')
+var db = require('./db');
+var issuer = require('./issuer');
 
 var privateKey  = fs.readFileSync('./sslcert/bitcoinexpress.key', 'utf8');
 var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');;
@@ -17,49 +18,7 @@ var credentials = {
   passphrase: 'bitcoinexpress'
 };
 
-
-// 2. Set issuer data for payment coins verification
-var options = {
-  host: 'be.ap.rmp.net',
-  port: 443,
-  path: '/Bitcoin-express/v1/issuer/verify',
-  headers: {
-    'Content-Type': 'application/json',
-    'accept': '*/*'
-  },
-  method: 'POST',
-};
-
-var postDataBegin = {
-  "issuerRequest": {
-    "fn": "verify"
-  }
-};
-
-var optionsBegin = {
-  host: 'be.ap.rmp.net',
-  port: 443,
-  path: '/Bitcoin-express/v1/issuer/begin',
-  headers: {
-    'Content-Type': 'application/json',
-    'Content-Length': Buffer.byteLength(JSON.stringify(postDataBegin)),
-    'accept': '*/*'
-  },
-  method: 'POST',
-};
-
-var optionsEnd = {
-  host: 'be.ap.rmp.net',
-  port: 443,
-  path: '/Bitcoin-express/v1/issuer/end',
-  headers: {
-    'Content-Type': 'application/json',
-    'accept': '*/*'
-  },
-  method: 'POST',
-};
-
-// 3. List of different products sold with its value.
+// 2. List of different products sold with its value.
 //
 // To initialize a payment with of an item the request
 // must include the item key as in the query parameter
@@ -80,16 +39,11 @@ var merchantProducts = {
   },
 };
 
-// 4. Product hidden responses (what users will get in
+// 3. Product hidden responses (what users will get in
 // return  as a 'return_url' after payment completed).
 var products = {
   "theartofasking": "https://bitcoin-e.org/static/images/test/product_art_asking.jpg",
 };
-
-Date.prototype.addMinutes = function (m) {
-  this.setMinutes(this.getMinutes() + m);
-  return this;
-}
 
 // Middlewares
 app.use(bodyParser.json());
@@ -100,88 +54,11 @@ app.use(function(req, res, next) {
   next();
 });
 
-var onIssuerResponse = function (resp, res, db, params) {
-  var id = params.id;
-  var language_preference = params.language_preference;
-  var merchant_data = params.merchant_data;
-  var rawData = '';
-
-  resp.on('data', function(chunk) {
-    rawData += chunk;
-  });
-
-  resp.on('end', function() {
-    try {
-      var parsedData = JSON.parse(rawData);
-      var coins = parsedData.issuerResponse.coin;
-      console.log("verified coins ", coins);
-      var tid = parsedData.issuerResponse.headerInfo.tid;
-
-      // Coins verified, save them in DB and return the response
-      var query = { "_id": ObjectId(merchant_data) };
-      db.findAndModify("payments", query, {
-        "coins": coins,
-        "resolved": true,
-        "id": id
-      }, (err, doc) => {
-        if (err) {
-          console.log(err);
-          res.status(400).send(err);
-          return;
-        }
-
-        // Prepare response
-        var key = doc.value.key;
-        var memo = "Thank you for buying this item";
-        switch (language_preference) {
-          case "Spanish":
-            memo = "Gracias por comprar este item";
-            break;
-        }
-
-        var response = {
-          PaymentAck: {
-            status: "ok",
-            id: id,
-            return_url: products[key],
-            memo: memo
-          }
-        };
-
-        var postDataEnd = {
-          "issuerRequest": {
-            "tid": tid
-          }
-        };
-        optionsEnd.headers['Content-Length'] = Buffer.byteLength(JSON.stringify(postDataEnd));
-
-        var reqIssuerEnd = https.request(optionsEnd, (endResp) => {
-          endResp.on('data', function(chunk) {
-            // nothing to do
-          });
-          endResp.on('end', function() {
-            res.setHeader('Content-Type', 'application/json');
-            console.log("PAYMENT COMPLETED AND CORRECT ******");
-            res.send(JSON.stringify(response));
-          });
-        });
-
-        reqIssuerEnd.on("error", function(e) {
-          console.log("Got error: " + e.message);
-          res.status(400).send(e.message);
-          return;
-        });
-
-        reqIssuerEnd.write(JSON.stringify(postDataEnd));
-        reqIssuerEnd.end();
-      });
-    } catch (e) {
-      console.error(e.message);
-      res.status(400).send(e.message);
-      return;
-    }
-  });
+Date.prototype.addMinutes = function (m) {
+  this.setMinutes(this.getMinutes() + m);
+  return this;
 }
+
 
 // Connect to Mongo on start
 db.connect('mongodb://localhost:27017/', function (err) {
@@ -248,7 +125,8 @@ db.connect('mongodb://localhost:27017/', function (err) {
     }
 
     // get payment id from DB
-    db.findOne('payments', { '_id': ObjectId(merchant_data) }, (err, paymentDB) => {
+    var query = { '_id': ObjectId(merchant_data) };
+    db.findOne('payments', query, (err, paymentDB) => {
 
       if (err) {
         res.status(400).send(err);
@@ -256,63 +134,76 @@ db.connect('mongodb://localhost:27017/', function (err) {
       }
 
       if (!paymentDB) {
+        // The payment is not registered
         res.status(400).send("Can not find payment with merchant_data " + merchant_data);
         return;
       }
 
-      var reqIssuerBegin = https.request(optionsBegin, (beginResp) => {
-        var rawData = '';
-        beginResp.on('data', function(chunk) {
-          rawData += chunk;
-        });
-
-        beginResp.on('end', function() {
-          try {
-            var parsedData = JSON.parse(rawData);
-            var postData = {
-              "issuerRequest": {
-                "tid": parsedData.issuerResponse.headerInfo.tid,
-                "expiry": paymentDB.expires,
-                "coin": coins,
-                "targetValue": "0",
-                "issuePolicy": "single"
-              }
-            };
-            console.log("coins to verify ", coins);
-            options.headers['Content-Length'] = Buffer.byteLength(JSON.stringify(postData));
-
-            params = {
-              merchant_data: merchant_data,
-              language_preference: language_preference,
-              id: id
-            };
-
-            var reqIssuer = https.request(options, (resp) => {
-              onIssuerResponse(resp, res, db, params);
-            });
-
-            reqIssuer.on("error", function(e) {
-              console.log("Got error: " + e.message);
-              res.status(400).send(e.message);
-              return;
-            });
-
-            reqIssuer.write(JSON.stringify(postData));
-            reqIssuer.end();
-          } catch (e) {
-            console.error(e.message);
+      issuer.post('begin', {
+        "issuerRequest": {
+          "fn": "verify"
+        }
+      }).then((resp) => {
+        var payload = {
+          "issuerRequest": {
+            "tid": resp.issuerResponse.headerInfo.tid,
+            "expiry": paymentDB.expires,
+            "coin": coins,
+            "targetValue": "0",
+            "issuePolicy": "single"
           }
-        });
-      });
+        };
+        console.log("coins to verify ", coins);
+        return issuer.post('verify', payload);
+      }).then((resp) => {
+        var coins = resp.issuerResponse.coin;
+        var tid = resp.issuerResponse.headerInfo.tid;
+        console.log("verified coins ", coins);
 
-      reqIssuerBegin.on("error", function(e) {
-        console.log("Got error: " + e.message);
-        res.status(400).send(e.message);
+        // Coins verified, save them in DB and return the response
+        db.findAndModify("payments", query, {
+          "coins": coins,
+          "resolved": true,
+          "id": id
+        }, (err, doc) => {
+          if (err) {
+            console.log(err);
+            res.status(400).send(err);
+            return;
+          }
+
+          // Prepare response
+          var key = doc.value.key;
+          var memo = "Thank you for buying this item";
+          switch (language_preference) {
+            case "Spanish":
+              memo = "Gracias por comprar este item";
+              break;
+          }
+
+          var response = {
+            PaymentAck: {
+              status: "ok",
+              id: id,
+              return_url: products[key],
+              memo: memo
+            }
+          };
+
+          issuer.post('end', {
+            "issuerRequest": {
+              "tid": tid
+            }
+          }).then((resp) => {
+            res.setHeader('Content-Type', 'application/json');
+            console.log("PAYMENT COMPLETED AND CORRECT ******");
+            res.send(JSON.stringify(response));
+          });
+        });
+      }).catch((err) => {
+        res.status(400).send(err.message || err);
         return;
       });
-
-      reqIssuerBegin.write(JSON.stringify(postDataBegin));
-      reqIssuerBegin.end();
     });
   });
 
