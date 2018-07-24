@@ -21,25 +21,50 @@ exports.get = function() {
 exports.insert = function(name, obj, done) {
   if (!state.db) return done(new Error("No DB"), []);
 
-  return state.db.collection(name).insert(obj, done);
+  return new Promise ((resolve, reject) => {
+    state.db.collection(name).insert(obj, (err, records) => {
+      if (err) {
+        return reject(err);
+      }
+      return resolve(records);
+    });
+  });
 }
 
-exports.findOne = function(name, query, callback) {
-  if (!state.db) return new Error("No DB");
+exports.findOne = function(name, query) {
+  if (!state.db) {
+    return Promise.reject(new Error("No DB"));
+  }
 
-  return state.db.collection(name).findOne(query, callback);
+  return new Promise((resolve, reject) => {
+    state.db.collection(name).findOne(query, (err, resp) => {
+      if (err) {
+        return reject(err);
+      }
+      return resolve(resp);
+    });
+  });
 }
 
 exports.findAndModify = function(name, query, modification, callback) {
-  if (!state.db) return new Error("No DB");
-
-  return state.db.collection(name).findAndModify(
-    query,
-    [], // represents a sort order if multiple matches
-    { $set: modification },
-    { new: true }, // options - new to return the modified document
-    callback
-  );
+  if (!state.db) {
+    return Promise.reject(new Error("No DB"));
+  }
+  
+  return new Promise((resolve, reject) => {
+    state.db.collection(name).findAndModify(
+      query,
+      [], // represents a sort order if multiple matches
+      { $set: modification },
+      { new: true }, // options - new to return the modified document
+      (err, doc) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(doc);
+      }
+    );
+  });
 }
 
 

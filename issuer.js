@@ -1,7 +1,6 @@
 var https = require('https');
 
 // Set issuer data for payment coins verification
-
 var options = {
   host: 'be.ap.rmp.net',
   port: 443,

@@ -91,13 +91,16 @@ db.connect('mongodb://localhost:27017/', function (err) {
       "key": id,
     });
 
-    db.insert("payments", payment, function (err, records) {
+    db.insert("payments", payment).then((records) => {
       payment.merchant_data = records.insertedIds['0'];
       delete payment.key;
       delete payment.resolved;
       delete payment._id;
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(payment));
+    }).catch((err) => {
+      res.status(400).send(err.message || err);
+      return;
     });
   });
 
@@ -119,91 +122,108 @@ db.connect('mongodb://localhost:27017/', function (err) {
       return;
     }
 
+    if (!merchant_data) {
+      res.status(400).send("Missing merchant_data");
+      return;
+    }
+
     if (!coins || coins.length == 0) {
       res.status(400).send("No coins included");
       return;
     }
 
     // get payment id from DB
+    var memo = "Thank you for buying this item";
+    switch (language_preference) {
+      case "Spanish":
+        memo = "Gracias por comprar este item";
+        break;
+    }
+
+    var expires, key, tid, verifiedCoins = null;
     var query = { '_id': ObjectId(merchant_data) };
-    db.findOne('payments', query, (err, paymentDB) => {
 
-      if (err) {
-        res.status(400).send(err);
-        return;
+    db.findOne('payments', query).then((resp) => {
+      if (!resp) {
+        throw new Error("Can not find payment with merchant_data " + merchant_data);
       }
 
-      if (!paymentDB) {
-        // The payment is not registered
-        res.status(400).send("Can not find payment with merchant_data " + merchant_data);
-        return;
+      if (resp.resolved) {
+        // The payment is resolved, throw error and intercept it
+        var response = {
+          PaymentAck: {
+            status: "ok",
+            id: id,
+            return_url: products[resp.key],
+            memo: memo
+          }
+        };
+
+        res.setHeader('Content-Type', 'application/json');
+        console.log("*** PAYMENT COMPLETED AND CORRECT ***");
+        res.send(JSON.stringify(response));
+        throw new Error("-1");
       }
 
-      issuer.post('begin', {
+      // TO_DO: value coins is the same like payment value
+
+      expires = resp.expires;
+      return issuer.post('begin', {
         "issuerRequest": {
           "fn": "verify"
         }
-      }).then((resp) => {
-        var payload = {
-          "issuerRequest": {
-            "tid": resp.issuerResponse.headerInfo.tid,
-            "expiry": paymentDB.expires,
-            "coin": coins,
-            "targetValue": "0",
-            "issuePolicy": "single"
-          }
-        };
-        console.log("coins to verify ", coins);
-        return issuer.post('verify', payload);
-      }).then((resp) => {
-        var coins = resp.issuerResponse.coin;
-        var tid = resp.issuerResponse.headerInfo.tid;
-        console.log("verified coins ", coins);
-
-        // Coins verified, save them in DB and return the response
-        db.findAndModify("payments", query, {
-          "coins": coins,
-          "resolved": true,
-          "id": id
-        }, (err, doc) => {
-          if (err) {
-            console.log(err);
-            res.status(400).send(err);
-            return;
-          }
-
-          // Prepare response
-          var key = doc.value.key;
-          var memo = "Thank you for buying this item";
-          switch (language_preference) {
-            case "Spanish":
-              memo = "Gracias por comprar este item";
-              break;
-          }
-
-          var response = {
-            PaymentAck: {
-              status: "ok",
-              id: id,
-              return_url: products[key],
-              memo: memo
-            }
-          };
-
-          issuer.post('end', {
-            "issuerRequest": {
-              "tid": tid
-            }
-          }).then((resp) => {
-            res.setHeader('Content-Type', 'application/json');
-            console.log("PAYMENT COMPLETED AND CORRECT ******");
-            res.send(JSON.stringify(response));
-          });
-        });
-      }).catch((err) => {
-        res.status(400).send(err.message || err);
-        return;
       });
+    }).then((resp) => {
+      tid = resp.issuerResponse.headerInfo.tid;
+      var payload = {
+        "issuerRequest": {
+          "tid": tid,
+          "expiry": expires,
+          "coin": coins,
+          "targetValue": "0",
+          "issuePolicy": "single"
+        }
+      };
+      console.log("coins to verify ", coins);
+      return issuer.post('verify', payload);
+    }).then((resp) => {
+      verifiedCoins = resp.issuerResponse.coin;
+      console.log("verified coins ", coins);
+
+      // Coins verified, save them in DB and return the response
+      return db.findAndModify("payments", query, {
+        "coins": coins,
+        "resolved": true,
+        "id": id
+      });
+    }).then((doc) => {
+      // Prepare response
+      key = doc.value.key;
+
+      return issuer.post('end', {
+        "issuerRequest": {
+          "tid": tid
+        }
+      });
+    }).then((resp) => {
+      var response = {
+        PaymentAck: {
+          status: "ok",
+          id: id,
+          return_url: products[key],
+          memo: memo
+        }
+      };
+
+      res.setHeader('Content-Type', 'application/json');
+      console.log("*** PAYMENT COMPLETED AND CORRECT ***");
+      res.send(JSON.stringify(response));
+    }).catch((err) => {
+      if (err.message == "-1") {
+        return;
+      }
+      res.status(400).send(err.message || err);
+      return;
     });
   });
 
