@@ -1,4 +1,5 @@
 var https = require('https');
+var atob = require('atob');
 
 // Set issuer data for payment coins verification
 var options = {
@@ -50,4 +51,36 @@ function issuerRequest(options, endpoint, data=null) {
     req.write(JSON.stringify(data));
     req.end();
   });
+}
+
+
+function Coin(base64) {
+  try {
+    let obj = JSON.parse(atob(base64));  
+    obj.base64 = base64;
+    obj.value = _round(parseFloat(obj.v), 8);
+    return obj;
+  } catch(err) {
+    return null;
+  }
+}
+
+function _round(number, precision) {
+  let factor = Math.pow(10, precision);
+  let tempNumber = number * factor;
+  let roundedTempNumber = Math.round(tempNumber);
+  return roundedTempNumber / factor;
+}
+
+exports.coinsValue = function(coins) {
+  let sumCoins = 0;
+  coins.forEach((elt) => {
+    if (typeof elt === "string") {
+      sumCoins += Coin(elt).value || 0;
+    } else {
+      sumCoins += elt.value || 0;
+    }
+  });
+  return sumCoins;
+  return 0;
 }

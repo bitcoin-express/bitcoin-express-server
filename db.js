@@ -67,7 +67,6 @@ exports.findAndModify = function(name, query, modification, callback) {
   });
 }
 
-
 exports.close = function(done) {
   if (state.db) {
     state.db.close(function(err, result) {

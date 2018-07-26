@@ -18,27 +18,6 @@ var credentials = {
   passphrase: 'bitcoinexpress'
 };
 
-// 2. List of different products sold with its value.
-//
-// To initialize a payment with of an item the request
-// must include the item key as in the query parameter
-// for example:
-// GET https://localhost:8443/payment?id=theartofasking
-var merchantProducts = {
-  "theartofasking": {
-    amount: 0.0000095,
-    payment_url: "https://localhost:8443/payment",
-    currency: "XBT",
-    issuers: ["be.ap.rmp.net", "eu.carrotpay.com"],
-    memo: "The art of asking",
-    email: {
-      contact: "sales@merchant.com",
-      receipt: true,
-      refund: false
-    },
-  },
-};
-
 // 3. Product hidden responses (what users will get in
 // return  as a 'return_url' after payment completed).
 var products = {
@@ -59,7 +38,6 @@ Date.prototype.addMinutes = function (m) {
   return this;
 }
 
-
 // Connect to Mongo on start
 db.connect('mongodb://localhost:27017/', function (err) {
 
@@ -74,26 +52,57 @@ db.connect('mongodb://localhost:27017/', function (err) {
     res.send('Hello Bitcoin-Express merchant!');
   });
 
-  // i.e. GET - https://localhost:8443/payment?id=theartofasking
-  app.get('/payment', function (req, res) {
-    var id = req.query.id;
-    if (!id || Object.keys(merchantProducts).indexOf(id) == -1) {
-      res.status(400).send("No product with the requested id");
+  // i.e. POST - https://localhost:8443/createPaymentRequest
+  app.post('/createPaymentRequest', function (req, res) {
+    // var id = req.query.id;
+    var {
+      amount,
+      payment_url,
+      currency,
+      issuers,
+      memo,
+      email,
+      language_preference,
+      expires,
+    } = req.body;
+    console.log(req.body);
+
+    if (!amount || isNaN(amount)) {
+      res.status(400).send("Incorrect amount");
       return;
     }
 
-    // Payment expires in 4 minutes
+    if (!payment_url) {
+      res.status(400).send("No payment_url included");
+      return;
+    }
+
+    if (!currency) {
+      res.status(400).send("Missing currency");
+      return;
+    }
+
     var now = new Date();
-    var payment = Object.assign({}, merchantProducts[id], {
+    expires = expires || now.addMinutes(4).toISOString();
+    language_preference = language_preference || "English";
+
+    // Payment expires in 4 minutes
+    var payment = Object.assign({}, {
+      amount,
+      payment_url,
+      currency,
+      issuers,
+      memo,
+      email,
+      expires,
+      language_preference,
+    }, {
       "resolved": false,
       "time": now.toISOString(),
-      "expires": now.addMinutes(4).toISOString(),
-      "key": id,
     });
 
     db.insert("payments", payment).then((records) => {
       payment.merchant_data = records.insertedIds['0'];
-      delete payment.key;
       delete payment.resolved;
       delete payment._id;
       res.setHeader('Content-Type', 'application/json');
@@ -105,7 +114,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
   });
 
   // i.e. POST - https://localhost:8443/payment
-  app.post('/payment', function (req, res) {
+  app.post('/redeem', function (req, res) {
     var payment = req.body.Payment;
 
     var id =  payment.id;
@@ -140,7 +149,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
         break;
     }
 
-    var expires, key, tid, verifiedCoins = null;
+    var expires, key, tid, verifiedCoins, amount = null;
     var query = { '_id': ObjectId(merchant_data) };
 
     db.findOne('payments', query).then((resp) => {
@@ -165,9 +174,14 @@ db.connect('mongodb://localhost:27017/', function (err) {
         throw new Error("-1");
       }
 
-      // TO_DO: value coins is the same like payment value
+      // The value of the coins must be the same like as the payment value
+      amount = resp.amount;
+      if (issuer.coinsValue(coins) != amount) {
+        throw new Error("The coins sended for the payment have not the same amount as the item price");
+      }
 
       expires = resp.expires;
+      throw new Error("Holaaaa caracola");
       return issuer.post('begin', {
         "issuerRequest": {
           "fn": "verify"
@@ -180,7 +194,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
           "tid": tid,
           "expiry": expires,
           "coin": coins,
-          "targetValue": "0",
+          "targetValue": String(amount),
           "issuePolicy": "single"
         }
       };
