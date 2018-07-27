@@ -46,6 +46,21 @@ exports.findOne = function(name, query) {
   });
 }
 
+exports.find = function(name, query, filter) {
+  if (!state.db) {
+    return Promise.reject(new Error("No DB"));
+  }
+
+  return new Promise((resolve, reject) => {
+    state.db.collection(name).find(query, filter, (err, resp) => {
+      if (err) {
+        return reject(err);
+      }
+      return resolve(resp);
+    });
+  });
+}
+
 exports.findAndModify = function(name, query, modification, callback) {
   if (!state.db) {
     return Promise.reject(new Error("No DB"));

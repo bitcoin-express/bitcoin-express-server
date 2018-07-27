@@ -49,6 +49,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
 
   // i.e. GET - https://localhost:8443
   app.get('/', function (req, res) {
+    // TO_DO: Explain more the API
     res.send('Hello Bitcoin-Express merchant!');
   });
 
@@ -113,6 +114,50 @@ db.connect('mongodb://localhost:27017/', function (err) {
     });
   });
 
+  // i.e. GET - https://localhost:8443/getPaymentStatus
+  app.get('/getPaymentStatus', function (req, res) {
+    var merchant_data = req.query.merchant_data;
+    var query = { '_id': ObjectId(merchant_data) };
+
+    db.findOne('payments', query).then((resp) => {
+      res.send(JSON.stringify(resp));
+    }).catch((err) => {
+      res.status(400).send(err.message || err);
+      return;
+    });
+  });
+
+  // i.e. GET - https://localhost:8443/getBalance
+  app.get('/getBalance', function (req, res) {
+    // TO_DO: Explain more the API
+    var query = {}
+    var filter = {"coins": 1};
+    db.find('coins', query, filter).then((resp) => {
+      var coins = resp.map((row) => {
+        // Because of single policy
+        return row["coins"][0];
+      });
+      var totalValue = issuer.coinsValue(coins);
+      res.send(JSON.stringify({ total: totalValue }));
+    }).catch((err) => {
+      res.status(400).send(err.message || err);
+      return;
+    });
+  });
+
+  // i.e. GET - https://localhost:8443/getTransactions
+  app.get('/getTransactions', function (req, res) {
+    // TO_DO: Explain more the API
+    var query = {}
+    var filter = {};
+    db.find('payments', query, filter).then((resp) => {
+      res.send(JSON.stringify(resp));
+    }).catch((err) => {
+      res.status(400).send(err.message || err);
+      return;
+    });
+  });
+
   // i.e. POST - https://localhost:8443/payment
   app.post('/redeem', function (req, res) {
     var payment = req.body.Payment;
@@ -149,7 +194,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
         break;
     }
 
-    var expires, key, tid, verifiedCoins, amount = null;
+    var expires, key, tid, verifiedCoins, amount, currency = null;
     var query = { '_id': ObjectId(merchant_data) };
 
     db.findOne('payments', query).then((resp) => {
@@ -180,8 +225,11 @@ db.connect('mongodb://localhost:27017/', function (err) {
         throw new Error("The coins sended for the payment have not the same amount as the item price");
       }
 
+      currency = resp.currency;
+      // TO_DO: Check if all coins are from that currency
+      // TO_DO: Check if all coins are from the issuers
+
       expires = resp.expires;
-      throw new Error("Holaaaa caracola");
       return issuer.post('begin', {
         "issuerRequest": {
           "fn": "verify"
@@ -202,11 +250,16 @@ db.connect('mongodb://localhost:27017/', function (err) {
       return issuer.post('verify', payload);
     }).then((resp) => {
       verifiedCoins = resp.issuerResponse.coin;
-      console.log("verified coins ", coins);
+      console.log("verified coins ", verifiedCoins);
 
-      // Coins verified, save them in DB and return the response
+      // Coins verified, save them in DB
+      return db.insert("coins", {
+        "coins": verifiedCoins,
+        "currency": currency,
+        "date": new Date().toISOString()
+      });
+    }).then((records) => {
       return db.findAndModify("payments", query, {
-        "coins": coins,
         "resolved": true,
         "id": id
       });
