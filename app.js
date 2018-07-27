@@ -18,12 +18,6 @@ var credentials = {
   passphrase: 'bitcoinexpress'
 };
 
-// 3. Product hidden responses (what users will get in
-// return  as a 'return_url' after payment completed).
-var products = {
-  "theartofasking": "https://bitcoin-e.org/static/images/test/product_art_asking.jpg",
-};
-
 // Middlewares
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -277,7 +271,6 @@ db.connect('mongodb://localhost:27017/', function (err) {
         PaymentAck: {
           status: "ok",
           id: id,
-          return_url: products[key],
           memo: memo
         }
       };
