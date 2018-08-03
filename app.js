@@ -32,6 +32,7 @@ Date.prototype.addMinutes = function (m) {
   return this;
 }
 
+
 // Connect to Mongo on start
 db.connect('mongodb://localhost:27017/', function (err) {
 
@@ -48,6 +49,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
   });
 
   // i.e. POST - https://localhost:8443/createPaymentRequest
+  // TESTED and Working OK
   app.post('/createPaymentRequest', function (req, res) {
     // var id = req.query.id;
     var {
@@ -109,11 +111,15 @@ db.connect('mongodb://localhost:27017/', function (err) {
   });
 
   // i.e. GET - https://localhost:8443/getPaymentStatus
+  // TESTED and Working OK
   app.get('/getPaymentStatus', function (req, res) {
     var merchant_data = req.query.merchant_data;
     var query = { '_id': ObjectId(merchant_data) };
 
     db.findOne('payments', query).then((resp) => {
+      if (!resp) {
+        res.status(400).send("Missing merchant_data query parameter")
+      }
       res.send(JSON.stringify(resp));
     }).catch((err) => {
       res.status(400).send(err.message || err);
@@ -122,17 +128,12 @@ db.connect('mongodb://localhost:27017/', function (err) {
   });
 
   // i.e. GET - https://localhost:8443/getBalance
+  // TESTED and Working OK
   app.get('/getBalance', function (req, res) {
-    // TO_DO: Explain more the API
-    var query = {}
-    var filter = {"coins": 1};
-    db.find('coins', query, filter).then((resp) => {
-      var coins = resp.map((row) => {
-        // Because of single policy
-        return row["coins"][0];
-      });
-      var totalValue = issuer.coinsValue(coins);
-      res.send(JSON.stringify({ total: totalValue }));
+    db.getCoinList().then((coins) => {
+      console.log("*** Coins ***")
+      console.log(coins)
+      res.send(JSON.stringify({ total: issuer.coinsValue(coins) }));
     }).catch((err) => {
       res.status(400).send(err.message || err);
       return;
@@ -140,20 +141,28 @@ db.connect('mongodb://localhost:27017/', function (err) {
   });
 
   // i.e. GET - https://localhost:8443/getTransactions
+  // TESTED and Working OK
   app.get('/getTransactions', function (req, res) {
-    // TO_DO: Explain more the API
-    var query = {}
-    var filter = {};
-    db.find('payments', query, filter).then((resp) => {
-      res.send(JSON.stringify(resp));
+    var query = {};
+    db.find('payments', query).then((resp) => {
+      console.log(resp);
+      res.send(JSON.stringify({ result: resp }));
     }).catch((err) => {
       res.status(400).send(err.message || err);
       return;
     });
   });
 
-  // i.e. POST - https://localhost:8443/payment
+
+  // i.e. POST - https://localhost:8443/redeem
   app.post('/redeem', function (req, res) {
+    var uri = req.body.address;
+    var speed = req.body.speed;
+    return issuer.transferBitcoin(uri, db, speed);
+  });
+
+  // i.e. POST - https://localhost:8443/payment
+  app.post('/payment', function (req, res) {
     var payment = req.body.Payment;
 
     var id =  payment.id;
@@ -215,13 +224,13 @@ db.connect('mongodb://localhost:27017/', function (err) {
 
       // The value of the coins must be the same like as the payment value
       amount = resp.amount;
-      if (issuer.coinsValue(coins) != amount) {
-        throw new Error("The coins sended for the payment have not the same amount as the item price");
+      if (issuer.coinsValue(coins) < amount) {
+        throw new Error("The coins sended are not enough");
       }
 
       currency = resp.currency;
       // TO_DO: Check if all coins are from that currency
-      // TO_DO: Check if all coins are from the issuers
+      // TO_DO: Check if all coins are from the issuer list
 
       expires = resp.expires;
       return issuer.post('begin', {
