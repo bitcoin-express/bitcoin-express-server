@@ -74,6 +74,21 @@ db.connect('mongodb://localhost:27017/', function (err) {
     res.send('Hello Bitcoin-Express wallet merchant!');
   }
 
+  /* Example of a payment request body:
+   * {
+   *   "amount": 0.0000095,
+   *   "payment_url": "https://localhost:8443/payment",
+   *   "currency": "XBT",
+   *   "issuers": ["be.ap.rmp.net","eu.carrotpay.com"],
+   *   "memo": "The art of asking",
+   *   "return_url": "http://amandapalmer.net/hero_mask.png",
+   *   "return_memo":"Thank you for buying this image",
+   *   "email": {
+   *     "contact":"sales@merchant.com",
+   *     "receipt":true,"refund":false
+   *   }
+   * }
+   */
   function createPaymentRequest(req, res) {
     var paymentRequest = req.body;
 
@@ -119,7 +134,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
       // Of course, remove the memo and return_url
       // It will be used in the future once the payment is verified
       delete paymentRequest.return_url;
-      delete paymentRequest.memo;
+      delete paymentRequest.return_memo;
 
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(paymentRequest));
@@ -218,7 +233,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
       }
 
       return_url = resp.return_url;
-      memo = resp.memo;
+      memo = resp.return_memo;
 
       if (resp.resolved) {
         // The payment is resolved, throw error and intercept it
