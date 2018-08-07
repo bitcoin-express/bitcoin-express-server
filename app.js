@@ -152,6 +152,15 @@ db.connect('mongodb://localhost:27017/', function (err) {
       if (!resp) {
         res.status(400).send("Missing merchant_data query parameter")
       }
+
+      if (!resp.resolved) {
+        // Remove the memo and return_url if not resolved
+        // This can be done by the merchant, but better to make
+        // sure we do it here
+        delete resp.return_url;
+        delete resp.return_memo;
+      }
+
       res.send(JSON.stringify(resp));
     }).catch((err) => {
       res.status(400).send(err.message || err);
@@ -173,6 +182,16 @@ db.connect('mongodb://localhost:27017/', function (err) {
     var query = {};
     db.find('payments', query).then((resp) => {
       console.log(resp);
+      resp = resp.map((tx) => {
+        if (!tx.resolved) {
+          // Remove the memo and return_url if not resolved
+          // This can be done by the merchant, but better to make
+          // sure we do it here
+          delete tx.return_url;
+          delete tx.return_memo;
+        }
+        return tx;
+      });
       res.send(JSON.stringify({ result: resp }));
     }).catch((err) => {
       res.status(400).send(err.message || err);
