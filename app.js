@@ -2,15 +2,17 @@ var bodyParser = require('body-parser');
 var express = require('express');
 var fs = require('fs');
 var https = require('https');
-
 var ObjectId = require('mongodb').ObjectId;
+
+
 var db = require('./db');
 var issuer = require('./issuer');
+var utils = require('./issuer/utils');
 
 var privateKey  = fs.readFileSync('./sslcert/bitcoinexpress.key', 'utf8');
-var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');;
+var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');
 
-// 1. Initialiaze server with the proper keys for secure connection
+
 var app = express();
 var credentials = {
   key: privateKey,
@@ -18,14 +20,16 @@ var credentials = {
   passphrase: 'bitcoinexpress'
 };
 
-// Middlewares
-app.use(bodyParser.json());
+
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
+
 
 Date.prototype.addMinutes = function (m) {
   this.setMinutes(this.getMinutes() + m);
@@ -42,77 +46,73 @@ db.connect('mongodb://localhost:27017/', function (err) {
     return;
   }
 
-  // i.e. GET - https://localhost:8443
-  app.get('/', function (req, res) {
-    // TO_DO: Explain more the API
-    res.send('Hello Bitcoin-Express merchant!');
+  // GET - https://localhost:8443
+  app.get('/', index);
+  // POST - https://localhost:8443/createPaymentRequest
+  app.post('/createPaymentRequest', createPaymentRequest);
+  // GET - https://localhost:8443/getBalance
+  app.get('/getBalance', getBalance);
+  // GET - https://localhost:8443/getPaymentStatus?merchant_data=XXXXXXX
+  app.get('/getPaymentStatus', getPaymentStatus);
+  // GET - https://localhost:8443/getTransactions
+  app.get('/getTransactions', getTransactions);
+  // POST - https://localhost:8443/payment
+  app.post('/payment', payment);
+  // POST - https://localhost:8443/redeem
+  app.post('/redeem', redeem);
+
+  var httpsServer = https.createServer(credentials, app);
+  httpsServer.listen(8443, function() {
+    console.log('Listening on port 8443...');
   });
 
-  // i.e. POST - https://localhost:8443/createPaymentRequest
-  // TESTED and Working OK
-  app.post('/createPaymentRequest', function (req, res) {
-    // var id = req.query.id;
-    var {
-      amount,
-      payment_url,
-      currency,
-      issuers,
-      memo,
-      email,
-      language_preference,
-      expires,
-    } = req.body;
-    console.log(req.body);
+  /********************
+   * API functions
+   ********************/
 
-    if (!amount || isNaN(amount)) {
+  function index (req, res) {
+    res.send('Hello Bitcoin-Express wallet merchant!');
+  }
+
+  function createPaymentRequest(req, res) {
+    var paymentRequest = req.body;
+
+    if (!paymentRequest.amount || isNaN(paymentRequest.amount)) {
       res.status(400).send("Incorrect amount");
       return;
     }
 
-    if (!payment_url) {
+    if (!paymentRequest.payment_url) {
       res.status(400).send("No payment_url included");
       return;
     }
 
-    if (!currency) {
+    if (!paymentRequest.currency) {
       res.status(400).send("Missing currency");
       return;
     }
 
-    var now = new Date();
-    expires = expires || now.addMinutes(4).toISOString();
-    language_preference = language_preference || "English";
-
     // Payment expires in 4 minutes
-    var payment = Object.assign({}, {
-      amount,
-      payment_url,
-      currency,
-      issuers,
-      memo,
-      email,
-      expires,
-      language_preference,
-    }, {
-      "resolved": false,
-      "time": now.toISOString(),
-    });
+    var now = new Date();
+    paymentRequest.expires = paymentRequest.expires || now.addMinutes(4).toISOString();
+    paymentRequest.language_preference = paymentRequest.language_preference || "English";
+    paymentRequest.issuers = paymentRequest.issuers || ["*"];
+    paymentRequest.resolved = false;
+    paymentRequest.time = now.toISOString();
 
-    db.insert("payments", payment).then((records) => {
-      payment.merchant_data = records.insertedIds['0'];
-      delete payment.resolved;
-      delete payment._id;
+    db.insert("payments", paymentRequest).then((records) => {
+      paymentRequest.merchant_data = records.insertedIds['0'];
+      delete paymentRequest.resolved;
+      delete paymentRequest._id;
       res.setHeader('Content-Type', 'application/json');
-      res.send(JSON.stringify(payment));
+      res.send(JSON.stringify(paymentRequest));
     }).catch((err) => {
       res.status(400).send(err.message || err);
       return;
     });
-  });
+  }
 
-  // i.e. GET - https://localhost:8443/getPaymentStatus
-  // TESTED and Working OK
-  app.get('/getPaymentStatus', function (req, res) {
+  function getPaymentStatus (req, res) {
     var merchant_data = req.query.merchant_data;
     var query = { '_id': ObjectId(merchant_data) };
 
@@ -125,24 +125,19 @@ db.connect('mongodb://localhost:27017/', function (err) {
       res.status(400).send(err.message || err);
       return;
     });
-  });
+  }
 
-  // i.e. GET - https://localhost:8443/getBalance
-  // TESTED and Working OK
-  app.get('/getBalance', function (req, res) {
+  function getBalance (req, res) {
     db.getCoinList().then((coins) => {
-      console.log("*** Coins ***")
-      console.log(coins)
       res.send(JSON.stringify({ total: issuer.coinsValue(coins) }));
     }).catch((err) => {
+      throw err;
       res.status(400).send(err.message || err);
       return;
     });
-  });
+  }
 
-  // i.e. GET - https://localhost:8443/getTransactions
-  // TESTED and Working OK
-  app.get('/getTransactions', function (req, res) {
+  function getTransactions (req, res) {
     var query = {};
     db.find('payments', query).then((resp) => {
       console.log(resp);
@@ -151,24 +146,30 @@ db.connect('mongodb://localhost:27017/', function (err) {
       res.status(400).send(err.message || err);
       return;
     });
-  });
+  }
 
-
-  // i.e. POST - https://localhost:8443/redeem
-  app.post('/redeem', function (req, res) {
+  function redeem (req, res) {
     var uri = req.body.address;
     var speed = req.body.speed;
-    return issuer.transferBitcoin(uri, db, speed);
-  });
+    return issuer.transfer(uri, db, speed).then((resp) => {
+      res.setHeader('Content-Type', 'application/json');
+      console.log("*** BITCOIN TRANSFER COMPLETED ***");
+      res.send(JSON.stringify(resp));
+    }).catch((err) => {
+      res.status(400).send(err.message || err);
+      return;
+    });
+  }
 
-  // i.e. POST - https://localhost:8443/payment
-  app.post('/payment', function (req, res) {
+  function payment (req, res) {
     var payment = req.body.Payment;
+    var {
+      coins,
+      id,
+      language_preference,
+      merchant_data,
+    } = payment;
 
-    var id =  payment.id;
-    var merchant_data = payment.merchant_data;
-    var language_preference = payment.language_preference;
-    var coins = payment.coins;
     // Not used for this demo, needs to be implemented
     // var receipt_to = payment.receipt_to;
     // var refund_to = payment.refund_to;
@@ -222,31 +223,41 @@ db.connect('mongodb://localhost:27017/', function (err) {
         throw new Error("-1");
       }
 
-      // The value of the coins must be the same like as the payment value
       amount = resp.amount;
+      currency = resp.currency;
+      expires = resp.expires;
+
       if (issuer.coinsValue(coins) < amount) {
         throw new Error("The coins sended are not enough");
       }
 
-      currency = resp.currency;
-      // TO_DO: Check if all coins are from that currency
-      // TO_DO: Check if all coins are from the issuer list
+      if (!coins.every((c) => currency == utils.Coin(c).c)) {
+        throw new Error("Some coins are not from the requested currecy");
+      }
 
-      expires = resp.expires;
+      var { issuers } = resp;
+      var inIssuerList = (c) => issuers.indexOf(utils.Coin(c).d) > -1;
+      if (issuers.length == 0) {
+        throw new Error("Empty issuer list");
+      }
+      if (issuers[0] != "*" && !coins.every(inIssuerList)) {
+        throw new Error("Some coins are not from the requested currecy");
+      }
+
       return issuer.post('begin', {
-        "issuerRequest": {
-          "fn": "verify"
+        issuerRequest: {
+          fn: "verify"
         }
       });
     }).then((resp) => {
       tid = resp.issuerResponse.headerInfo.tid;
       var payload = {
-        "issuerRequest": {
-          "tid": tid,
-          "expiry": expires,
-          "coin": coins,
-          "targetValue": String(amount),
-          "issuePolicy": "single"
+        issuerRequest: {
+          tid: tid,
+          expiry: expires,
+          coin: coins,
+          targetValue: String(amount),
+          issuePolicy: "single"
         }
       };
       console.log("coins to verify ", coins);
@@ -257,22 +268,20 @@ db.connect('mongodb://localhost:27017/', function (err) {
 
       // Coins verified, save them in DB
       return db.insert("coins", {
-        "coins": verifiedCoins,
-        "currency": currency,
-        "date": new Date().toISOString()
+        coins: verifiedCoins,
+        currency: currency,
+        date: new Date().toISOString()
       });
     }).then((records) => {
       return db.findAndModify("payments", query, {
-        "resolved": true,
-        "id": id
+        resolved: true,
+        id: id
       });
     }).then((doc) => {
-      // Prepare response
       key = doc.value.key;
-
       return issuer.post('end', {
-        "issuerRequest": {
-          "tid": tid
+        issuerRequest: {
+          tid: tid
         }
       });
     }).then((resp) => {
@@ -280,10 +289,10 @@ db.connect('mongodb://localhost:27017/', function (err) {
         PaymentAck: {
           status: "ok",
           id: id,
-          memo: memo
+          memo: memo, // this should be feeded by the merchant
+          return_url: "http://amandapalmer.net/wp-content/themes/afp/art-of-asking/images/book_logo.png" // this should be feeded by the merchant
         }
       };
-
       res.setHeader('Content-Type', 'application/json');
       console.log("*** PAYMENT COMPLETED AND CORRECT ***");
       res.send(JSON.stringify(response));
@@ -294,10 +303,5 @@ db.connect('mongodb://localhost:27017/', function (err) {
       res.status(400).send(err.message || err);
       return;
     });
-  });
-
-  var httpsServer = https.createServer(credentials, app);
-  httpsServer.listen(8443, function() {
-    console.log('Listening on port 8443...');
-  });
+  }
 })

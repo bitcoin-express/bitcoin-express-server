@@ -31,6 +31,41 @@ exports.insert = function(name, obj, done) {
   });
 }
 
+
+exports.unset = function(name, query, unset) {
+  // unset = { description : 1}
+  return this.findOne(name, query).then((doc) => {
+    state.db.collection(name).update({ _id: 1234 }, { $unset : unset })
+  })
+}
+
+
+exports.remove = function(name, query) {
+  return new Promise((resolve, reject) => {
+    state.db.collection(name).remove(query, function(err, resp) {
+      if (err) {
+        return reject(err);
+      }
+      return resolve(records);
+    });
+  });
+}
+
+exports.removeMultipleIds = function(name, ids) {
+  var listIds = ids.map((id) => {
+    return ObjectId(id);
+  });
+
+  return new Promise((resolve, reject) => {
+    state.db.collection(name).remove({ _id : { $in: listIds } }, function(err, resp) {
+      if (err) {
+        return reject(err);
+      }
+      return resolve(records);
+    });
+  });
+}
+
 exports.findOne = function(name, query) {
   if (!state.db) {
     return Promise.reject(new Error("No DB"));
@@ -46,7 +81,6 @@ exports.findOne = function(name, query) {
   });
 }
 
-
 exports.getCoinList = function () {
   return this.find("coins", {}).then((resp) => {
     var coins = resp.map((row) => {
@@ -54,6 +88,19 @@ exports.getCoinList = function () {
       return row["coins"][0];
     });
     return coins;
+  });
+}
+
+exports.extractCoins = function (coins) {
+  var promises = coins.map((c) => {
+    return this.findOne("coins", { coins: [c] });
+  });
+
+  return Promise.all(promises).then((responses) => {
+    var ids = responses.map((resp) => {
+      return resp._id;
+    });
+    return this.removeMultipleIds("coins", ids);
   });
 }
 
