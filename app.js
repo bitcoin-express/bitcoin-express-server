@@ -87,6 +87,16 @@ db.connect('mongodb://localhost:27017/', function (err) {
       return;
     }
 
+    if (!paymentRequest.return_url) {
+      res.status(400).send("No payment_url included");
+      return;
+    }
+
+    if (!paymentRequest.memo) {
+      res.status(400).send("No memo included");
+      return;
+    }
+
     if (!paymentRequest.currency) {
       res.status(400).send("Missing currency");
       return;
@@ -190,15 +200,9 @@ db.connect('mongodb://localhost:27017/', function (err) {
       return;
     }
 
-    // get payment id from DB
-    var memo = "Thank you for buying this item";
-    switch (language_preference) {
-      case "Spanish":
-        memo = "Gracias por comprar este item";
-        break;
-    }
+    var expires, key, tid, verifiedCoins, amount,
+      currency, return_url, memo = null;
 
-    var expires, key, tid, verifiedCoins, amount, currency = null;
     var query = { '_id': ObjectId(merchant_data) };
 
     db.findOne('payments', query).then((resp) => {
@@ -206,13 +210,16 @@ db.connect('mongodb://localhost:27017/', function (err) {
         throw new Error("Can not find payment with merchant_data " + merchant_data);
       }
 
+      return_url = resp.return_url;
+      memo = resp.memo;
+
       if (resp.resolved) {
         // The payment is resolved, throw error and intercept it
         var response = {
           PaymentAck: {
             status: "ok",
             id: id,
-            return_url: products[resp.key],
+            return_url: return_url, // this should be feeded by the merchant
             memo: memo
           }
         };
@@ -266,6 +273,10 @@ db.connect('mongodb://localhost:27017/', function (err) {
       verifiedCoins = resp.issuerResponse.coin;
       console.log("verified coins ", verifiedCoins);
 
+      if (issuer.coinsValue(verifiedCoins) < amount) {
+        throw new Error("After verify coins, the amount is not enough");
+      }
+
       // Coins verified, save them in DB
       return db.insert("coins", {
         coins: verifiedCoins,
@@ -289,8 +300,8 @@ db.connect('mongodb://localhost:27017/', function (err) {
         PaymentAck: {
           status: "ok",
           id: id,
-          memo: memo, // this should be feeded by the merchant
-          return_url: "http://amandapalmer.net/wp-content/themes/afp/art-of-asking/images/book_logo.png" // this should be feeded by the merchant
+          memo: memo,
+          return_url: return_url
         }
       };
       res.setHeader('Content-Type', 'application/json');
