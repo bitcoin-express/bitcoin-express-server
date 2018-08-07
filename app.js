@@ -88,7 +88,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
     }
 
     if (!paymentRequest.return_url) {
-      res.status(400).send("No payment_url included");
+      res.status(400).send("No return_url included");
       return;
     }
 
@@ -112,8 +112,15 @@ db.connect('mongodb://localhost:27017/', function (err) {
 
     db.insert("payments", paymentRequest).then((records) => {
       paymentRequest.merchant_data = records.insertedIds['0'];
+
+      // Delete not usefult params
       delete paymentRequest.resolved;
       delete paymentRequest._id;
+      // Of course, remove the memo and return_url
+      // It will be used in the future once the payment is verified
+      delete paymentRequest.return_url;
+      delete paymentRequest.memo;
+
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(paymentRequest));
     }).catch((err) => {
