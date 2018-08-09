@@ -39,8 +39,8 @@ exports.coinsValue = function (coins) {
   return sumCoins;
 }
 
-exports.transfer = function (uri, db, speed) {
-  return utils.transferBitcoin(uri, db, speed);
+exports.transfer = function (uri, amount, db, speed) {
+  return utils.transferBitcoin(uri, amount, db, speed);
 }
 
 function issuerRequest(options, endpoint, data=null) {

@@ -202,7 +202,8 @@ db.connect('mongodb://localhost:27017/', function (err) {
   function redeem (req, res) {
     var uri = req.body.address;
     var speed = req.body.speed;
-    return issuer.transfer(uri, db, speed).then((resp) => {
+    var amount = req.body.amount;
+    return issuer.transfer(uri, amount, db, speed).then((resp) => {
       res.setHeader('Content-Type', 'application/json');
       console.log("*** BITCOIN TRANSFER COMPLETED ***");
       res.send(JSON.stringify(resp));
@@ -314,9 +315,12 @@ db.connect('mongodb://localhost:27017/', function (err) {
       verifiedCoins = resp.issuerResponse.coin;
       console.log("verified coins ", verifiedCoins);
 
+      /*
+       * TO_DO - coinsValue minus expected verification fee
       if (issuer.coinsValue(verifiedCoins) < amount) {
         throw new Error("After verify coins, the amount is not enough");
       }
+      */
 
       // Coins verified, save them in DB
       return db.insert("coins", {
