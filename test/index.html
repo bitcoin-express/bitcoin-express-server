@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>Bitcoin-express Sandbox</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script type="text/javascript" src="../js/vendor/jQuery-v3.1.1.js"></script>
+    <script type="text/javascript" src="../js/vendor/BitcoinExpress.min.js"></script>
+  </head>
+  <body>
+ 
+  <ul>
+    <li>
+      <a id="mock_payment_3" href="#">
+        Mock payment 0.0000095 XBT
+      </a>
+    </li>
+  </ul>
+
+  <script defer="defer" type="text/javascript">
+    function startPayment (req) {
+      console.log("startPayment", req);
+      BitcoinExpress.Wallet.Open(req).then(function(container) {
+        // an object containing the PaymentAck
+        if ("PaymentAck" in container) {
+          let PaymentAck = container.PaymentAck;
+          if ("status" in PaymentAck) {
+            console.log("Status is "+PaymentAck.status);
+            if (PaymentAck.status == "ok" && "return_url" in PaymentAck) {
+              return window.location.replace(PaymentAck.return_url);
+            }
+          }
+        }
+      }).catch(function(err) {
+        console.log("PaymentRequest returned ", err);
+      });
+    };
+
+    //var merchantServer = "https://localhost:8443";
+    var merchantServer = "http://18.130.120.182:8080";
+
+
+    document.getElementById("mock_payment_3").addEventListener('click', function () {
+      var xmlHttp = new XMLHttpRequest();
+      xmlHttp.onreadystatechange = function() { 
+        if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+          startPayment({
+            fullScreen: false,
+            PaymentRequest: {
+              payment_details_version: "1",
+              PaymentDetails: JSON.parse(xmlHttp.responseText)
+            }
+          });
+        }
+      }
+      xmlHttp.open("POST", merchantServer + "/createPaymentRequest", true); // true for asynchronous
+      xmlHttp.setRequestHeader('Content-type', 'application/json');
+      var params = JSON.stringify({
+        amount: 0.0000095,
+        payment_url: merchantServer + "/payment",
+        currency: "XBT",
+        issuers: ["be.ap.rmp.net", "eu.carrotpay.com"],
+        memo: "The art of asking",
+        return_url: "http://amandapalmer.net/wp-content/themes/afp/art-of-asking/images/hero_mask.png",
+        return_memo: "Thank you for buying this image",
+        email: {
+          contact: "sales@merchant.com",
+          receipt: true,
+          refund: false
+        },
+      });
+      xmlHttp.send(params);
+    });
+  </script>
+
+  </body>
+</html>

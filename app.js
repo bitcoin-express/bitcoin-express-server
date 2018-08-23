@@ -2,12 +2,17 @@ var bodyParser = require('body-parser');
 var express = require('express');
 var fs = require('fs');
 var https = require('https');
+var uuidv1 = require('uuid/v1');
 var ObjectId = require('mongodb').ObjectId;
 
 
 var db = require('./db');
 var issuer = require('./issuer');
 var utils = require('./issuer/utils');
+
+var config = require("./config.json");
+var authentication = config.authentication;
+var issuers = config.acceptable_issuers;
 
 var privateKey  = fs.readFileSync('./sslcert/bitcoinexpress.key', 'utf8');
 var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');
@@ -24,6 +29,18 @@ var credentials = {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
+if (authentication && authentication.length > 0) {
+  var myLogger = function (req, res, next) {
+    var auth = req.body.authentication;
+    if (!auth || authentication != auth) {
+      res.status(400).send("Incorrect authentication");
+      return;
+    }
+    next();
+  }
+  app.use(myLogger);
+}
+
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
@@ -36,9 +53,8 @@ Date.prototype.addMinutes = function (m) {
   return this;
 }
 
-
 // Connect to Mongo on start
-db.connect('mongodb://localhost:27017/', function (err) {
+db.connect(config.db_connection, function (err) {
 
   if (err) {
     console.log('Unable to connect to MongoDB.')
@@ -52,14 +68,14 @@ db.connect('mongodb://localhost:27017/', function (err) {
   app.post('/createPaymentRequest', createPaymentRequest);
   // GET - https://localhost:8443/getBalance
   app.get('/getBalance', getBalance);
-  // GET - https://localhost:8443/getPaymentStatus?merchant_data=XXXXXXX
+  // GET - https://localhost:8443/getPaymentStatus?payment_id=XXXXXXX
   app.get('/getPaymentStatus', getPaymentStatus);
   // GET - https://localhost:8443/getTransactions
   app.get('/getTransactions', getTransactions);
   // POST - https://localhost:8443/payment
   app.post('/payment', payment);
   // POST - https://localhost:8443/redeem
-  app.post('/redeem', redeem);
+  app.get('/redeem', redeem);
 
   var httpsServer = https.createServer(credentials, app);
   httpsServer.listen(8443, function() {
@@ -78,8 +94,8 @@ db.connect('mongodb://localhost:27017/', function (err) {
    * {
    *   "amount": 0.0000095,
    *   "payment_url": "https://localhost:8443/payment",
+   *   "payment_id": "smnwj930kh4-jwheh7",
    *   "currency": "XBT",
-   *   "issuers": ["be.ap.rmp.net","eu.carrotpay.com"],
    *   "memo": "The art of asking",
    *   "return_url": "http://amandapalmer.net/hero_mask.png",
    *   "return_memo":"Thank you for buying this image",
@@ -91,14 +107,10 @@ db.connect('mongodb://localhost:27017/', function (err) {
    */
   function createPaymentRequest(req, res) {
     var paymentRequest = req.body;
+    console.log(req.body);
 
     if (!paymentRequest.amount || isNaN(paymentRequest.amount)) {
       res.status(400).send("Incorrect amount");
-      return;
-    }
-
-    if (!paymentRequest.payment_url) {
-      res.status(400).send("No payment_url included");
       return;
     }
 
@@ -119,6 +131,8 @@ db.connect('mongodb://localhost:27017/', function (err) {
 
     // Payment expires in 4 minutes
     var now = new Date();
+    paymentRequest.payment_id = uuidv1();
+    paymentRequest.payment_url = config.payment_url;
     paymentRequest.expires = paymentRequest.expires || now.addMinutes(4).toISOString();
     paymentRequest.language_preference = paymentRequest.language_preference || "English";
     paymentRequest.issuers = paymentRequest.issuers || ["*"];
@@ -145,12 +159,12 @@ db.connect('mongodb://localhost:27017/', function (err) {
   }
 
   function getPaymentStatus (req, res) {
-    var merchant_data = req.query.merchant_data;
-    var query = { '_id': ObjectId(merchant_data) };
+    var payment_id = req.query.payment_id;
+    var query = { 'payment_id': payment_id };
 
     db.findOne('payments', query).then((resp) => {
       if (!resp) {
-        res.status(400).send("Missing merchant_data query parameter")
+        res.status(400).send("Missing payment_id query parameter")
       }
 
       if (!resp.resolved) {
@@ -200,10 +214,20 @@ db.connect('mongodb://localhost:27017/', function (err) {
   }
 
   function redeem (req, res) {
+    /*
     var uri = req.body.address;
     var speed = req.body.speed;
     var amount = req.body.amount;
-    return issuer.transfer(uri, amount, db, speed).then((resp) => {
+    var message = req.body.message;
+    */
+    var address = "35hQUijzi3QnwxCbmXpLqN4hyqGV2hgot5";
+    var speed = "fastest";
+    var amount = "0.000003";
+    var message = "test";
+    var label = "jose";
+    var uri = `bitcoin:${address}?amount=${amount}&message=${message}&label=${label}`;
+
+    return issuer.transfer(uri, db, speed).then((resp) => {
       res.setHeader('Content-Type', 'application/json');
       console.log("*** BITCOIN TRANSFER COMPLETED ***");
       res.send(JSON.stringify(resp));
@@ -219,7 +243,7 @@ db.connect('mongodb://localhost:27017/', function (err) {
       coins,
       id,
       language_preference,
-      merchant_data,
+      payment_id,
     } = payment;
 
     // Not used for this demo, needs to be implemented
@@ -232,8 +256,8 @@ db.connect('mongodb://localhost:27017/', function (err) {
       return;
     }
 
-    if (!merchant_data) {
-      res.status(400).send("Missing merchant_data");
+    if (!payment_id) {
+      res.status(400).send("Missing payment_id");
       return;
     }
 
@@ -245,11 +269,11 @@ db.connect('mongodb://localhost:27017/', function (err) {
     var expires, key, tid, verifiedCoins, amount,
       currency, return_url, memo = null;
 
-    var query = { '_id': ObjectId(merchant_data) };
+    var query = { 'payment_id': payment_id };
 
     db.findOne('payments', query).then((resp) => {
       if (!resp) {
-        throw new Error("Can not find payment with merchant_data " + merchant_data);
+        throw new Error("Can not find payment with payment_id " + payment_id);
       }
 
       return_url = resp.return_url;
@@ -284,11 +308,8 @@ db.connect('mongodb://localhost:27017/', function (err) {
         throw new Error("Some coins are not from the requested currecy");
       }
 
-      var { issuers } = resp;
+      // this is coming from issuer list
       var inIssuerList = (c) => issuers.indexOf(utils.Coin(c).d) > -1;
-      if (issuers.length == 0) {
-        throw new Error("Empty issuer list");
-      }
       if (issuers[0] != "*" && !coins.every(inIssuerList)) {
         throw new Error("Some coins are not from the requested currecy");
       }

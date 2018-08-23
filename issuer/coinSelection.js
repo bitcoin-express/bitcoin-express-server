@@ -1,4 +1,3 @@
-
 const COIN_SELECTION = "coinsSelection";
 const COIN_SELECTION_FN = "coinSelectionFn";
 const DEFAULT_ISSUER = "defaultIssuer";
@@ -96,7 +95,7 @@ exports.coinSelection = function(target, coins, args) {
   }
 
   //ensure that args is defined and has a singleCoin element
-  args = $.extend({}, {singleCoin:false,debug:false,target:target,mustVerify:false}, _isPlainObject(args) ? args : {});
+  args = Object.assign({}, {singleCoin:false,debug:false,target:target,mustVerify:false}, _isPlainObject(args) ? args : {});
 
   //The inputs look good so let's get started.
   let wkCoins = new Array();//to hold the set of working coins
@@ -911,7 +910,7 @@ function _getVerificationFee(aCoin, args) {
     outCoinCount: 1,
     expiryPeriod_ms: DEFAULT_EXPIRY_PERIOD
   };
-  let localArgs = $.extend({}, defaults, _isPlainObject(args) ? args : {});
+  let localArgs = Object.assign({}, defaults, _isPlainObject(args) ? args : {});
   
   if (!("value" in aCoin)) {
     aCoin.value = round(Number.parseFloat(aCoin.v), 8);
@@ -1009,7 +1008,7 @@ function _arrayTotalValue(arr, args, verifyAllCoins) {
   let defaults = {
     inCoinCount: arr.length
   };
-  let localArgs = $.extend({}, defaults, _isPlainObject(args) ? args : {});
+  let localArgs = Object.assign({}, defaults, _isPlainObject(args) ? args : {});
 
   if (!("issuerService" in localArgs)) {
     if ("beginResponse" in localArgs && "issuer" in localArgs.beginResponse) {

@@ -6,17 +6,16 @@
   "dependencies": {
     "atob": "^2.1.1",
     "express": "^4.16.3",
+    "express-handlebars": "^3.0.0",
     "jade": "^1.11.0",
     "mongo": "^0.1.0",
-    "mongodb": "^3.1.1"
+    "mongodb": "^3.1.1",
+    "uuid": "^3.3.2"
   },
-  "scripts": {
-    "start": "node app.js"
-  },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "devDependencies": {},
   "author": "",
   "license": "ISC"
 }

@@ -1,7 +1,9 @@
 var coinSelection = require('./coinSelection');
 var atob = require('atob');
 
-exports.Coin = function (base64) {
+var issuer = require('../issuer');
+
+function Coin (base64) {
   try {
     let obj = JSON.parse(atob(base64));  
     obj.base64 = base64;
@@ -12,6 +14,8 @@ exports.Coin = function (base64) {
     return null;
   }
 }
+
+exports.Coin = Coin;
 
 function _round(number, precision) {
   let factor = Math.pow(10, precision);
@@ -44,7 +48,7 @@ exports.redeemCoins = function (coins, address, args, db, crypto=null) {
   let base64Coins = new Array();
   let sumCoins = 0.0;
 
-  coins.forEach(function(elt) {
+  coins.forEach((elt) => {
     if (typeof elt === "string") {
       let c = Coin(elt);
       sumCoins += parseFloat(c.value);
@@ -144,7 +148,7 @@ exports.redeemCoins = function (coins, address, args, db, crypto=null) {
       fn: "redeem"
     }
   };
-  return this.post("begin", params).then(startRedeem);
+  return issuer.post("begin", params).then(startRedeem);
 }
 
 
@@ -153,7 +157,7 @@ function _redeemCoins_inner_(request, args, db, crypto = null) {
   let resp = null;
   let tid = null;
 
-  return this.post("redeem", request).then((response) => {
+  return issuer.post("redeem", request).then((response) => {
     resp = response;
     tid = resp.headerInfo.tid;
 
@@ -188,7 +192,7 @@ function _redeemCoins_inner_(request, args, db, crypto = null) {
   }).then(() => {
     return db.remove("session", { tid: tid });
   }).then(() => {
-    return this.post("end", {
+    return issuer.post("end", {
       issuerRequest: {
         tid: tid,
       }
@@ -242,7 +246,7 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
 
   return db.getCoinList().then((resp) => {
     coins = resp;
-    balance = this.coinsValue(coins);
+    balance = issuer.coinsValue(coins);
 
     if (!coins.every((c) => ["XBT", "BTC"].indexOf(Coin(c).c > -1))) {
       throw new Error("Some coins with incorrect currency");
@@ -252,8 +256,9 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
       throw new Error("Insufficient funds");
     }
 
-    return this.post("begin", params);
-  }).then((beginResponse) => {
+    return issuer.post("begin", params);
+  }).then((resp) => {
+    var beginResponse = resp.issuerResponse;
     if (beginResponse.deferInfo) {
       throw new Error(beginResponse.deferInfo.reason);
     }
@@ -269,7 +274,7 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
       throw new Error("Amount must be positive");
     }
 
-    let txAmount = this.round(paymentAmount + bitcoinFee, 8);
+    let txAmount = _round(paymentAmount + bitcoinFee, 8);
     if (txAmount > balance) {
       throw new Error("Insufficient funds to pay fees");
     }
@@ -306,7 +311,7 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
         return 0;
       });
 
-      let change = this.round(selection.faceValue - txAmount, 8);
+      let change = _round(selection.faceValue - txAmount, 8);
       while(allCoins.length > 1) {
         if ((change < allCoins[0].value)) {
           break;

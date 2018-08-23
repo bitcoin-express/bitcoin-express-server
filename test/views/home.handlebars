@@ -1,0 +1,37 @@
+  <ul>
+    <li>
+      <a id="mock_payment_3" href="#">
+        Mock payment 0.0000095 XBT
+      </a>
+    </li>
+  </ul>
+
+  <script defer="defer" type="text/javascript">
+    function startPayment (req) {
+      console.log("startPayment", req);
+      BitcoinExpress.Wallet.Open(req).then(function(container) {
+        // an object containing the PaymentAck
+        if ("PaymentAck" in container) {
+          let PaymentAck = container.PaymentAck;
+          if ("status" in PaymentAck) {
+            console.log("Status is "+PaymentAck.status);
+            if (PaymentAck.status == "ok" && "return_url" in PaymentAck) {
+              return window.location.replace(PaymentAck.return_url);
+            }
+          }
+        }
+      }).catch(function(err) {
+        console.log("PaymentRequest returned ", err);
+      });
+    };
+
+    document.getElementById("mock_payment_3").addEventListener('click', function () {
+      startPayment({
+        fullScreen: false,
+        PaymentRequest: {
+          payment_details_version: "1",
+          PaymentDetails: {{{json paymentDetails}}}
+        }
+      });
+    });
+  </script>
