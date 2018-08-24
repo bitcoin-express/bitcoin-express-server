@@ -251,17 +251,15 @@ db.connect(config.dbConnection, function (err) {
     }
 
     var expires, key, tid, verifiedCoins, amount,
-      currency, return_url, memo = null;
+      currency;
 
     var query = { 'payment_id': payment_id };
 
+    console.log(query);
     db.findOne('payments', query).then((resp) => {
       if (!resp) {
         throw new Error("Can not find payment with payment_id " + payment_id);
       }
-
-      return_url = resp.return_url;
-      memo = resp.return_memo;
 
       if (resp.resolved) {
         // The payment is resolved, throw error and intercept it
@@ -269,8 +267,8 @@ db.connect(config.dbConnection, function (err) {
           PaymentAck: {
             status: "ok",
             id: payment_id,
-            return_url: return_url, // this should be feeded by the merchant
-            memo: memo
+            return_url: resp.return_url,
+            memo: resp.return_memo
           }
         };
 
