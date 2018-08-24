@@ -1,12 +1,11 @@
 {
-  "payment_url": "https://localhost:8443/payment",
-  "production_payment_url": "http://18.130.120.182:8080/payment",
-  "db_connection": "mongodb://localhost:27017/",
+  "paymentUrl": "http://localhost:8080/pay",
+  "dbConnection": "mongodb://localhost:27017/",
   "authentication": "1234",
   "defaultCurrency": "BTC",
   "emailContact": "",
-  "offerEmailRecipt": "",
-  "offerEmailRefund": "",
-  "home_issuer": "eu.carrotpay.com",
-  "acceptable_issuers": ["eu.carrotpay.com", "be.ap.rmp.net"]
+  "offerEmailRecipt": false,
+  "offerEmailRefund": false,
+  "homeIssuer": "eu.carrotpay.com",
+  "acceptableIssuers": ["eu.carrotpay.com", "be.ap.rmp.net"]
 }

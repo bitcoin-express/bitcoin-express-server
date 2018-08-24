@@ -24,6 +24,7 @@ exports.insert = function(name, obj, done) {
   return new Promise ((resolve, reject) => {
     state.db.collection(name).insert(obj, (err, records) => {
       if (err) {
+        console.log(err);
         return reject(err);
       }
       return resolve(records);
@@ -32,12 +33,13 @@ exports.insert = function(name, obj, done) {
 }
 
 
-exports.unset = function(name, query, unset) {
+/*exports.unset = function(name, query, unset) {
   // unset = { description : 1}
   return this.findOne(name, query).then((doc) => {
+    console.log("holaaa", name, query, unset, doc)
     state.db.collection(name).update({ _id: 1234 }, { $unset : unset })
   })
-}
+}*/
 
 
 exports.remove = function(name, query) {

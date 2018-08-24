@@ -12,7 +12,12 @@ var utils = require('./issuer/utils');
 
 var config = require("./config.json");
 var authentication = config.authentication;
-var issuers = config.acceptable_issuers;
+var issuers = config.acceptableIssuers;
+var defCurrency = config.defaultCurrency;
+
+if (!issuers) {
+  issuers = [config.homeIssuer]
+}
 
 var privateKey  = fs.readFileSync('./sslcert/bitcoinexpress.key', 'utf8');
 var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');
@@ -54,7 +59,7 @@ Date.prototype.addMinutes = function (m) {
 }
 
 // Connect to Mongo on start
-db.connect(config.db_connection, function (err) {
+db.connect(config.dbConnection, function (err) {
 
   if (err) {
     console.log('Unable to connect to MongoDB.')
@@ -97,8 +102,6 @@ db.connect(config.db_connection, function (err) {
    *   "payment_id": "smnwj930kh4-jwheh7",
    *   "currency": "XBT",
    *   "memo": "The art of asking",
-   *   "return_url": "http://amandapalmer.net/hero_mask.png",
-   *   "return_memo":"Thank you for buying this image",
    *   "email": {
    *     "contact":"sales@merchant.com",
    *     "receipt":true,"refund":false
@@ -114,16 +117,12 @@ db.connect(config.db_connection, function (err) {
       return;
     }
 
-    if (!paymentRequest.return_url) {
-      res.status(400).send("No return_url included");
-      return;
-    }
-
     if (!paymentRequest.memo) {
       res.status(400).send("No memo included");
       return;
     }
 
+    paymentRequest.currency = paymentRequest.currency || defCurrency;
     if (!paymentRequest.currency) {
       res.status(400).send("Missing currency");
       return;
@@ -132,24 +131,18 @@ db.connect(config.db_connection, function (err) {
     // Payment expires in 4 minutes
     var now = new Date();
     paymentRequest.payment_id = uuidv1();
-    paymentRequest.payment_url = config.payment_url;
+    paymentRequest.payment_url = config.paymentUrl;
     paymentRequest.expires = paymentRequest.expires || now.addMinutes(4).toISOString();
-    paymentRequest.language_preference = paymentRequest.language_preference || "English";
+    paymentRequest.language_preference = paymentRequest.language_preference || "english";
     paymentRequest.issuers = paymentRequest.issuers || ["*"];
-    paymentRequest.resolved = false;
-    paymentRequest.time = now.toISOString();
 
-    db.insert("payments", paymentRequest).then((records) => {
-      paymentRequest.merchant_data = records.insertedIds['0'];
+    var data = Object.assign({
+      resolved: false,
+      time: now.toISOString()
+    }, paymentRequest);
 
-      // Delete not usefult params
-      delete paymentRequest.resolved;
-      delete paymentRequest._id;
-      // Of course, remove the memo and return_url
-      // It will be used in the future once the payment is verified
-      delete paymentRequest.return_url;
-      delete paymentRequest.return_memo;
-
+    db.insert("payments", data).then((records) => {
+      // records.insertedIds['0'];
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(paymentRequest));
     }).catch((err) => {
@@ -159,22 +152,18 @@ db.connect(config.db_connection, function (err) {
   }
 
   function getPaymentStatus (req, res) {
-    var payment_id = req.query.payment_id;
-    var query = { 'payment_id': payment_id };
+    var field = req.query.queryField;
+    var data = req.query.queryData;
 
+    if (['payment_id', 'merchant_data'].indexOf(field) == -1) {
+      res.status(400).send("Wrong queryField")
+    }
+
+    var query = { [field]: data };
     db.findOne('payments', query).then((resp) => {
       if (!resp) {
-        res.status(400).send("Missing payment_id query parameter")
+        res.status(400).send("Missing " + field + " query parameter")
       }
-
-      if (!resp.resolved) {
-        // Remove the memo and return_url if not resolved
-        // This can be done by the merchant, but better to make
-        // sure we do it here
-        delete resp.return_url;
-        delete resp.return_memo;
-      }
-
       res.send(JSON.stringify(resp));
     }).catch((err) => {
       res.status(400).send(err.message || err);
@@ -238,23 +227,18 @@ db.connect(config.db_connection, function (err) {
   }
 
   function payment (req, res) {
-    var payment = req.body.Payment;
     var {
       coins,
-      id,
       language_preference,
       payment_id,
-    } = payment;
+      return_url,
+      return_memo,
+    } = req.body;
 
     // Not used for this demo, needs to be implemented
-    // var receipt_to = payment.receipt_to;
-    // var refund_to = payment.refund_to;
-    // var client = payment.client;
-
-    if (!id) {
-      res.status(400).send("Missing id");
-      return;
-    }
+    // var receipt_to = req.body.receipt_to;
+    // var refund_to = req.body.refund_to;
+    // var client = req.body.client;
 
     if (!payment_id) {
       res.status(400).send("Missing payment_id");
@@ -284,7 +268,7 @@ db.connect(config.db_connection, function (err) {
         var response = {
           PaymentAck: {
             status: "ok",
-            id: id,
+            id: payment_id,
             return_url: return_url, // this should be feeded by the merchant
             memo: memo
           }
@@ -352,7 +336,8 @@ db.connect(config.db_connection, function (err) {
     }).then((records) => {
       return db.findAndModify("payments", query, {
         resolved: true,
-        id: id
+        return_url,
+        return_memo,
       });
     }).then((doc) => {
       key = doc.value.key;
@@ -365,8 +350,8 @@ db.connect(config.db_connection, function (err) {
       var response = {
         PaymentAck: {
           status: "ok",
-          id: id,
-          memo: memo,
+          id: payment_id,
+          memo: return_memo,
           return_url: return_url
         }
       };
