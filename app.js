@@ -36,6 +36,10 @@ app.use(bodyParser.json());
 
 if (authentication && authentication.length > 0) {
   var myLogger = function (req, res, next) {
+    if (req.method == "GET") {
+      next();
+      return;
+    }
     var auth = req.body.authentication;
     if (!auth || authentication != auth) {
       res.status(400).send("Incorrect authentication");
@@ -110,7 +114,7 @@ db.connect(config.dbConnection, function (err) {
    */
   function createPaymentRequest(req, res) {
     var paymentRequest = req.body;
-    console.log(req.body);
+    // console.log(req.body);
 
     if (!paymentRequest.amount || isNaN(paymentRequest.amount)) {
       res.status(400).send("Incorrect amount");
@@ -131,6 +135,7 @@ db.connect(config.dbConnection, function (err) {
     // Payment expires in 4 minutes
     var now = new Date();
     paymentRequest.payment_id = uuidv1();
+    console.log("payment_id created - ", paymentRequest.payment_id)
     paymentRequest.payment_url = config.paymentUrl;
     paymentRequest.expires = paymentRequest.expires || now.addMinutes(4).toISOString();
     paymentRequest.language_preference = paymentRequest.language_preference || "english";
@@ -184,7 +189,6 @@ db.connect(config.dbConnection, function (err) {
   function getTransactions (req, res) {
     var query = {};
     db.find('payments', query).then((resp) => {
-      console.log(resp);
       resp = resp.map((tx) => {
         if (!tx.resolved) {
           // Remove the memo and return_url if not resolved
@@ -235,6 +239,8 @@ db.connect(config.dbConnection, function (err) {
       return_memo,
     } = req.body;
 
+    console.log("payment_id recieved - ", payment_id)
+
     // Not used for this demo, needs to be implemented
     // var receipt_to = req.body.receipt_to;
     // var refund_to = req.body.refund_to;
@@ -255,7 +261,6 @@ db.connect(config.dbConnection, function (err) {
 
     var query = { 'payment_id': payment_id };
 
-    console.log(query);
     db.findOne('payments', query).then((resp) => {
       if (!resp) {
         throw new Error("Can not find payment with payment_id " + payment_id);

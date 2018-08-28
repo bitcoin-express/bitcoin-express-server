@@ -131,6 +131,41 @@ app.post('/pay', function (req, res) {
   post_req.end();
 });
 
+app.get('/panel', function (req, res) {
+  var options = {
+    host: 'localhost',
+    port: '8443',
+    path: '/getBalance',
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  };
+
+  // Ignore the invalid self-signed ssl certificate
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
+  var str = '';
+  var get_req = https.request(options, function(response) {
+    response.setEncoding('utf8');
+
+    response.on('data', function (chunk) {
+      str += chunk;
+    });
+
+    response.on('end', function () {
+      const { statusCode } = response;
+      if (statusCode == 200) {
+        res.send(str);
+      } else {
+        res.status(400).send(str);
+      }
+    });
+
+  });
+  get_req.end();
+});
+
 var httpServer = http.createServer(app);
 httpServer.listen(8080, function() {
   console.log('Listening on port 8080...');
