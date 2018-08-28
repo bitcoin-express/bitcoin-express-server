@@ -17,16 +17,16 @@ Provide the Payment basic information.
 ```json
 
 {
-    "amount": ['float - amount of the payment'],
-    "currency": ['string - valid currency for this payment'],
-    "issuers": [''],
-    "memo": [''],
+    "amount": "float - amount of the payment",
+    "currency": "string - valid currency for this payment",
+    "issuers": "array - list of acceptable issuers",
+    "memo": "string - short description of the item",
     "email": {
-      contact: [''],
-      receipt: [''],
-      refund: ['']
+      contact: "",
+      receipt: "",
+      refund: ""
     },
-    "authentication": [''],
+    "authentication": "",
 }
 ```
 
