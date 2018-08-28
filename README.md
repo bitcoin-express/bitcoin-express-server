@@ -41,7 +41,7 @@ Instructions for Linux OS. For the rest of operating systems soon will update wi
 
 ### 2. Install MongoDB
 
-[instructions](https://docs.mongodb.com/manual/installation/)
+For other OS - MacOS, Windows, etc. More instructions [here](https://docs.mongodb.com/manual/installation/).
 
 > sudo apt-get install -y mongodb
 > mongo
