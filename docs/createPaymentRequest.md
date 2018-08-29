@@ -75,7 +75,7 @@ Provide the Payment basic information.
 
 ## Error Responses
 
-**Condition** : If Account already exists for User.
+**Condition** : Wrong body parameters or incorrect authentication.
 
 **Code** : `400 BAD REQUEST`
 
