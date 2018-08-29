@@ -1,6 +1,6 @@
 # Proceed with the payment
 
-Confirm a payment in order to retrieve the item by sending the coins which value must be the same or higherthan the payment *amount*.
+Confirm a *payment_id* by sending the coins which value must be the same or higher than the payment *amount*.
 
 **URL** : `/payment`
 
@@ -12,21 +12,16 @@ Confirm a payment in order to retrieve the item by sending the coins which value
 
 **Data constraints**
 
-Provide the Payment basic information.
+Provide the payment identification and the list of coins.
 
 ```json
 
 {
-    "amount": "float - amount of the payment",
-    "currency": "string - valid currency for this payment",
-    "issuers": "array - list of acceptable issuers",
-    "memo": "string - short description of the item",
-    "email": {
-      "contact": "string - contact email of the merchat",
-      "receipt": "boolean - send receipt to users after payment",
-      "refund": "boolean - refunds allowed"
-    },
-    "authentication": "string - authentication code",
+   "coins": "array(string) - list of coins",
+   "language_preference": "string - language of preference",
+   "payment_id": "string - id of a payment already created",
+   "return_url": "string - if payment completed, the page will redirect to the retur_url",
+   "return_memo": "string - othe data/info to return if payment succeded"
 }
 ```
 
@@ -34,16 +29,11 @@ Provide the Payment basic information.
 
 ```json
 {
-    "amount": 0.0000095,
-    "currency": "XBT",
-    "issuers": ["be.ap.rmp.net", "eu.carrotpay.com"],
-    "memo": "The art of asking",
-    "email": {
-      "contact": "sales@merchant.com",
-      "receipt": true,
-      "refund": false
-    },
-    "authentication": "dummy_password",
+   "coins": ["0esdfwern302234b22o4jk2hit3oh89fwh2n2+wo24o324"],
+   "language_preference": "spanish",
+   "payment_id": "kj3248-k2mn88,
+   "return_url": "https://myawesomevideo.com/928371",
+   "return_memo": "Thank you for your purchase!!"
 }
 ```
 
