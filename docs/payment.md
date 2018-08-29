@@ -31,7 +31,7 @@ Provide the payment identification and the list of coins.
 {
    "coins": ["0esdfwern302234b22o4jk2hit3oh89fwh2n2+wo24o324"],
    "language_preference": "spanish",
-   "payment_id": "kj3248-k2mn88,
+   "payment_id": "kj3248-k2mn88",
    "return_url": "https://myawesomevideo.com/928371",
    "return_memo": "Thank you for your purchase!!"
 }
@@ -39,42 +39,36 @@ Provide the payment identification and the list of coins.
 
 ## Success Response
 
-**Condition** : If everything is OK the Payment Request to be used by the Bitcoin-express wallet.
+**Condition** : If everything is OK the Payment Ack confirming the completition of the payment including the return_url.
 
 **Code** : `200 OK`
 
 **Content example**
 
 ```json
+
 {
-  "amount":0.0000095,
-  "currency":"XBT",
-  "issuers":["be.ap.rmp.net","eu.carrotpay.com"],
-  "memo":"The art of asking",
-  "email":{
-    "contact":"sales@merchant.com",
-    "receipt":true,
-    "refund":false
-   },
-   "payment_id":"97e00590-aa8a-11e8-a18f-4d64691098e6",
-   "payment_url":"http://18.130.120.182:8080/pay",
-   "expires":"2018-08-28T06:25:26.505Z",
-   "language_preference":"english"
+  PaymentAck: {
+    "status": "ok",
+    "id": "kj3248-k2mn88",
+    "return_url": "https://myawesomevideo.com/928371",
+    "return_memo": "Thank you for your purchase!!"
+  }
 }
 ```
 
 ## Error Responses
 
-**Condition** : Wrong body parameters or incorrect authentication.
+**Condition** : Wrong body parameters or incorrect amount of coins.
 
 **Code** : `400 BAD REQUEST`
 
-**Headers** : `https://testserver/createPaymentRequest`
+**Headers** : `https://testserver/payment
 
 **Content** : `string`
 
 **Content example**
 
 ```json
-Incorrect amount
+No coins included
 ```
