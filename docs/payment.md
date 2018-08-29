@@ -48,7 +48,7 @@ Provide the payment identification and the list of coins.
 ```json
 
 {
-  PaymentAck: {
+  "PaymentAck": {
     "status": "ok",
     "id": "kj3248-k2mn88",
     "return_url": "https://myawesomevideo.com/928371",
