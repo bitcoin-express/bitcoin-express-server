@@ -22,11 +22,11 @@ Provide the Payment basic information.
     "issuers": "array - list of acceptable issuers",
     "memo": "string - short description of the item",
     "email": {
-      contact: "",
-      receipt: "",
-      refund: ""
+      "contact": "string - contact email of the merchat",
+      "receipt": "boolean - send receipt to users after payment",
+      "refund": "boolean - refunds allowed"
     },
-    "authentication": "",
+    "authentication": "string - authentication code",
 }
 ```
 
@@ -49,17 +49,27 @@ Provide the Payment basic information.
 
 ## Success Response
 
-**Condition** : If everything is OK and an Account didn't exist for this User.
+**Condition** : If everything is OK the Payment Request to be used by the Bitcoin-express wallet.
 
-**Code** : `201 CREATED`
+**Code** : `200 OK`
 
 **Content example**
 
 ```json
 {
-    "id": 123,
-    "name": "Build something project dot com",
-    "url": "http://testserver/api/accounts/123/"
+  "amount":0.0000095,
+  "currency":"XBT",
+  "issuers":["be.ap.rmp.net","eu.carrotpay.com"],
+  "memo":"The art of asking",
+  "email":{
+    "contact":"sales@merchant.com",
+    "receipt":true,
+    "refund":false
+   },
+   "payment_id":"97e00590-aa8a-11e8-a18f-4d64691098e6",
+   "payment_url":"http://18.130.120.182:8080/pay",
+   "expires":"2018-08-28T06:25:26.505Z",
+   "language_preference":"english"
 }
 ```
 
@@ -67,24 +77,14 @@ Provide the Payment basic information.
 
 **Condition** : If Account already exists for User.
 
-**Code** : `303 SEE OTHER`
-
-**Headers** : `Location: http://testserver/api/accounts/123/`
-
-**Content** : `{}`
-
-### Or
-
-**Condition** : If fields are missed.
-
 **Code** : `400 BAD REQUEST`
+
+**Headers** : `https://testserver/createPaymentRequest`
+
+**Content** : `string`
 
 **Content example**
 
 ```json
-{
-    "name": [
-        "This field is required."
-    ]
-}
+Incorrect amount
 ```
