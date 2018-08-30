@@ -29,8 +29,8 @@ Provide the Payment basic information.
 
 ```json
 {
-    "amount":0.0000095,
-    "address":"35hQUijzi3QnwxCbmXpLqN4hyqGV2hgot5",
+    "amount": 0.0000095,
+    "address": "35hQUijzi3QnwxCbmXpLqN4hyqGV2hgot5",
     "speed": "fastest",
     "message": "resquested amount for my friend Satoshi",
     "label": "satoshi",
