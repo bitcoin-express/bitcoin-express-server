@@ -10,7 +10,7 @@ Get the sum of the coins values stored from all the payments in the merchant wal
 
 **Permissions required** : None
 
-**Data constraints**
+**Query parameters**
 
 Any.
 
@@ -35,6 +35,6 @@ Any.
 
 **Code** : `400 BAD REQUEST`
 
-**Headers** : `https://testserver/createPaymentRequest`
+**Headers** : `https://testserver/getBalance`
 
 **Content** : `string`
