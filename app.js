@@ -11,13 +11,19 @@ var issuer = require('./issuer');
 var utils = require('./issuer/utils');
 
 var config = require("./config.json");
-var authentication = config.authentication;
-var issuers = config.acceptableIssuers;
-var defCurrency = config.defaultCurrency;
 
-if (!issuers) {
-  issuers = [config.homeIssuer]
-}
+
+var authentication = config.authentication;
+var paymentPath = config.paymentPath || '/pay';
+
+var defCurrency = config.defaultCurrency;
+var defTimeout = config.defaultTimeout;
+var defIssuers = config.acceptableIssuers || [config.homeIssuer];
+var defEmail = {
+  contact: config.emailContact,
+  receipt: config.offerEmailRecipt,
+  refund: config.offerEmailRefund
+};
 
 var privateKey  = fs.readFileSync('./sslcert/bitcoinexpress.key', 'utf8');
 var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');
@@ -36,16 +42,18 @@ app.use(bodyParser.json());
 
 if (authentication && authentication.length > 0) {
   var myLogger = function (req, res, next) {
+    var auth;
     if (req.method == "GET") {
-      next();
-      return;
+      auth = req.query.authentication;
     }
-    var auth = req.body.authentication;
+    if (req.method == "POST") {
+      auth = req.body.authentication;
+      delete req.body.authentication;
+    }
     if (!auth || authentication != auth) {
       res.status(400).send("Incorrect authentication");
       return;
     }
-    delete req.body.authentication;
     next();
   } 
   app.use(myLogger);
@@ -58,8 +66,8 @@ app.use(function(req, res, next) {
 });
 
 
-Date.prototype.addMinutes = function (m) {
-  this.setMinutes(this.getMinutes() + m);
+Date.prototype.addSeconds = function (s) {
+  this.setSeconds(this.getSeconds() + s);
   return this;
 }
 
@@ -102,20 +110,15 @@ db.connect(config.dbConnection, function (err) {
 
   /* Example of a payment request body:
    * {
-   *   "amount": 0.0000095,
-   *   "payment_url": "https://localhost:8443/payment",
-   *   "payment_id": "smnwj930kh4-jwheh7",
-   *   "currency": "XBT",
-   *   "memo": "The art of asking",
-   *   "email": {
-   *     "contact":"sales@merchant.com",
-   *     "receipt":true,"refund":false
-   *   }
+   *   amount: 0.0000095,
+   *   return_url: "http://amko55andapalmer.net/wp-content/themes/afp/art-of-asking/images/hero_mask.png",
+   *   memo: "The art of asking",
+   *   authentication: pwd,
    * }
    */
   function createPaymentRequest(req, res) {
     var paymentRequest = req.body;
-    // console.log(req.body);
+    console.log(req.body);
 
     if (!paymentRequest.amount || isNaN(paymentRequest.amount)) {
       res.status(400).send("Incorrect amount");
@@ -127,7 +130,16 @@ db.connect(config.dbConnection, function (err) {
       return;
     }
 
+    if (!paymentRequest.return_url) {
+      res.status(400).send("No return_url included");
+      return;
+    }
+
+    // Build the 
+    paymentRequest.payment_url = req.protocol + '://' + req.get('host') + paymentPath
     paymentRequest.currency = paymentRequest.currency || defCurrency;
+    paymentRequest.email = paymentRequest.email || defEmail;
+
     if (!paymentRequest.currency) {
       res.status(400).send("Missing currency");
       return;
@@ -137,10 +149,8 @@ db.connect(config.dbConnection, function (err) {
     var now = new Date();
     paymentRequest.payment_id = uuidv1();
     console.log("payment_id created - ", paymentRequest.payment_id)
-    paymentRequest.payment_url = config.paymentUrl;
-    paymentRequest.expires = paymentRequest.expires || now.addMinutes(4).toISOString();
-    paymentRequest.language_preference = paymentRequest.language_preference || "english";
-    paymentRequest.issuers = paymentRequest.issuers || ["*"];
+    paymentRequest.expires = paymentRequest.expires || now.addSeconds(defTimeout).toISOString();
+    paymentRequest.issuers = paymentRequest.issuers || defIssuers;
 
     var data = Object.assign({
       resolved: false,
@@ -149,6 +159,7 @@ db.connect(config.dbConnection, function (err) {
 
     db.insert("payments", data).then((records) => {
       // records.insertedIds['0'];
+      delete paymentRequest.return_url;
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(paymentRequest));
     }).catch((err) => {
@@ -234,9 +245,7 @@ db.connect(config.dbConnection, function (err) {
   function payment (req, res) {
     var {
       coins,
-      language_preference,
       payment_id,
-      return_url,
       return_memo,
     } = req.body;
 
@@ -297,7 +306,7 @@ db.connect(config.dbConnection, function (err) {
       }
 
       // this is coming from issuer list
-      var inIssuerList = (c) => issuers.indexOf(utils.Coin(c).d) > -1;
+      var inIssuerList = (c) => defIssuers.indexOf(utils.Coin(c).d) > -1;
       if (issuers[0] != "*" && !coins.every(inIssuerList)) {
         throw new Error("Some coins are not from the requested currecy");
       }

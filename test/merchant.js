@@ -29,15 +29,9 @@ app.use(function(req, res, next) {
 // GET - https://localhost:8080/
 app.get('/', function (req, res) {
   var post_data = JSON.stringify({
-    amount: 0.0000095,
-    currency: "XBT",
-    issuers: ["be.ap.rmp.net", "eu.carrotpay.com"],
+    amount: 0.0000015,
+    return_url: "http://amko55andapalmer.net/wp-content/themes/afp/art-of-asking/images/hero_mask.png",
     memo: "The art of asking",
-    email: {
-      contact: "sales@merchant.com",
-      receipt: true,
-      refund: false
-    },
     authentication: pwd,
   });
 
@@ -87,7 +81,6 @@ app.post('/pay', function (req, res) {
   delete payment.id;
 
   var post_data = JSON.stringify(Object.assign({
-    return_url: "http://amko55andapalmer.net/wp-content/themes/afp/art-of-asking/images/hero_mask.png",
     return_memo: "Thank you for buying this image",
     authentication: pwd,
     payment_id: payment_id,
