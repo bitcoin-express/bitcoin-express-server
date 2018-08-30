@@ -1,4 +1,4 @@
-# Get the the list of payment requests transactions stored in the DB.
+# Get the the list of payment requests transactions.
 
 **URL** : `/getTransactions`
 
