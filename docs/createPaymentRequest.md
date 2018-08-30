@@ -17,10 +17,13 @@ Provide the Payment basic information.
 ```json
 
 {
-    "amount": "float - amount of the payment",
+    "amount": "float (required) - amount of the payment",
+    "memo": "string (required) - short description of the item, preferably in the buyer's preferred language",
+    "return_url": "string (required) - valid currency for this payment",
+    "issuers": "array[string] - list of acceptable issuers",
+    "expires": "string - seconds from now when the payment must expire",
     "currency": "string - valid currency for this payment",
-    "issuers": "array - list of acceptable issuers",
-    "memo": "string - short description of the item",
+    "merchant_data": "string - typically a reference that is meaningful to the merchant – for example an invoice number",
     "email": {
       "contact": "string - contact email of the merchat",
       "receipt": "boolean - send receipt to users after payment",
@@ -30,19 +33,15 @@ Provide the Payment basic information.
 }
 ```
 
-**Data example** All fields must be sent.
+**Data example** "return_url", "amount" and "memo" fields are required and must be sent.
 
 ```json
 {
     "amount": 0.0000095,
+    "return_url": "http://myawesomeitem.com/123",
     "currency": "XBT",
     "issuers": ["be.ap.rmp.net", "eu.carrotpay.com"],
     "memo": "The art of asking",
-    "email": {
-      "contact": "sales@merchant.com",
-      "receipt": true,
-      "refund": false
-    },
     "authentication": "dummy_password",
 }
 ```
@@ -57,19 +56,18 @@ Provide the Payment basic information.
 
 ```json
 {
-  "amount":0.0000095,
-  "currency":"XBT",
-  "issuers":["be.ap.rmp.net","eu.carrotpay.com"],
-  "memo":"The art of asking",
+  "amount": 0.0000095,
+  "currency": "XBT",
+  "issuers": ["be.ap.rmp.net","eu.carrotpay.com"],
+  "memo": "The art of asking",
   "email":{
-    "contact":"sales@merchant.com",
-    "receipt":true,
-    "refund":false
+    "contact": "sales@merchant.com",
+    "receipt": true,
+    "refund": false
    },
-   "payment_id":"97e00590-aa8a-11e8-a18f-4d64691098e6",
-   "payment_url":"http://18.130.120.182:8080/pay",
-   "expires":"2018-08-28T06:25:26.505Z",
-   "language_preference":"english"
+   "payment_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
+   "payment_url": "https://testserver/pay",
+   "expires": "2018-08-28T06:25:26.505Z"
 }
 ```
 
