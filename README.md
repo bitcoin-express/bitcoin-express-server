@@ -25,7 +25,7 @@ Closed endpoints require the valid authentication string included in the body re
 
 # Installation
 
-Instructions for Linux OS. For the rest of operating systems soon will update with instructions.
+Example of the instructions for Linux systems. For the rest of OS please follow the provided links.
 
 ## Requirements
 
