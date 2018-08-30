@@ -18,7 +18,7 @@ A *queryData* indicating the vaule of the query field.
 All parameters must be included.
 
 ```json
-queryField=payment_id&queryData=83j372hd-wkweht78
+/queryField=payment_id&queryData=83j372hd-wkweht78
 ```
 
 ## Success Response
