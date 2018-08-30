@@ -18,12 +18,12 @@ A *queryData* indicating the vaule of the query field.
 All parameters must be included.
 
 ```json
-/queryField=payment_id&queryData=83j372hd-wkweht78
+?queryField=payment_id&queryData=83j372hd-wkweht78
 ```
 
 ## Success Response
 
-**Condition** : If everything is OK the total balance of the wallet.
+**Condition** : If everything is OK the status of the requested payment.
 
 **Code** : `200 OK`
 
@@ -31,7 +31,24 @@ All parameters must be included.
 
 ```json
 {
-  "total": 0.0001295
+  "_id":"5b7efac7cc06021070bad4bb",
+  "amount":0.0000095,
+  "currency":"XBT",
+  "issuers":["be.ap.rmp.net","eu.carrotpay.com"],
+  "memo":"The art of asking",
+  "return_url":"http://amandapalmer.net/wp-content/themes/afp/art-of-asking/images/hero_mask.png",
+  "return_memo":"Thank you for buying this image",
+  "email": {
+    "contact":"sales@merchant.com",
+    "receipt":true,
+    "refund":false
+  },
+  "payment_id":"206cfea0-a701-11e8-913a-0184e0e82a69",
+  "payment_url":"https://localhost:8443/payment",
+  "expires":"2018-08-23T18:23:51.561Z",
+  "language_preference":"English",
+  "resolved":false,
+  "time":"2018-08-23T18:23:51.561Z"
 }
 ```
 
