@@ -45,8 +45,9 @@ if (authentication && authentication.length > 0) {
       res.status(400).send("Incorrect authentication");
       return;
     }
+    delete req.body.authentication;
     next();
-  }
+  } 
   app.use(myLogger);
 }
 
@@ -167,7 +168,7 @@ db.connect(config.dbConnection, function (err) {
     var query = { [field]: data };
     db.findOne('payments', query).then((resp) => {
       if (!resp) {
-        res.status(400).send("Missing " + field + " query parameter")
+        res.status(400).send("Payment not found by " + field + " query parameter")
       }
       res.send(JSON.stringify(resp));
     }).catch((err) => {
@@ -215,7 +216,7 @@ db.connect(config.dbConnection, function (err) {
     */
     var address = "35hQUijzi3QnwxCbmXpLqN4hyqGV2hgot5";
     var speed = "fastest";
-    var amount = "0.000003";
+    var amount = 0.000003;
     var message = "test";
     var label = "jose";
     var uri = `bitcoin:${address}?amount=${amount}&message=${message}&label=${label}`;
