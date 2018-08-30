@@ -39,7 +39,7 @@ Provide the Payment basic information.
 
 ## Success Response
 
-**Condition** : If everything is OK the Payment Request to be used by the Bitcoin-express wallet.
+**Condition** : If everything is OK the confirmation of the success.
 
 **Code** : `200 OK`
 
