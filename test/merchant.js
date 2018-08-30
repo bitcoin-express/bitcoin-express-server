@@ -19,6 +19,7 @@ app.set('view engine', 'handlebars');
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+app.use(express.static(__dirname + '/assets'));
 
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
@@ -76,16 +77,12 @@ app.get('/', function (req, res) {
 app.post('/pay', function (req, res) {
   // Inject the response if payment is correct
   var payment = req.body.Payment;
-  var payment_id = payment.payment_id || payment.id;
-  delete payment.payment_id;
-  delete payment.id;
+  console.log(req.body)
 
   var post_data = JSON.stringify(Object.assign({
-    return_memo: "Thank you for buying this image",
     authentication: pwd,
-    payment_id: payment_id,
   }, payment));
-  console.log(post_data)
+  console.log(post_data);
 
   var options = {
     host: 'localhost',
@@ -112,6 +109,9 @@ app.post('/pay', function (req, res) {
     response.on('end', function () {
       const { statusCode } = response;
       if (statusCode == 200) {
+        console.log(str);
+        // add 
+        // memo: "Thank you for buying this item",
         res.send(str);
       } else {
         res.status(400).send(str);

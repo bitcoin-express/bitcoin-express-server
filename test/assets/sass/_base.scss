@@ -1,0 +1,42 @@
+// Colors
+    $color-grey-dark-1: #808080;
+    $color-grey-dark-2: #777;
+    $color-grey-light: #E3E3E3;
+    $color-white: #F1F1F1;
+    $color-black: #242424;
+    $color-gold: #9F7D4C;
+    $color-red: #E86067;
+    $color-price: #90C9CA;
+
+    $shadow-dark: 1rem 1rem 1.5rem 0 rgba(0, 0, 0, .75);
+
+// Media Queries
+// $bp-large: 68.75em; // 1100px
+// $bp-medium: 56.25em; // 900px
+// $bp-med-sm: 50.00em; // 800px
+// $bp-small: 37.5em; // 600px
+// $bp-xs: 31.25em; // 500px
+// $bp-xxs: 23.44em; // 375px
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    box-sizing: border-box;
+    font-size: 62.5%;
+}
+
+body {
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 400;
+    line-height: 1.4;
+    min-height: 100vh;
+}

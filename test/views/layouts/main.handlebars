@@ -1,11 +1,48 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="/css/style.css">
     <script type="text/javascript" src="https://bitcoin-e.org/wallet/js/vendor/jQuery-v3.1.1.js"></script>
     <script type="text/javascript" src="https://bitcoin-e.org/wallet/js/vendor/BitcoinExpress.min.js"></script>
-    <title>Merchant example</title>
-  </head>
-  <body>{{{body}}}</body>
+    <title>Bitcoin-Express Merchant example</title>
+</head>
+
+<body>
+    <main>
+        <header class="header">
+        <label>
+            <input type='checkbox'>
+            <span class='menu'>
+                <span class='hamburger'></span>
+            </span>
+            <ul>
+                <li><a href='#'>Home</a></li>
+                <li><a href='#'>Products</a></li>
+                <li><a href='#'>Contact</a></li>
+            </ul>
+        </label>
+        <h1>Bitcoin-express merchant</h1>
+        <svg class="icon icon-cart">
+            <use xlink:href=".//img/sprite.svg#icon-cart"></use>
+        </svg>
+        </header>
+
+        <div class="showcase">
+            <div id="arrow-left" class="arrow"></div>
+            <div class="slider">
+                {{{body}}}
+            </div>
+            <div id="arrow-right" class="arrow"></div>
+        </div>
+        
+        <footer>
+                <p>Footer</p>
+        </footer>
+    </main>
+    <script src="/js/main.js"></script>
+</body>
 </html>

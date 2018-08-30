@@ -1,0 +1,81 @@
+.products {
+    text-align: center;
+    font-size: 2.5rem;
+    padding-top: 5rem;
+
+    li {
+        display: inline;
+        margin: 0 1rem;
+        text-align: center;
+    }
+}
+
+.grid {
+    padding-top: 5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    &-item {
+        border: 1px solid #E7E7E7;
+        padding: 5rem 0;
+
+        &:hover {
+            background: #F2F5F9;
+        }
+
+        p {
+            font-size: 2rem;
+        }
+    }
+
+    img {
+        height: 25rem;
+    }
+
+    h3 {
+        font-size: 2.5rem;
+    }
+}
+
+.item3 {
+    background: url('../img/woman_1.jpg') bottom right;
+    background-size:cover;
+    color: $color-white;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: 5rem 0;
+    
+    p {
+        text-align: left;
+        padding-left: 3rem;
+        width: 5rem;
+    }
+
+    p:first-child {
+        padding-top: 15rem;
+    }
+    
+}
+
+.item4 {
+    background-color: rgb(108, 97, 156);
+    color: $color-white;
+    padding: 5rem 0;
+
+    p:nth-child(2) {
+        padding-bottom: 5rem;
+        text-transform: uppercase;
+        font-size: 3.5rem;
+    }
+}
+
+.show-more {
+    display: block;
+    padding: 3rem 0;
+    border-bottom: 1px solid #E7E7E7;
+
+    &:hover {
+        background: #F2F5F9;
+        cursor: pointer;
+    }
+}

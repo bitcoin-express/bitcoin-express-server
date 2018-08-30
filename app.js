@@ -246,7 +246,6 @@ db.connect(config.dbConnection, function (err) {
     var {
       coins,
       payment_id,
-      return_memo,
     } = req.body;
 
     console.log("payment_id recieved - ", payment_id)
@@ -266,8 +265,8 @@ db.connect(config.dbConnection, function (err) {
       return;
     }
 
-    var expires, key, tid, verifiedCoins, amount,
-      currency;
+    var expires, key, tid, verifiedCoins,
+      amount, currency, returnUrl;
 
     var query = { 'payment_id': payment_id };
 
@@ -283,7 +282,6 @@ db.connect(config.dbConnection, function (err) {
             status: "ok",
             id: payment_id,
             return_url: resp.return_url,
-            memo: resp.return_memo
           }
         };
 
@@ -296,6 +294,7 @@ db.connect(config.dbConnection, function (err) {
       amount = resp.amount;
       currency = resp.currency;
       expires = resp.expires;
+      returnUrl = resp.return_url;
 
       if (issuer.coinsValue(coins) < amount) {
         throw new Error("The coins sended are not enough");
@@ -347,11 +346,7 @@ db.connect(config.dbConnection, function (err) {
         date: new Date().toISOString()
       });
     }).then((records) => {
-      return db.findAndModify("payments", query, {
-        resolved: true,
-        return_url,
-        return_memo,
-      });
+      return db.findAndModify("payments", query, { resolved: true });
     }).then((doc) => {
       key = doc.value.key;
       return issuer.post('end', {
@@ -364,8 +359,7 @@ db.connect(config.dbConnection, function (err) {
         PaymentAck: {
           status: "ok",
           id: payment_id,
-          memo: return_memo,
-          return_url: return_url
+          return_url: returnUrl
         }
       };
       res.setHeader('Content-Type', 'application/json');
