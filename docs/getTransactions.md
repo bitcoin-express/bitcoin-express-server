@@ -10,8 +10,6 @@
 
 **Query parameters**
 
-A *currency* indicating if we want to retrieve only the balance of one currency.
-
 An *auth* string token that matches with the merchant's account.
 
 An *offset* integer to retrieve from the beginning of the data set [default to zero].
