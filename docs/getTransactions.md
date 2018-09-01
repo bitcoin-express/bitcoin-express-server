@@ -4,13 +4,31 @@
 
 **Method** : `GET`
 
-**Auth required** : NO
+**Auth required** : YES
 
 **Permissions required** : None
 
 **Query parameters**
 
-None.
+A *currency* indicating if we want to retrieve only the balance of one currency.
+
+An *auth* string token that matches with the merchant's account.
+
+An *offset* integer to retrieve from the beginning of the data set [default to zero].
+
+A *limit* of items to be returned.
+
+An *orderBy* field name.
+
+A *before* Date-time ISO format.
+
+**Query example**
+
+The parameter **auth** is required.
+
+```json
+?offset=100&limit=100&before= 2018-08-28T06:20:26.505Z&auth=<auth token>
+```
 
 ## Success Response
 
@@ -24,6 +42,9 @@ For each transaction successfully paid, the value of the *resolved* parameter is
 
 ```json
 {
+  "offset": "100",
+  "limit": "100",
+  "after": "2018-08-28T06:20:26.505Z",
   "result": [
     {
       "_id":"5b7efac7cc06021070bad4bb",
@@ -43,7 +64,8 @@ For each transaction successfully paid, the value of the *resolved* parameter is
       "expires":"2018-08-23T18:23:51.561Z",
       "language_preference":"English",
       "resolved":false,
-      "time":"2018-08-23T18:23:51.561Z"
+      "time":"2018-08-23T18:23:51.561Z",
+      ...
     },
     {
       "_id":"5b54efd5d7a4fe47cd65a924",
@@ -60,7 +82,8 @@ For each transaction successfully paid, the value of the *resolved* parameter is
       "payment_url":"https://localhost:8443/payment",
       "expires":"2018-07-22T21:01:57.457Z",
       "resolved":false,
-      "time":"2018-07-22T20:57:57.457Z"
+      "time":"2018-07-22T20:57:57.457Z",
+      ...
     }
   ]
 }

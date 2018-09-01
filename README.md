@@ -8,7 +8,7 @@ The following endpoints does not require authentication.
 
 | HTTP Method        | URL           | Description  |
 | ------------- |-------------| -----|
-| GET | [/getBalance](docs/getBalance.md) | Retrieves the sum of the coin values from the wallet |
+| GET | [/getBalance?currency=XXX](docs/getBalance.md) | Retrieves the sum of the coin values from the wallet |
 | GET | [/getPaymentStatus?queryField=XXX&queryData=YYY](docs/getPaymentStatus.md) | Retrieves a specific location object by payment_id or merchant_data |
 | GET | [/getTransactions](docs/getTransactions.md) | Retrieves the whole list of transactions from the DB |
 

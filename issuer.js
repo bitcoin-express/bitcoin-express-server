@@ -36,7 +36,7 @@ exports.coinsValue = function (coins) {
       sumCoins += elt.value || 0;
     }
   });
-  return sumCoins;
+  return parseFloat(sumCoins.toFixed(8));
 }
 
 exports.transfer = function (uri, amount, db, speed) {

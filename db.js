@@ -83,11 +83,22 @@ exports.findOne = function(name, query) {
   });
 }
 
-exports.getCoinList = function () {
-  return this.find("coins", {}).then((resp) => {
-    var coins = resp.map((row) => {
+exports.getCoinList = function (currency) {
+  var query = {};
+  if (currency) {
+    query = { "currency": currency };
+  }
+  return this.find("coins", query).then((resp) => {
+    var coins = {};
+    resp.forEach((row) => {
+      var c = row["currency"];
       // Because of SINGLE policy
-      return row["coins"][0];
+      var coin = row["coins"][0];
+      if (coins[c]) {
+        coins[c].push(coin);
+      } else {
+        coins[c] = [coin];
+      }
     });
     return coins;
   });
@@ -106,13 +117,13 @@ exports.extractCoins = function (coins) {
   });
 }
 
-exports.find = function(name, query) {
+exports.find = function(name, query, special={}) {
   if (!state.db) {
     return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    state.db.collection(name).find(query).toArray((err, resp) => {
+    state.db.collection(name).find(query, special).toArray((err, resp) => {
       if (err) {
         return reject(err);
       }

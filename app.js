@@ -41,15 +41,23 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 if (authentication && authentication.length > 0) {
+  var authGETReqs = ["/getTransactions"];
+
   var myLogger = function (req, res, next) {
+    if (req.method == "GET" && authGETReqs.indexOf(req.originalUrl) == -1) {
+      next();
+      return;
+    }
+
     var auth;
     if (req.method == "GET") {
-      auth = req.query.authentication;
+      auth = req.query.auth;
     }
     if (req.method == "POST") {
-      auth = req.body.authentication;
-      delete req.body.authentication;
+      auth = req.body.auth;
+      delete req.body.auth;
     }
+
     if (!auth || authentication != auth) {
       res.status(400).send("Incorrect authentication");
       return;
@@ -67,6 +75,7 @@ app.use(function(req, res, next) {
 
 
 Date.prototype.addSeconds = function (s) {
+  console.log(s);
   this.setSeconds(this.getSeconds() + s);
   return this;
 }
@@ -108,17 +117,8 @@ db.connect(config.dbConnection, function (err) {
     res.send('Hello Bitcoin-Express wallet merchant!');
   }
 
-  /* Example of a payment request body:
-   * {
-   *   amount: 0.0000095,
-   *   return_url: "http://amko55andapalmer.net/wp-content/themes/afp/art-of-asking/images/hero_mask.png",
-   *   memo: "The art of asking",
-   *   authentication: pwd,
-   * }
-   */
   function createPaymentRequest(req, res) {
     var paymentRequest = req.body;
-    console.log(req.body);
 
     if (!paymentRequest.amount || isNaN(paymentRequest.amount)) {
       res.status(400).send("Incorrect amount");
@@ -136,7 +136,7 @@ db.connect(config.dbConnection, function (err) {
     }
 
     // Build the 
-    paymentRequest.payment_url = req.protocol + '://' + req.get('host') + paymentPath
+    paymentRequest.payment_url = paymentPath
     paymentRequest.currency = paymentRequest.currency || defCurrency;
     paymentRequest.email = paymentRequest.email || defEmail;
 
@@ -145,21 +145,35 @@ db.connect(config.dbConnection, function (err) {
       return;
     }
 
-    // Payment expires in 4 minutes
     var now = new Date();
-    paymentRequest.payment_id = uuidv1();
-    console.log("payment_id created - ", paymentRequest.payment_id)
-    paymentRequest.expires = paymentRequest.expires || now.addSeconds(defTimeout).toISOString();
+    var exp = new Date().addSeconds(defTimeout);
+    paymentRequest.expires = paymentRequest.expires || exp.toISOString();
+
+    paymentRequest.payment_id = paymentRequest.payment_id || uuidv1();
+    console.log("new payment_id saved - ", paymentRequest.payment_id);
     paymentRequest.issuers = paymentRequest.issuers || defIssuers;
 
     var data = Object.assign({
-      resolved: false,
+      status: "initial",
       time: now.toISOString()
     }, paymentRequest);
 
     db.insert("payments", data).then((records) => {
       // records.insertedIds['0'];
       delete paymentRequest.return_url;
+      paymentRequest.id = paymentRequest.payment_id;
+
+      // Set status to timeout when expiring
+      var secs = exp - now;
+      console.log(now, paymentRequest.expires, secs);
+      setTimeout(() => {
+        var query = {
+          payment_id: paymentRequest.payment_id
+        }
+        console.log("Payment expired - " + query.payment_id);
+        db.findAndModify("payments", query, { status: "timeout" });
+      }, secs);
+
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(paymentRequest));
     }).catch((err) => {
@@ -189,8 +203,27 @@ db.connect(config.dbConnection, function (err) {
   }
 
   function getBalance (req, res) {
-    db.getCoinList().then((coins) => {
-      res.send(JSON.stringify({ total: issuer.coinsValue(coins) }));
+    var currency = req.query.currency;
+
+    db.getCoinList(currency).then((coins) => {
+      var response = [];
+
+      Object.keys(coins).forEach((curr) => {
+        var obj = {
+          currency: curr,
+          total: issuer.coinsValue(coins[curr]),
+          numCoins: coins[curr].length
+        }
+        response.push(obj);
+      });
+
+      if (currency) {
+        // Only one currency
+        response = response[0];
+        delete response.currency;
+      }
+
+      res.send(JSON.stringify(response));
     }).catch((err) => {
       throw err;
       res.status(400).send(err.message || err);
@@ -199,10 +232,21 @@ db.connect(config.dbConnection, function (err) {
   }
 
   function getTransactions (req, res) {
+    var offset = req.query.offset || 0;
+    var limit = req.query.limit || 0;
+    var orderBy = req.query.orderBy || "paid";
+    var before = req.query.before;
+
+    var special = { $orderby: { [orderBy]: -1 } }; // descending
+
     var query = {};
-    db.find('payments', query).then((resp) => {
+    if (before) {
+      query["time"] = { $lt: before };
+    }
+
+    db.find('payments', query, special).then((resp) => {
       resp = resp.map((tx) => {
-        if (!tx.resolved) {
+        if (!tx.status == "resolved") {
           // Remove the memo and return_url if not resolved
           // This can be done by the merchant, but better to make
           // sure we do it here
@@ -211,7 +255,16 @@ db.connect(config.dbConnection, function (err) {
         }
         return tx;
       });
-      res.send(JSON.stringify({ result: resp }));
+
+      var data = {
+        offset: offset,
+        limit: limit,
+        result: resp,
+      };
+      if (before) {
+        data["after"] = before;
+      }
+      res.send(JSON.stringify(data));
     }).catch((err) => {
       res.status(400).send(err.message || err);
       return;
@@ -219,17 +272,18 @@ db.connect(config.dbConnection, function (err) {
   }
 
   function redeem (req, res) {
-    /*
     var uri = req.body.address;
     var speed = req.body.speed;
     var amount = req.body.amount;
     var message = req.body.message;
-    */
+    var label = req.body.label;
+    /*
     var address = "35hQUijzi3QnwxCbmXpLqN4hyqGV2hgot5";
     var speed = "fastest";
     var amount = 0.000003;
     var message = "test";
     var label = "jose";
+    */
     var uri = `bitcoin:${address}?amount=${amount}&message=${message}&label=${label}`;
 
     return issuer.transfer(uri, db, speed).then((resp) => {
@@ -266,7 +320,7 @@ db.connect(config.dbConnection, function (err) {
     }
 
     var expires, key, tid, verifiedCoins,
-      amount, currency, returnUrl;
+      amount, currency, returnUrl, verifyInfo;
 
     var query = { 'payment_id': payment_id };
 
@@ -275,7 +329,7 @@ db.connect(config.dbConnection, function (err) {
         throw new Error("Can not find payment with payment_id " + payment_id);
       }
 
-      if (resp.resolved) {
+      if (resp.status == "resolved") {
         // The payment is resolved, throw error and intercept it
         var response = {
           PaymentAck: {
@@ -306,10 +360,12 @@ db.connect(config.dbConnection, function (err) {
 
       // this is coming from issuer list
       var inIssuerList = (c) => defIssuers.indexOf(utils.Coin(c).d) > -1;
-      if (issuers[0] != "*" && !coins.every(inIssuerList)) {
+      if (defIssuers[0] != "*" && !coins.every(inIssuerList)) {
         throw new Error("Some coins are not from the requested currecy");
       }
 
+      return db.findAndModify("payments", query, { status: "processing" });
+   }).then((resp) => {
       return issuer.post('begin', {
         issuerRequest: {
           fn: "verify"
@@ -317,6 +373,8 @@ db.connect(config.dbConnection, function (err) {
       });
     }).then((resp) => {
       tid = resp.issuerResponse.headerInfo.tid;
+      verifyInfo = resp;
+
       var payload = {
         issuerRequest: {
           tid: tid,
@@ -326,6 +384,7 @@ db.connect(config.dbConnection, function (err) {
           issuePolicy: "single"
         }
       };
+
       console.log("coins to verify ", coins);
       return issuer.post('verify', payload);
     }).then((resp) => {
@@ -346,7 +405,11 @@ db.connect(config.dbConnection, function (err) {
         date: new Date().toISOString()
       });
     }).then((records) => {
-      return db.findAndModify("payments", query, { resolved: true });
+      return db.findAndModify("payments", query, {
+        status: "resolved",
+        verifyInfo: verifyInfo,
+        paid: new Date().toISOString(),
+      });
     }).then((doc) => {
       key = doc.value.key;
       return issuer.post('end', {

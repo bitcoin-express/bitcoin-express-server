@@ -31,9 +31,9 @@ app.use(function(req, res, next) {
 app.get('/', function (req, res) {
   var post_data = JSON.stringify({
     amount: 0.0000015,
-    return_url: "http://amko55andapalmer.net/wp-content/themes/afp/art-of-asking/images/hero_mask.png",
+    return_url: "https://www.audible.com/pd/The-Art-of-Asking-Audiobook/B00OQT8AG2",
     memo: "The art of asking",
-    authentication: pwd,
+    auth: pwd,
   });
 
   var options = {
@@ -80,7 +80,7 @@ app.post('/pay', function (req, res) {
   console.log(req.body)
 
   var post_data = JSON.stringify(Object.assign({
-    authentication: pwd,
+    auth: pwd,
   }, payment));
   console.log(post_data);
 
@@ -117,7 +117,6 @@ app.post('/pay', function (req, res) {
         res.status(400).send(str);
       }
     });
-
   });
 
   post_req.write(post_data);
