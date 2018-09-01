@@ -12,7 +12,7 @@ Get the sum of the coins values stored from all the payments in the merchant wal
 
 **Query parameters**
 
-A *currency* indicating if we want to retrieve only the balance of one currency.
+- A *currency* indicating if we want to retrieve only the balance of one currency.
 
 **Query example**
 
@@ -31,13 +31,13 @@ A *currency* indicating if we want to retrieve only the balance of one currency.
 ```json
 [
   {
-    currency: "ETH",
-    total: 0.0019350,
-    numCoins: 22
+    "currency": "ETH",
+    "total": 0.0019350,
+    "numCoins": 22
   }, {
-    currency: "XBT",
-    total: 0.0001295,
-    numCoins: 12
+    "currency": "XBT",
+    "total": 0.0001295,
+    "numCoins": 12
   }
 ]
 ```

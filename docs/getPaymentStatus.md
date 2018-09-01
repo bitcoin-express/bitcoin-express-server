@@ -10,8 +10,8 @@
 
 **Query parameters**
 
-A *queryField* indicating if we want to retrieve the payment request by searching the "payment_id" or the "merchant_data".
-A *queryData* indicating the vaule of the query field.
+- A *queryField* indicating if we want to retrieve the payment request by searching the "payment_id" or the "merchant_data".
+- A *queryData* indicating the vaule of the query field.
 
 **Query example**
 

@@ -21,6 +21,7 @@ Closed endpoints require the valid authentication string included in the body re
 | POST | [/createPaymentRequest](docs/createPaymentRequest.md) | Creates and stores in DB a new paymentRequest, and returns the paymentRequest |
 | POST | [/payment](docs/payment.md) | Proceed with the payment by checking the validity of the coins, storing them and returning the payment result. |
 | POST | [/redeem](docs/redeem.md) | Sends funds from the wallet to a Bitcoin address |
+| POST | [/getCoins](docs/getCoins.md) | Extract desired amount of Coins in the standard Bitcoin-express file format |
 
 
 # Installation
