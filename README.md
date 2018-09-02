@@ -10,7 +10,6 @@ The following endpoints does not require authentication.
 | ------------- |-------------| -----|
 | GET | [/getBalance?currency=XXX](docs/getBalance.md) | Retrieves the sum of the coin values from the wallet |
 | GET | [/getPaymentStatus?queryField=XXX&queryData=YYY](docs/getPaymentStatus.md) | Retrieves a specific location object by payment_id or merchant_data |
-| GET | [/getTransactions?offset=XX&limit=YY&before=ZZ&auth=MM](docs/getTransactions.md) | Retrieves the whole list of transactions from the DB |
 
 ## Endpoints that require Authentication
 
@@ -19,9 +18,10 @@ Closed endpoints require the valid authentication string included in the body re
 | HTTP Method        | URL           | Description  |
 | ------------- |-------------| -----|
 | POST | [/createPaymentRequest](docs/createPaymentRequest.md) | Creates and stores in DB a new paymentRequest, and returns the paymentRequest |
+| POST | [/getCoins](docs/getCoins.md) | Extract desired amount of Coins in the standard Bitcoin-express file format |
+| GET | [/getTransactions?offset=XX&limit=YY&before=ZZ&auth=MM](docs/getTransactions.md) | Retrieves the whole list of transactions from the DB |
 | POST | [/payment](docs/payment.md) | Proceed with the payment by checking the validity of the coins, storing them and returning the payment result. |
 | POST | [/redeem](docs/redeem.md) | Sends funds from the wallet to a Bitcoin address |
-| POST | [/getCoins](docs/getCoins.md) | Extract desired amount of Coins in the standard Bitcoin-express file format |
 
 
 # Installation
