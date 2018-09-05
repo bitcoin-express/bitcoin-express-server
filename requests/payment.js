@@ -3,7 +3,6 @@ var issuer = require('../issuer');
 var utils = require('../issuer/utils');
 
 var config = require("../config.json");
-var defIssuers = config.acceptableIssuers || [config.homeIssuer];
 
 exports.payment = function (req, res) {
   var {
@@ -28,7 +27,7 @@ exports.payment = function (req, res) {
     return;
   }
 
-  var expires, key, tid, verifiedCoins,
+  var expires, key, tid, verifiedCoins, defIssuers,
     amount, currency, returnUrl, verifyInfo;
 
   var query = { 'payment_id': payment_id };
@@ -54,17 +53,19 @@ exports.payment = function (req, res) {
       throw new Error("-1");
     }
 
+    defIssuers = resp.issuers || config.acceptableIssuers || [config.homeIssuer];
     amount = resp.amount;
     currency = resp.currency;
     expires = resp.expires;
     returnUrl = resp.return_url;
 
-    if (issuer.coinsValue(coins) < amount) {
-      throw new Error("The coins sended are not enough");
+
+    if (!coins.every(c => currency == utils.Coin(c).c)) {
+      throw new Error("Some coins are not from the requested currency");
     }
 
-    if (!coins.every((c) => currency == utils.Coin(c).c)) {
-      throw new Error("Some coins are not from the requested currecy");
+    if (utils.coinsValue(coins) < amount) {
+      throw new Error("The coins sended are not enough");
     }
 
     // this is coming from issuer list
@@ -73,16 +74,16 @@ exports.payment = function (req, res) {
       throw new Error("Some coins are not from the requested currecy");
     }
 
-    return db.findAndModify("payments", query, { status: "processing" });
-  }).then((resp) => {
-    return issuer.post('begin', {
+    var prom1 = db.findAndModify("payments", query, { status: "processing" });
+    var prom2 = issuer.post('begin', {
       issuerRequest: {
         fn: "verify"
       }
     });
-  }).then((resp) => {
-    tid = resp.issuerResponse.headerInfo.tid;
-    verifyInfo = resp;
+    return Promise.all(prom1, prom2);
+  }).then((responses) => {
+    tid = responses[1].issuerResponse.headerInfo.tid;
+    verifyInfo = responses[1];
 
     var payload = {
       issuerRequest: {
@@ -100,33 +101,33 @@ exports.payment = function (req, res) {
     verifiedCoins = resp.issuerResponse.coin;
     console.log("verified coins ", verifiedCoins);
 
-    /*
-     * TO_DO - coinsValue minus expected verification fee
-    if (issuer.coinsValue(verifiedCoins) < amount) {
+    var value = resp.issuerResponse.verifyInfo.actualValue;
+    if (value < amount) {
       throw new Error("After verify coins, the amount is not enough");
     }
-    */
 
-    // Coins verified, save them in DB
+    // TO_DO - save the account id too !!
     return db.insert("coins", {
       coins: verifiedCoins,
       currency: currency,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      value: value
     });
   }).then((records) => {
-    return db.findAndModify("payments", query, {
+
+    var prom1 = db.findAndModify("payments", query, {
       status: "resolved",
       verifyInfo: verifyInfo,
       paid: new Date().toISOString(),
     });
-  }).then((doc) => {
-    key = doc.value.key;
-    return issuer.post('end', {
+    var prom2 = issuer.post('end', {
       issuerRequest: {
         tid: tid
       }
     });
-  }).then((resp) => {
+
+    return Promise.all(prom1, prom2);
+  }).then((responses) => {
     var response = {
       PaymentAck: {
         status: "ok",

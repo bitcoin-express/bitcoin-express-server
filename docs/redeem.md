@@ -17,8 +17,9 @@ Provide the Payment basic information.
 ```json
 
 {
-    "amount": "float - amount to be sent",
     "address": "string - valid bitcoin address",
+    "amount": "float - amount to be sent",
+    "auth": "string - authentication code",
     "speed": "string - describes the speed of the transaction, the faster the higher the fees are",
     "message": "string - message that describes the transaction to the user",
     "label": "string - label for that address (e.g. name of receiver)",
@@ -34,6 +35,7 @@ Provide the Payment basic information.
     "speed": "fastest",
     "message": "resquested amount for my friend Satoshi",
     "label": "satoshi",
+    "auth": "dummy_password"
 }
 ```
 

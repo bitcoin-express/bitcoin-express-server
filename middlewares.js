@@ -1,9 +1,9 @@
 var { authentication } = require("./config.json");
 
-var authGETReqs = ["/getTransactions"];
+var authGETReqs = ["/getTransactions", "/getBalance"];
 
 exports.authMiddleware = function (req, res, next) {
-  if (req.method == "GET" && authGETReqs.indexOf(req.originalUrl) == -1) {
+  if (req.method == "GET" && authGETReqs.some(str => str.startsWith(req.originalUrl))) {
     next();
     return;
   }

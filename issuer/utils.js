@@ -17,6 +17,20 @@ function Coin (base64) {
 
 exports.Coin = Coin;
 
+exports.coinsValue = function (coins) {
+  let sumCoins = 0;
+  coins.forEach((elt) => {
+    if (typeof elt === "string") {
+      var coin = this.Coin(elt);
+      if (!coin) return;
+      sumCoins += coin.value || 0;
+    } else {
+      sumCoins += elt.value || 0;
+    }
+  });
+  return parseFloat(sumCoins.toFixed(8));
+}
+
 function _round(number, precision) {
   let factor = Math.pow(10, precision);
   let tempNumber = number * factor;

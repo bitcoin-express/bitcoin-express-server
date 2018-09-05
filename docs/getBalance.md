@@ -6,18 +6,19 @@ Get the sum of the coins values stored from all the payments in the merchant wal
 
 **Method** : `GET`
 
-**Auth required** : NO
+**Auth required** : YES
 
 **Permissions required** : None
 
 **Query parameters**
 
+- An *auth* string token that matches with the merchant's account.
 - A *currency* indicating if we want to retrieve only the balance of one currency.
 
 **Query example**
 
 ```json
-?currency=XBT
+?currency=XBT&auth=<auth token>
 ```
 
 ## Success Response

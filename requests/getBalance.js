@@ -1,16 +1,24 @@
 var db = require('../db');
-var issuer = require('../issuer');
+var utils = require('../issuer/utils');
 
 exports.getBalance = function (req, res) {
   var currency = req.query.currency;
 
   db.getCoinList(currency).then((coins) => {
     var response = [];
+    if (Object.keys(coins).length == 0) {
+      if (currency) {
+        res.send("{}");
+        return;
+      }
+      res.send("[]");
+      return;
+    }
 
     Object.keys(coins).forEach((curr) => {
       var obj = {
         currency: curr,
-        total: issuer.coinsValue(coins[curr]),
+        total: utils.coinsValue(coins[curr]),
         numCoins: coins[curr].length
       }
       response.push(obj);
@@ -19,7 +27,6 @@ exports.getBalance = function (req, res) {
     if (currency) {
       // Only one currency
       response = response[0];
-      delete response.currency;
     }
 
     res.send(JSON.stringify(response));

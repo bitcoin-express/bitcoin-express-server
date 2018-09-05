@@ -15,8 +15,8 @@ Confirm a *payment_id* by sending the coins which value must be the same or high
 Provide the payment identification and the list of coins.
 
 ```json
-
 {
+   "auth": "string - authentication code",
    "coins": "array(string) - list of coins",
    "language_preference": "string - language of preference",
    "payment_id": "string - id of a payment already created",
@@ -33,13 +33,14 @@ Provide the payment identification and the list of coins.
    "language_preference": "spanish",
    "payment_id": "kj3248-k2mn88",
    "return_url": "https://myawesomevideo.com/928371",
-   "return_memo": "Thank you for your purchase!!"
+   "return_memo": "Thank you for your purchase!!",
+   "auth": "dummy_password"
 }
 ```
 
 ## Success Response
 
-**Condition** : If everything is OK the Payment Ack confirming the completition of the payment including the return_url.
+**Condition** : If everything is OK, the Payment Ack confirming the completition of the payment including the return_url.
 
 **Code** : `200 OK`
 

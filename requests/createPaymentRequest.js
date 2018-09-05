@@ -23,6 +23,7 @@ Date.prototype.addSeconds = function (s) {
 
 exports.createPaymentRequest = function (req, res) {
   var paymentRequest = req.body;
+  paymentRequest.amount = parseFloat(paymentRequest.amount);
 
   if (!paymentRequest.amount || isNaN(paymentRequest.amount)) {
     res.status(400).send("Incorrect amount");
@@ -65,7 +66,7 @@ exports.createPaymentRequest = function (req, res) {
   db.insert("payments", data).then((records) => {
     // records.insertedIds['0'];
     delete paymentRequest.return_url;
-    paymentRequest.id = paymentRequest.payment_id;
+    // paymentRequest.id = paymentRequest.payment_id;
 
     // Set status to timeout when expiring
     var secs = exp - now;
@@ -76,6 +77,15 @@ exports.createPaymentRequest = function (req, res) {
       }
       console.log("Payment expired - " + query.payment_id);
       db.findAndModify("payments", query, { status: "timeout" });
+
+      // new timeout to remove entry in DB
+      setTimeout(() => {
+        db.find("payments", query).then((resp) => {
+          if (resp.status == "timeout") {
+            db.remove("payments", query); 
+          }
+        });
+      }, 30 * 1000);
     }, secs);
 
     res.setHeader('Content-Type', 'application/json');

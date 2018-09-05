@@ -1,6 +1,6 @@
 var https = require('https');
-
-var utils = require('./issuer/utils');
+var { coinSelection } = require('./issuer/coinSelection')
+var db = require('./db');
 
 // Set issuer data for payment coins verification
 var options = {
@@ -25,26 +25,11 @@ exports.post = function (endpoint, data) {
   return issuerRequest(options, endpoint, data);
 }
 
-exports.coinsValue = function (coins) {
-  let sumCoins = 0;
-  coins.forEach((elt) => {
-    if (typeof elt === "string") {
-      var coin = utils.Coin(elt);
-      if (!coin) return;
-      sumCoins += coin.value || 0;
-    } else {
-      sumCoins += elt.value || 0;
-    }
-  });
-  return parseFloat(sumCoins.toFixed(8));
-}
-
 exports.transfer = function (uri, amount, db, speed) {
   return utils.transferBitcoin(uri, amount, db, speed);
 }
 
 function issuerRequest(options, endpoint, data=null) {
-
   return new Promise((resolve, reject) => {
     var req = https.request(options, (resp) => {
       var rawData = '';
@@ -72,4 +57,25 @@ function issuerRequest(options, endpoint, data=null) {
   });
 }
 
-
+exports.extractCoins = function (amount, currency, pwd) {
+  return 0;
+/*
+  console.log(typeof this.post);
+  return db.extractCoins().then((coins) => {
+    coins = coins[currency];
+    console.log(coins);
+    if (this.coinsValue(coins) < amount) {
+      throw new Error("Not enough funds");
+      return;
+    }
+    var finalCoins = coinSelection(amount, coins);
+    if (pwd) {
+      // TO_DO, encrypt coins here
+      console.log(coins)
+    }
+    // TO_DO, remove coins from db
+    // ...
+    return finalCoins;
+  });
+  */
+};

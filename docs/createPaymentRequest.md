@@ -29,7 +29,7 @@ Provide the Payment basic information.
       "receipt": "boolean - send receipt to users after payment",
       "refund": "boolean - refunds allowed"
     },
-    "authentication": "string - authentication code",
+    "auth": "string - authentication code",
 }
 ```
 
@@ -42,7 +42,7 @@ Provide the Payment basic information.
     "currency": "XBT",
     "issuers": ["be.ap.rmp.net", "eu.carrotpay.com"],
     "memo": "The art of asking",
-    "authentication": "dummy_password",
+    "auth": "dummy_password",
 }
 ```
 

@@ -13,25 +13,25 @@ exports.getTransactions = function (req, res) {
     query["time"] = { $lt: before };
   }
 
+  // TO_DO - the find() will need to include a filter for the account id.
   db.find('payments', query, special).then((resp) => {
-    resp = resp.map((tx) => {
-      if (!tx.status == "resolved") {
-        // Remove the memo and return_url if not resolved
-        // This can be done by the merchant, but better to make
-        // sure we do it here
-        delete tx.return_url;
-        delete tx.return_memo;
-      }
-      return tx;
-    });
+    if (offset > 0) {
+      resp = resp.slice(offset, resp.length);
+    }
+    if (limit > 0) {
+      resp = resp.slice(0, limit);
+    }
 
     var data = {
       offset: offset,
       limit: limit,
+      count: resp.length,
+      orderBy: orderBy,
       result: resp,
     };
+
     if (before) {
-      data["after"] = before;
+      data["before"] = before;
     }
     res.send(JSON.stringify(data));
   }).catch((err) => {

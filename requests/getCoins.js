@@ -2,7 +2,6 @@ var db = require('../db');
 var issuer = require('../issuer');
 
 exports.getCoins = function (req, res) {
-  // TO_DO
   var {
     amount,
     currency,
@@ -10,24 +9,40 @@ exports.getCoins = function (req, res) {
     memo,
   } = req.body;
 
-  db.getCoinList(currency).then((coins) => {
-    var response = [];
+  amount = parseFloat(amount);
+  if (!amount || isNaN(amount)) {
+    res.status(400).send("Incorrect amount");
+    return;
+  }
 
-    Object.keys(coins).forEach((curr) => {
-      var obj = {
-        currency: currency,
-        total: issuer.coinsValue(coins[currency]),
-        numCoins: coins[currency].length
-      };
-      response.push(obj);
-    });
+  if (!currency) {
+    res.status(400).send("No currency included");
+    return;
+  }
 
-    if (currency) {
-      // Only one currency
-      response = response[0];
-      delete response.currency;
+  // TO_DO
+  issuer.extractCoins(amount, currency, password).then((ref, coins, iv) => {
+    var coinsOj = {
+      coins: {
+        [currency]: coins
+      }
+    };
+
+    if (password && iv) {
+      coinsObj.coins["encrypted"] = true;
+      coinsObj.coins["iv"] = iv;
     }
 
+    // TO_DO - feed sender
+    var response = {
+      fileType: "export",
+      date: new Date().toISOString(),
+      sender: req.header.domain + ":" + req.header.port,
+      reference: ref,
+      memo: memo || "Extracted " + currency + amount.toFixed(8),
+      contents: [currency + " " + amount.toFixed(8)],
+      coins: coinsObj
+    };
     res.send(JSON.stringify(response));
   }).catch((err) => {
     throw err;
