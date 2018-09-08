@@ -3,6 +3,7 @@ var issuer = require('../issuer');
 
 exports.getCoins = function (req, res) {
   var {
+    account_id,
     amount,
     currency,
     password,
@@ -20,32 +21,24 @@ exports.getCoins = function (req, res) {
     return;
   }
 
-  // TO_DO
-  issuer.extractCoins(amount, currency, password).then((ref, coins, iv) => {
-    var coinsOj = {
-      coins: {
-        [currency]: coins
-      }
-    };
-
-    if (password && iv) {
-      coinsObj.coins["encrypted"] = true;
-      coinsObj.coins["iv"] = iv;
+  var special = {
+    fields: {
+      _id: 0,
+      account_id: 0,
     }
+  };
 
-    // TO_DO - feed sender
-    var response = {
-      fileType: "export",
-      date: new Date().toISOString(),
-      sender: req.header.domain + ":" + req.header.port,
-      reference: ref,
-      memo: memo || "Extracted " + currency + amount.toFixed(8),
-      contents: [currency + " " + amount.toFixed(8)],
-      coins: coinsObj
-    };
-    res.send(JSON.stringify(response));
+  // TO_DO:
+  // 1. Now returns all, must return the desired amount
+  // 2. Change to Bitcoin-express format
+  // 3. Encrypt with password
+  var query = {
+    account_id: account_id,
+    currency: currency
+  };
+  db.find('coins', query, special).then((resp) => {
+    res.send(JSON.stringify(resp));
   }).catch((err) => {
-    throw err;
     res.status(400).send(err.message || err);
     return;
   });

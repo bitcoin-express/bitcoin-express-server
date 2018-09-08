@@ -1,4 +1,5 @@
-var MongoClient = require('mongodb').MongoClient
+var MongoClient = require('mongodb').MongoClient;
+var ObjectId = require('mongodb').ObjectId;
 
 var state = {
   db: null,
@@ -48,7 +49,7 @@ exports.remove = function(name, query) {
       if (err) {
         return reject(err);
       }
-      return resolve(records);
+      return resolve(resp);
     });
   });
 }
@@ -83,8 +84,8 @@ exports.findOne = function(name, query) {
   });
 }
 
-exports.getCoinList = function (currency) {
-  var query = {};
+exports.getCoinList = function (currency, account_id) {
+  var query = { account_id: account_id };
   if (currency) {
     query = { "currency": currency };
   }
@@ -117,13 +118,23 @@ exports.extractCoins = function (coins) {
   });
 }
 
-exports.find = function(name, query, special={}) {
+exports.find = function(name, query, special={}, skip=null, limit=null) {
   if (!state.db) {
     return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    state.db.collection(name).find(query, special).toArray((err, resp) => {
+    var cursor = state.db.collection(name).find(query, special);
+
+    if (skip) {
+      cursor = cursor.skip(parseInt(skip));
+    }
+
+    if (limit) {
+      cursor = cursor.limit(parseInt(limit));
+    }
+
+    cursor.toArray((err, resp) => {
       if (err) {
         return reject(err);
       }

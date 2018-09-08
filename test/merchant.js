@@ -6,7 +6,7 @@ var http = require('http');
 var https = require('https');
 
 var app = express();
-var pwd = "1234";
+var pwd = "DDtKEXuZnlk=";
 
 app.engine('handlebars', exphbs({
   defaultLayout: 'main',

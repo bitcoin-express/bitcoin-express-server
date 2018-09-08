@@ -1,27 +1,29 @@
 var db = require('../db');
 
 exports.getTransactions = function (req, res) {
-  var offset = req.query.offset || 0;
-  var limit = req.query.limit || 0;
   var orderBy = req.query.orderBy || "paid";
-  var before = req.query.before;
+  var {
+    account_id,
+    offset,
+    limit,
+    before,
+  } = req.query;
 
-  var special = { $orderby: { [orderBy]: -1 } }; // descending
+  // -1: descending
+  var special = {
+    $orderby: { [orderBy]: -1 },
+    fields: {
+      _id: 0,
+      account_id: 0,
+    }
+  };
 
-  var query = {};
+  var query = { account_id: account_id };
   if (before) {
     query["time"] = { $lt: before };
   }
 
-  // TO_DO - the find() will need to include a filter for the account id.
-  db.find('payments', query, special).then((resp) => {
-    if (offset > 0) {
-      resp = resp.slice(offset, resp.length);
-    }
-    if (limit > 0) {
-      resp = resp.slice(0, limit);
-    }
-
+  db.find('payments', query, special, offset, limit).then((resp) => {
     var data = {
       offset: offset,
       limit: limit,

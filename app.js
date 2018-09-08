@@ -11,6 +11,8 @@ var { getPaymentStatus } = require("./requests/getPaymentStatus");
 var { getTransactions } = require("./requests/getTransactions");
 var { payment } = require("./requests/payment");
 var { redeem } = require("./requests/redeem");
+var { register } = require("./requests/register");
+var { setConfig } = require("./requests/setConfig");
 
 var db = require('./db');
 
@@ -25,6 +27,11 @@ var {
 } = require('./middlewares');
 
 var app = express();
+
+Date.prototype.addSeconds = function (s) {
+  this.setSeconds(this.getSeconds() + s);
+  return this;
+}
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -49,6 +56,8 @@ db.connect(dbConnection, function (err) {
   app.get('/getTransactions', getTransactions);
   app.post('/payment', payment);
   app.post('/redeem', redeem);
+  app.post('/register', register);
+  app.post('/setConfig', setConfig);
 
   var privateKey  = fs.readFileSync('./sslcert/bitcoinexpress.key', 'utf8');
   var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');
@@ -62,4 +71,14 @@ db.connect(dbConnection, function (err) {
   httpsServer.listen(8443, function() {
     console.log('Listening on port 8443...');
   });
+
+  setInterval(() => {
+    var now = new Date().addSeconds(30); // 30 sec
+    var query = {
+      expires: { $lt: now.toISOString() },
+      status: { $nin: ["resolved", "processing"] },
+    };
+    console.log('SCHEDULER - Removing expired requests');
+    db.remove("payments", query);
+  }, 5 * 60 * 1000); // interval of 5 min
 })

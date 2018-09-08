@@ -1,9 +1,9 @@
-var { authentication } = require("./config.json");
-
-var authGETReqs = ["/getTransactions", "/getBalance"];
+var db = require('./db');
+var authReqs = ["/register", "/payment"];
 
 exports.authMiddleware = function (req, res, next) {
-  if (req.method == "GET" && authGETReqs.some(str => str.startsWith(req.originalUrl))) {
+  console.log(req.originalUrl)
+  if (authReqs.some(str => str.startsWith(req.originalUrl))) {
     next();
     return;
   }
@@ -17,11 +17,33 @@ exports.authMiddleware = function (req, res, next) {
     delete req.body.auth;
   }
 
-  if (!auth || authentication != auth) {
-    res.status(400).send("Incorrect authentication");
+  if (!auth) {
+    res.status(400).send("No auth token provided");
     return;
   }
-  next();
+
+  db.findOne("accounts", { authToken: auth }).then((resp) => { 
+    if (!resp) {
+      res.status(400).send("No account with this auth token");
+      return;
+    }
+
+    var id = resp._id;
+    delete resp.privateKey;
+    delete resp.authToken;
+    delete resp.id;
+
+    if (req.method == "GET") {
+      req.query.account_id = id;
+      req.query.account = resp;
+    }
+
+    if (req.method == "POST") {
+      req.body.account_id = id;
+      req.body.account = resp;
+    }
+    next();
+  });
 } 
 
 exports.corsMiddleware = function (req, res, next) {

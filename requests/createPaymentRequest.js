@@ -2,27 +2,33 @@ var uuidv1 = require('uuid/v1');
 
 var db = require('../db');
 var issuer = require('../issuer');
-var config = require("../config.json");
-
-var paymentPath = config.paymentPath || '/pay';
-var defCurrency = config.defaultCurrency;
-var defTimeout = config.defaultTimeout;
-var defIssuers = config.acceptableIssuers || [config.homeIssuer];
-var defEmail = {
-  contact: config.emailContact,
-  receipt: config.offerEmailRecipt,
-  refund: config.offerEmailRefund
-};
-
-Date.prototype.addSeconds = function (s) {
-  console.log(s);
-  this.setSeconds(this.getSeconds() + s);
-  return this;
-}
-
 
 exports.createPaymentRequest = function (req, res) {
-  var paymentRequest = req.body;
+  var {
+    account,
+    account_id,
+  } = req.body;
+
+  var {
+    acceptableIssuers,
+    defaultCurrency,
+    defaultTimeout,
+    homeIssuer,
+    paymentPath,
+    serverDomain,
+  } = account;
+
+  var defIssuers = acceptableIssuers || [homeIssuer];
+  var defEmail = {
+    contact: account.emailContact,
+    receipt: account.offerEmailRecipt,
+    refund: account.offerEmailRefund,
+  };
+
+  // Prepare the paymentRequest
+  var paymentRequest = Object.assign({}, req.body);
+  delete paymentRequest.account;
+  delete paymentRequest.account_id;
   paymentRequest.amount = parseFloat(paymentRequest.amount);
 
   if (!paymentRequest.amount || isNaN(paymentRequest.amount)) {
@@ -40,9 +46,8 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
-  // Build the 
-  paymentRequest.payment_url = paymentPath
-  paymentRequest.currency = paymentRequest.currency || defCurrency;
+  paymentRequest.payment_url = serverDomain + paymentPath + "/payment"
+  paymentRequest.currency = paymentRequest.currency || defaultCurrency;
   paymentRequest.email = paymentRequest.email || defEmail;
 
   if (!paymentRequest.currency) {
@@ -51,7 +56,7 @@ exports.createPaymentRequest = function (req, res) {
   }
 
   var now = new Date();
-  var exp = new Date().addSeconds(defTimeout);
+  var exp = new Date().addSeconds(defaultTimeout);
   paymentRequest.expires = paymentRequest.expires || exp.toISOString();
 
   paymentRequest.payment_id = paymentRequest.payment_id || uuidv1();
@@ -59,6 +64,7 @@ exports.createPaymentRequest = function (req, res) {
   paymentRequest.issuers = paymentRequest.issuers || defIssuers;
 
   var data = Object.assign({
+    account_id: account_id,
     status: "initial",
     time: now.toISOString()
   }, paymentRequest);
@@ -77,15 +83,6 @@ exports.createPaymentRequest = function (req, res) {
       }
       console.log("Payment expired - " + query.payment_id);
       db.findAndModify("payments", query, { status: "timeout" });
-
-      // new timeout to remove entry in DB
-      setTimeout(() => {
-        db.find("payments", query).then((resp) => {
-          if (resp.status == "timeout") {
-            db.remove("payments", query); 
-          }
-        });
-      }, 30 * 1000);
     }, secs);
 
     res.setHeader('Content-Type', 'application/json');

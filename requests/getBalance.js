@@ -2,9 +2,12 @@ var db = require('../db');
 var utils = require('../issuer/utils');
 
 exports.getBalance = function (req, res) {
-  var currency = req.query.currency;
+  var {
+    account_id,
+    currency,
+  } = req.query;
 
-  db.getCoinList(currency).then((coins) => {
+  db.getCoinList(currency, account_id).then((coins) => {
     var response = [];
     if (Object.keys(coins).length == 0) {
       if (currency) {
