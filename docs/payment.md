@@ -6,7 +6,7 @@ Confirm a *payment_id* by sending the coins which value must be the same or high
 
 **Method** : `POST`
 
-**Auth required** : YES
+**Auth required** : NO
 
 **Permissions required** : None
 
@@ -16,25 +16,26 @@ Provide the payment identification and the list of coins.
 
 ```json
 {
-   "auth": "string - authentication code",
+   "id": "string - a string created by the Wallet and echoed back to the Wallet in the PaymentAck",
    "coins": "array(string) - list of coins",
-   "language_preference": "string - language of preference",
+   "client": "string - either 'web' or 'app' [default to 'web']",
+   "merchant_data": "string - if present in the paymentRequest, it MUST be echoed here",
    "payment_id": "string - id of a payment already created",
    "return_url": "string - if payment completed, the page will redirect to the retur_url",
-   "return_memo": "string - othe data/info to return if payment succeded"
+   "receipt_to": "string - where a receipt should be sent if the Merchant is able to provide one",
+   "refund_to": "string - othe data/info to return if payment succeded",
+   "language_preference": "string - language of preference",
+   "memo": "string - a short message from the buyer to the Merchant (could include the buyer's postal address...)"
 }
 ```
 
-**Data example** All fields must be sent.
+**Data example** Key fields *coins*, *payment_id*/*merchant_data* and *id* must be sent.
 
 ```json
 {
+   "id": "di3isne",
    "coins": ["0esdfwern302234b22o4jk2hit3oh89fwh2n2+wo24o324"],
-   "language_preference": "spanish",
    "payment_id": "kj3248-k2mn88",
-   "return_url": "https://myawesomevideo.com/928371",
-   "return_memo": "Thank you for your purchase!!",
-   "auth": "dummy_password"
 }
 ```
 
@@ -52,8 +53,7 @@ Provide the payment identification and the list of coins.
   "PaymentAck": {
     "status": "ok",
     "id": "kj3248-k2mn88",
-    "return_url": "https://myawesomevideo.com/928371",
-    "return_memo": "Thank you for your purchase!!"
+    "return_url": "https://myawesomevideo.com/928371"
   }
 }
 ```
