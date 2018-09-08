@@ -17,7 +17,6 @@ var { setConfig } = require("./requests/setConfig");
 var db = require('./db');
 
 var {
-  authentication,
   dbConnection
 } = require("./config.json");
 
@@ -36,7 +35,7 @@ Date.prototype.addSeconds = function (s) {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(corsMiddleware);
-!authentication || authentication.length == 0 || app.use(authMiddleware);
+app.use(authMiddleware);
 
 // Connect to Mongo on start
 db.connect(dbConnection, function (err) {

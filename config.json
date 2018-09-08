@@ -1,6 +1,5 @@
 {
   "dbConnection": "mongodb://localhost:27017/",
-  "authentication": "1234",
   "defaultCurrency": "XBT",
   "defaultTimeout": 200,
   "emailContact": "",
