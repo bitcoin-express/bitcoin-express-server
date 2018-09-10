@@ -1,12 +1,12 @@
 # Create a new account
 
-Extract Coins in the standard file format so that they may easily be imported into Bitcoin-Express wallet.
+Create a new account to store payments.
 
 **URL** : `/register`
 
 **Method** : `POST`
 
-**Auth required** : YES
+**Auth required** : NO
 
 **Permissions required** : None
 
@@ -16,29 +16,23 @@ Provide the basic information for the extraction.
 
 ```json
 {
-  "amount": "float - the amount to be extracted",
-  "currency": "string - Coins currency to be extracted",
-  "password": "string - if included, the coins will be encrypted with this password",
-  "memo": "string - a descriptive text of the widthdrawal",
-  "auth": "string - the auth token"
+  "domain": "string - Coins currency to be extracted",
+  "email": "string - if included, the coins will be encrypted with this password",
+  "name": "string - a descriptive text of the widthdrawal"
 }
 ```
 
-**Data example** **auth**, **amount** and **currency** must be sent.
+**Data example** **domain** must be sent.
 
 ```json
 {
-  "amount": 0.5,
-  "currency": "XBT",
-  "password": "hardtoguess",
-  "memo": "2019 July sales",
-  "auth": "<auth token>"
+  "domain": "mysite.com"
 }
 ```
 
 ## Success Response
 
-**Condition** : If everything is OK, the Coin with the exact requested amount JSON representation following the Bitcoin-Express wallet's format.
+**Condition** : If everything is OK, the new account info including the **authToken**.
 
 **Code** : `200 OK`
 
@@ -46,22 +40,18 @@ Provide the basic information for the extraction.
 
 ```json
 {
-  "fileType": "export",
-  "date": "2019-07-01T13:51:51.348Z",
-  "sender": "<merchant's domain>|<account name>",
-  "reference": "<_id>",
-  "memo": "2019 July sales",
-  "contents": ["XBT 0.5"],
-  "coins": {
-    "encrypted": true,
-    "iv": "DvTCr7M6eUB3QvuMr1RIbQ==",
-    "coins": {
-      "XBT": [
-        "gJ9YJx/DLOs44/Chfy6G ... aDmLlT2LaW82fCk3r7Tya8VQby/byaBkI+Viix1qd/KiU5yyU=",
-        "gJ9YJx/DLOs44/Chfy6GAK6GaBa7+TZJNEL5EME0witUDrd ... p3uMR/yqFZWsE++9Du/hPo="
-      ]
-    }
-  }
+   "authToken": "3ZmSnYiLAog",
+   "domain": " mySite.com ",
+   "emailAccountContact": " sales@mySite.com ",
+   "name": "Clothing",
+   "homeIssuer": "eu.carrotpay.com",
+   "acceptableIssuers": "[(eu.carrotpay.com)]",
+   "dbConnection": "mongodb://localhost:27017/",
+   "defaultTimeout": "3600",
+   "emailCustomerContact": "",
+   "offerEmailReceipt": false,
+   "offerEmailRefund": false,
+   "paymentPath": "/"
 }
 ```
 
@@ -78,5 +68,5 @@ Provide the basic information for the extraction.
 **Content example**
 
 ```json
-Not enough funds
+domain not included
 ```
