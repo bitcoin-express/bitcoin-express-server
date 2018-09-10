@@ -57,8 +57,9 @@ exports.payment = function (req, res) {
     currency = resp.currency;
     expires = resp.expires;
     returnUrl = resp.return_url;
-    defIssuers = resp.issuers;
 
+    var defIssuers = resp.issuers;
+    console.log(defIssuers);
 
     if (!coins.every(c => currency == utils.Coin(c).c)) {
       throw new Error("Some coins are not from the requested currency");
