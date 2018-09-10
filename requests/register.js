@@ -2,7 +2,6 @@ var crypto = require('crypto');
 var os = require('os');
 
 var db = require('../db');
-var issuer = require('../issuer');
 var config = require("../config.json");
 
 exports.register = function (req, res) {

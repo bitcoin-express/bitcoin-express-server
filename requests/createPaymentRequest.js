@@ -1,7 +1,6 @@
 var uuidv1 = require('uuid/v1');
 
 var db = require('../db');
-var issuer = require('../issuer');
 
 exports.createPaymentRequest = function (req, res) {
   var {

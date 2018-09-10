@@ -12,13 +12,15 @@ var options = {
   },
 };
 
-exports.get = function (endpoint) {
+exports.get = function (endpoint, host=null) {
+  options.host = host || options.host;
   options.method = 'GET';
   options.path = `/Bitcoin-express/v1/issuer/${endpoint}`;
   return issuerRequest(options, endpoint);
 }
 
-exports.post = function (endpoint, data) {
+exports.post = function (endpoint, data, host=null) {
+  options.host = host || options.host;
   options.method = 'POST';
   options.path = `/Bitcoin-express/v1/issuer/${endpoint}`;
   options.headers['Content-Length'] = Buffer.byteLength(JSON.stringify(data));

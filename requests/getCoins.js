@@ -1,5 +1,4 @@
 var db = require('../db');
-var issuer = require('../issuer');
 
 exports.getCoins = function (req, res) {
   var {

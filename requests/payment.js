@@ -7,18 +7,18 @@ exports.payment = function (req, res) {
     coins,
     id,
     payment_id,
+    merchant_data,
+    memo,
+    // The next params are  used for this demo,
+    // it needs to be implemented
+    client,
+    language_preference,
+    receipt_to,
+    refund_to,
   } = req.body;
 
-  console.log("payment_id recieved - ", payment_id)
-  console.log(req.body);
-
-  // Not used for this demo, needs to be implemented
-  // var receipt_to = req.body.receipt_to;
-  // var refund_to = req.body.refund_to;
-  // var client = req.body.client;
-
-  if (!payment_id) {
-    res.status(400).send("Missing payment_id");
+  if (!payment_id && !merchant_data) {
+    res.status(400).send("Missing payment_id or merchant_data");
     return;
   }
 
@@ -27,7 +27,7 @@ exports.payment = function (req, res) {
     return;
   }
 
-  var expires, key, tid, verifiedCoins, defIssuers,
+  var expires, key, tid, verifiedCoins, host,
     amount, currency, returnUrl, verifyInfo, account_id;
 
   var query = { 'payment_id': payment_id };
@@ -69,9 +69,17 @@ exports.payment = function (req, res) {
     }
 
     // this is coming from issuer list
-    var inIssuerList = (c) => defIssuers.indexOf(utils.Coin(c).d) > -1;
+    var host = utils.Coin(coins[0]).d;
+    var inIssuerList = (c) => {
+      var domain = utils.Coin(c).d;
+      var inList = defIssuers.indexOf(domain) > -1;
+      return inList && domain == host;
+    };
+
     if (defIssuers[0] != "*" && !coins.every(inIssuerList)) {
-      throw new Error("Some coins are not from the requested currecy");
+      throw new Error("Some coins are not from the list of acceptable issuers" +
+        " or mixed coins are from different issuers."
+      );
     }
 
 
@@ -80,7 +88,7 @@ exports.payment = function (req, res) {
       issuerRequest: {
         fn: "verify"
       }
-    });
+    }, host);
     var prom3 = db.findOne("accounts", {
       "_id": resp.account_id
     });
@@ -88,7 +96,6 @@ exports.payment = function (req, res) {
   }).then(([_p, vInfo, account]) => {
     verifyInfo = vInfo;
     tid = vInfo.issuerResponse.headerInfo.tid;
-    defIssuers = defIssuers || account.acceptableIssuers || [account.homeIssuer];
     account_id = account._id;
 
     var payload = {
@@ -102,7 +109,7 @@ exports.payment = function (req, res) {
     };
 
     console.log("coins to verify ", coins);
-    return issuer.post('verify', payload);
+    return issuer.post('verify', payload, host);
   }).then((resp) => {
     verifiedCoins = resp.issuerResponse.coin;
     console.log("verified coins ", verifiedCoins);
@@ -112,25 +119,34 @@ exports.payment = function (req, res) {
       throw new Error("After verify coins, the amount is not enough");
     }
 
-    return db.insert("coins", {
+    var coinData = {
       account_id: account_id,
       coins: verifiedCoins,
       currency: currency,
       date: new Date().toISOString(),
-      value: value
-    });
-  }).then((records) => {
+      value: value,
+    }
+    if (memo) coinData["memo"] = memo;
+    if (client) coinData["client"] = client;
+    if (payment_id) coinData["payment_id"] = payment_id;
+    if (merchant_data) coinData["merchant_data"] = merchant_data;
 
-    var prom1 = db.findAndModify("payments", query, {
+    return db.insert("coins", coinData);
+  }).then((records) => {
+    var payData = {
       status: "resolved",
       verifyInfo: verifyInfo,
       paid: new Date().toISOString(),
-    });
+    };
+    if (memo) payData["memo"] = memo;
+    if (client) payData["client"] = client;
+
+    var prom1 = db.findAndModify("payments", query, payData);
     var prom2 = issuer.post('end', {
       issuerRequest: {
         tid: tid
       }
-    });
+    }, host);
 
     return Promise.all([prom1, prom2]);
   }).then((responses) => {
