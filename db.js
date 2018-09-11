@@ -85,9 +85,11 @@ exports.findOne = function(name, query) {
 }
 
 exports.getCoinList = function (currency, account_id) {
-  var query = { account_id: account_id };
+  var query = {
+    account_id: account_id
+  };
   if (currency) {
-    query = { "currency": currency };
+    query["currency"] = currency;
   }
   return this.find("coins", query).then((resp) => {
     var coins = {};

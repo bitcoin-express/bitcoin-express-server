@@ -10,7 +10,7 @@ exports.setConfig = function (req, res) {
   delete data.account_id;
   delete data.account;
 
-  // TO_DO: Improve request by checking values and 
+  // Improve request by checking values and 
   // throwing exceptions when settings values are
   // not right
   db.findAndModify("accounts", query, data).then((result) => {
@@ -20,5 +20,8 @@ exports.setConfig = function (req, res) {
       return;
     }
     res.send(JSON.stringify(response));
+  }).catch((err) => {
+    res.status(400).send(err.message || err);
+    return;
   });
 };
