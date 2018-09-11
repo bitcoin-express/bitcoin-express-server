@@ -20,8 +20,8 @@ exports.register = function (req, res) {
   diffHell.generateKeys();
 
   var data = {
-    "authToken": diffHell.getPublicKey('base64'),
-    "privateKey": diffHell.getPrivateKey('base64'),
+    "authToken": diffHell.getPublicKey('hex'),
+    "privateKey": diffHell.getPrivateKey('hex'),
     "domain": domain,
     "serverDomain": config.serverDomain,
     "homeIssuer": config.homeIssuer,

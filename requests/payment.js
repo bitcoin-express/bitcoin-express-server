@@ -28,9 +28,13 @@ exports.payment = function (req, res) {
   }
 
   var expires, key, tid, verifiedCoins, host,
-    amount, currency, returnUrl, verifyInfo, account_id;
+    amount, currency, returnUrl, verifyInfo, accountId;
 
-  var query = { 'payment_id': payment_id };
+  var query = payment_id ? {
+    payment_id: payment_id
+  } : {
+    merchant_data: merchant_data
+  };
 
   db.findOne('payments', query).then((resp) => {
     if (!resp) {
@@ -57,9 +61,9 @@ exports.payment = function (req, res) {
     currency = resp.currency;
     expires = resp.expires;
     returnUrl = resp.return_url;
+    accountId = resp.account_id;
 
     var defIssuers = resp.issuers;
-    console.log(defIssuers);
 
     if (!coins.every(c => currency == utils.Coin(c).c)) {
       throw new Error("Some coins are not from the requested currency");
@@ -71,8 +75,11 @@ exports.payment = function (req, res) {
 
     // this is coming from issuer list
     var host = utils.Coin(coins[0]).d;
+    console.log("coins host - " + host);
+
     var inIssuerList = (c) => {
-      var domain = utils.Coin(c).d;
+      var coin = utils.Coin(c);
+      var domain = coin.d;
       var inList = defIssuers.indexOf(domain) > -1;
       return inList && domain == host;
     };
@@ -83,7 +90,6 @@ exports.payment = function (req, res) {
       );
     }
 
-
     var prom1 = db.findAndModify("payments", query, { status: "processing" });
     var prom2 = issuer.post('begin', {
       issuerRequest: {
@@ -91,13 +97,16 @@ exports.payment = function (req, res) {
       }
     }, host);
     var prom3 = db.findOne("accounts", {
-      "_id": resp.account_id
+      "_id": accountId
     });
     return Promise.all([prom1, prom2, prom3]);
-  }).then(([_p, vInfo, account]) => {
-    verifyInfo = vInfo;
-    tid = vInfo.issuerResponse.headerInfo.tid;
-    account_id = account._id;
+  }).then(([_p, vi, account]) => {
+    tid = vi.issuerResponse.headerInfo.tid;
+    verifyInfo = vi;
+
+    if (!account) {
+      throw new Error("Payment account does not exist");
+    }
 
     var payload = {
       issuerRequest: {
@@ -121,7 +130,7 @@ exports.payment = function (req, res) {
     }
 
     var coinData = {
-      account_id: account_id,
+      account_id: accountId,
       coins: verifiedCoins,
       currency: currency,
       date: new Date().toISOString(),
@@ -164,6 +173,16 @@ exports.payment = function (req, res) {
   }).catch((err) => {
     if (err.message == "-1") {
       return;
+    }
+    if (tid && host) {
+      return issuer.post('end', {
+        issuerRequest: {
+          tid: tid
+        }
+      }, host).then(() => {
+        res.status(400).send(err.message || err);
+        return;
+      });
     }
     res.status(400).send(err.message || err);
     return;
