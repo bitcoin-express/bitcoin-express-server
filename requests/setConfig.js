@@ -4,10 +4,11 @@ var utils = require('../issuer/utils');
 var config = require("../config.json");
 
 exports.setConfig = function (req, res) {
-  var query = { id: req.body.account_id };
+  var query = { "_id": req.body.account_id };
 
   var data = Object.assign({}, req.body);
   delete data.account_id;
+  delete data.account;
 
   // TO_DO: Improve request by checking values and 
   // throwing exceptions when settings values are
