@@ -1116,3 +1116,248 @@ function _uniqueValues(coins) {
   });
 }
 
+
+/**
+ * Transfer the total value of coin(s) to a standard Bitcoin using
+ * the 'address' provided.
+ *
+ * If 'args.target' value is defined and > zero and that value is achievable
+ * given the set of 'coins' provided, the target amount will be transferred
+ * and any 'change' will be returned in the issuerResponse.
+ *
+ * Finally, either 'success' or 'args.failure' will be called with an
+ * issuerResponse parameter to indicate the progress of the transfer.
+ *
+ * @param coins [array] An array of one or more Coins (either base64 encoded or Coin objects).
+ * @param address [string] The Bitcoin address to be used for the transfer.
+ * @param args [map] A set of optional arguments as detailed below:
+ * @element failure [function]  The function to be called on unsuccessful completion of the transfer.
+ * @element target [string] The target value in case an exact amount is to be transferred, otherwise
+ *    the whole amount will be transfered.
+ * @element speed   [string]  Indicates the urgency with which this transfer should be completed on
+ *    the blockchain.
+ * @element comment [string]  A comment to be added to the History. 
+ * @element action  [string]  A short label for the action being taken. This will be reflected in the
+ *    history. Defaults to "redeem".
+ * @element policy  [string]  The desired coin issuing policy for the Issuer to follow when issuing
+ *    change. If not supplied, the wallet's default policy will be requested.
+ * @element domain  [string]  The domain of the Issuer to be used. If not provided the default Issuer
+ *    will be used. If beginResponse is provided this element is ignored. 
+ * @element beginResponse [Object] Include this if /begin has been called. If not present redeemCoins
+ *    will first call /begin to obtain a transaction ID.
+ */
+function redeemCoins(coins, address, args) {
+  let defaults = {
+    target: "0",
+    action: "redeem",
+    newCoinList: [],
+    speed: "fastest",
+    expiryPeriod_ms: this.getExpiryPeriod(REDEEM_EXPIRE),
+    policy: this.getSettingsVariable(ISSUE_POLICY),
+  };
+
+  args = Object.assign({}, defaults, args);
+
+  if (typeof(address) !== 'string') {
+    return Promise.reject(Error("Bitcoin address was not a String"));
+  }
+
+  if (!Array.isArray(coins) || coins.length==0) {
+    return Promise.reject(Error("No Coins provided"));
+  }
+
+  let wrongType = false;
+  let base64Coins = new Array();
+  let sumCoins = 0.0;
+  coins.forEach(function(elt) {
+    if (typeof elt === "string") {
+      sumCoins += parseFloat(Coin(elt).value);
+      base64Coins.push(elt);
+      return;
+    }
+    sumCoins += elt.value;
+    if ("base64" in elt) {
+      base64Coins.push(elt.base64);
+      return;
+    }
+    wrongType = true;
+  });
+
+  if (wrongType) {
+    return Promise.reject(Error("Redeem requires Coin or base64 string"));
+  }
+
+  let expiryEmail = this._fillEmailArray(sumCoins);
+  if (expiryEmail != null) {
+    args.expiryEmail = expiryEmail;
+  }
+
+  // TO_DO is promise??? Is it worth???
+  this._ensureDomainIsSet(args, coins);
+
+  let startRedeem = (beginResponse) => {
+    args.beginResponse = args.beginResponse || beginResponse;
+
+    const tid = beginResponse.headerInfo.tid;
+    const redeemExp = parseFloat(this.getSettingsVariable(REDEEM_EXPIRE)) * (1000 * 60 * 60);
+    const now = new Date().getTime();
+    const newExpiry = isNaN(args.expiryPeriod) ? now + redeemExp : args.expiryPeriod;
+
+    if (!crypto) {
+      crypto = this.getPersistentVariable(CRYPTO, "XBT");
+    }
+
+    let redeemRequest = {
+      issuerRequest: {
+        tid: tid,
+        expiry: new Date(newExpiry).toISOString(),
+        fn: "redeem",
+        bitcoinAddress: address,
+        coin: base64Coins,
+        issuePolicy: args.policy || DEFAULT_SETTINGS.issuePolicy,
+        bitcoinSpeed: args.speed,
+      },
+      recovery: {
+        fn: "redeem",
+        domain: beginResponse.headerInfo.domain,
+        action: args.action,
+      },
+    };
+
+    if (args.target > 0) {
+      redeemRequest.issuerRequest.targetValue = args.target;
+    }
+
+    if (typeof(args.comment) === "string") {
+      redeemRequest.recovery.comment = args.comment;
+    }
+
+    // if expiryEmail is defined and the fee is less than the sum of coins,
+    // add it to the request 
+    if (Array.isArray(args.expiryEmail) && args.expiryEmail.length > 0) {
+      let issuer = args.beginResponse.issuer.find((elt) =>  {
+        return elt.relationship == "home";
+      });
+      let feeExpiryEmail = issuer ? Number.parseFloat(issuer.feeExpiryEmail || "0") : 0;
+      let change = (sumCoins - args.target - issuer.bitcoinFees[args.speed]);
+      if (change > feeExpiryEmail) {
+        redeemRequest.issuerRequest.expiryEmail = args.expiryEmail;
+        redeemRequest.recovery.expiryEmail = args.expiryEmail;
+      }
+    }
+
+    let redeemResponse;
+    return storage.sessionStart("Redeem coins").then(() => {
+      return storage.setToPromise(SESSION, tid, redeemRequest);
+    }).then(() => {
+      return storage.flush();
+    }).then(() => {
+      return this.extractCoins(base64Coins, tid);
+    }).then(() => {
+      return this._redeemCoins_inner_(redeemRequest, args, crypto);
+    }).then((response) => {
+      redeemResponse = response;
+      return storage.sessionEnd();
+    }).then(() => {
+      return redeemResponse;
+    }).catch((err) => {
+      if (debug) {
+        console.log(`WalletBF.redeemCoins - Error: ${err.message}`);
+        console.log("WalletBF.redeemCoins - Adding coins back to store");
+      }
+      return storage.addAllIfAbsent(COIN_STORE, base64Coins, false, crypto).then(() => {
+        storage.sessionEnd();
+        return Promise.reject(err);
+      }).catch((err) => {
+        storage.sessionEnd();
+        return Promise.reject(err);
+      });
+    });
+  };
+
+  if (args.beginResponse) {
+    return startRedeem(args.beginResponse);
+  } else {
+    const params = {
+      issuerRequest: {
+        fn: "redeem"
+      }
+    };
+    return this.issuer("begin", params, args).then(startRedeem);
+  }
+}
+
+function _redeemCoins_inner_(request, args, crypto = null) {
+  let req = JSON.parse(JSON.stringify(request));
+  // clone the request in case of deferral
+  delete request.recovery;
+
+  let redeem = () => {
+    let resp = null;
+
+    const {
+      COIN_STORE,
+      CRYPTO,
+      debug,
+      SESSION,
+      storage,
+    } = this.config;
+
+    if (!crypto) {
+      crypto = this.getPersistentVariable(CRYPTO, "XBT");
+    }
+
+    return this.issuer("redeem", request, args).then((redeemResponse) => {
+      resp = redeemResponse
+
+      if (resp.deferInfo) {
+        return this._restartDeferral(redeem, resp, req, 15000).then(() => {
+          return Promise.reject(Error("Redeem deferred"));
+        });
+      }
+
+      if (resp.status !== "ok") {
+        let errMsg = "Error on redeem response status";
+        if (resp.error && resp.error.length > 0) {
+          errMsg = resp.error[0].message;
+        }
+        return Promise.reject(Error(errMsg));
+      }
+
+      if (resp.redeemInfo && args.comment) {
+        // used mainly when for bitcoin uri has a message or lable
+        resp.redeemInfo.comment = args.comment;
+      }
+      if (resp.headerInfo && args.action) {
+        resp.headerInfo.fn = args.action;
+      }
+
+      if (resp.coin && resp.coin.length > 0) {
+        return storage.addAllIfAbsent(COIN_STORE, resp.coin, false, crypto);
+      }
+      return 0;
+    }).then((numCoins) => {
+      if (debug && numCoins == 0) {
+        console.log("Redeem zero coins");
+      }
+      resp.other = Object.assign({}, args.other || {}, resp.redeemInfo);
+      resp.currency = crypto;
+      return this.recordTransaction(resp);
+    }).then(() => {
+      return storage.removeFrom(SESSION, resp.headerInfo.tid);
+    }).then(() => {
+      const context = {
+        issuerRequest: {
+          tid: resp.headerInfo.tid,
+        }
+      };
+      return this.issuer("end", context, {
+        domain: args.domain,
+      });
+    }).then(() => {
+      return resp;
+    });
+  };
+
+  return redeem();
+}

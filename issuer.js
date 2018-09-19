@@ -27,10 +27,6 @@ exports.post = function (endpoint, data, host=null) {
   return issuerRequest(options, endpoint, data);
 }
 
-exports.transfer = function (uri, amount, db, speed) {
-  return utils.transferBitcoin(uri, amount, db, speed);
-}
-
 function issuerRequest(options, endpoint, data=null) {
   return new Promise((resolve, reject) => {
     var req = https.request(options, (resp) => {

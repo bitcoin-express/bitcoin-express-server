@@ -145,7 +145,7 @@ exports.find = function(name, query, special={}, skip=null, limit=null) {
   });
 }
 
-exports.findAndModify = function(name, query, modification, callback) {
+exports.findAndModify = function(name, query, modification) {
   if (!state.db) {
     return Promise.reject(new Error("No DB"));
   }

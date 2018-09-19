@@ -226,7 +226,7 @@ function _redeemCoins_inner_(request, args, db, crypto = null) {
  * @param confirmation [function] (optional) A function to be called to
  *   allow the user to confirm the payment.
  */
-exports.transferBitcoin = function (uri, db, speed, confirmation) {
+exports.transferBitcoin = function (uri, coins, balance, speed) {
   let payment = coinSelection.parseBitcoinURI(uri);
 
   if (!payment) {
@@ -241,11 +241,6 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
     label,
   } = payment;
 
-  let comment = message;
-  if (label) {
-    comment = comment ? `${comment} | ${label}` : label;
-  }
-
   // The total value redeemed must include the bitcoin
   // transaction fee.
   // The transaction fee is optional but if the fee paid
@@ -255,23 +250,8 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
       fn: "redeem"
     }
   };
-  let balance = 0;
-  let coins = [];
 
-  return db.getCoinList().then((resp) => {
-    coins = resp;
-    balance = issuer.coinsValue(coins);
-
-    if (!coins.every((c) => ["XBT", "BTC"].indexOf(Coin(c).c > -1))) {
-      throw new Error("Some coins with incorrect currency");
-    }
-
-    if (balance < amount) {
-      throw new Error("Insufficient funds");
-    }
-
-    return issuer.post("begin", params);
-  }).then((resp) => {
+  return issuer.post("begin", params).then((resp) => {
     var beginResponse = resp.issuerResponse;
     if (beginResponse.deferInfo) {
       throw new Error(beginResponse.deferInfo.reason);
@@ -283,12 +263,7 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
     const recommendedFees = beginResponse.issuer[0].bitcoinFees;
     const bitcoinFee = recommendedFees[speed] || 0;
 
-    let paymentAmount = parseFloat(amount);
-    if (paymentAmount <= 0) {
-      throw new Error("Amount must be positive");
-    }
-
-    let txAmount = _round(paymentAmount + bitcoinFee, 8);
+    let txAmount = _round(parseFloat(amount) + bitcoinFee, 8);
     if (txAmount > balance) {
       throw new Error("Insufficient funds to pay fees");
     }
@@ -304,7 +279,7 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
       address: address,
     };
 
-    let selection = coinSelection.coinSelection(txAmount, resp, args);
+    let selection = coinSelection.coinSelection(txAmount, coins, args);
 
     if (!selection.targetValue || Number.isNaN(selection.targetValue)) {
       throw new Error("Amount is not a number");
@@ -337,15 +312,12 @@ exports.transferBitcoin = function (uri, db, speed, confirmation) {
       args.inCoinCount = allCoins.length;
       args.outCoinCount = 1;
 
-      confirmation = confirmation || function (_x, _y, fn) { fn(); };
       return new Promise((resolve, reject) => {
-        confirmation(parseFloat(amount), bitcoinFee, () => {
-          const params = [allCoins, address, args, db, "XBT"];
-          coinSelection.redeemCoins(...params).then(resolve).catch(reject);
-        });
+        const params = [allCoins, address, args];
+        coinSelection.redeemCoins(...params).then(resolve).catch(reject);
       });
     } else {
-      return Promise.reject(Error("Insufficient funds"));
+      throw new Error("Insufficient funds");
     }
   });
 }

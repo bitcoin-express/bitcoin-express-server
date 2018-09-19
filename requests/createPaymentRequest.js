@@ -6,25 +6,9 @@ exports.createPaymentRequest = function (req, res) {
   var {
     account,
     account_id,
+    merchant_data,
   } = req.body;
 
-  var {
-    acceptableIssuers,
-    defaultCurrency,
-    defaultTimeout,
-    homeIssuer,
-    paymentPath,
-    serverDomain,
-  } = account;
-
-  var defIssuers = acceptableIssuers || [homeIssuer];
-  var defEmail = {
-    contact: account.emailContact,
-    receipt: account.offerEmailRecipt,
-    refund: account.offerEmailRefund,
-  };
-
-  // Prepare the paymentRequest
   var paymentRequest = Object.assign({}, req.body);
   delete paymentRequest.account;
   delete paymentRequest.account_id;
@@ -44,6 +28,46 @@ exports.createPaymentRequest = function (req, res) {
     res.status(400).send("No return_url included");
     return;
   }
+
+  var promise = Promise.resolve(false);
+  if (merchant_data) {
+    var query = {
+      account_id: account_id,
+      merchant_data: merchant_data,
+    };
+
+    promise = db.findOne('payments', query).then((resp) => {
+      if (!resp) {
+        return false;
+      }
+      console.log("Found payment with merchant_data " + merchant_data);
+      return db.findAndModify("payments", query, paymentRequest);
+    }).then((response) => {
+      if (!result) {
+        return false;
+      }
+      res.send(JSON.stringify(response));
+      return true;
+    }).catch((err) => {
+      return false;
+    });
+  }
+
+  var {
+    acceptableIssuers,
+    defaultCurrency,
+    defaultTimeout,
+    homeIssuer,
+    paymentPath,
+    serverDomain,
+  } = account;
+
+  var defIssuers = acceptableIssuers || [homeIssuer];
+  var defEmail = {
+    contact: account.emailContact,
+    receipt: account.offerEmailRecipt,
+    refund: account.offerEmailRefund,
+  };
 
   paymentRequest.payment_url = serverDomain + paymentPath + "/payment"
   paymentRequest.currency = paymentRequest.currency || defaultCurrency;
@@ -68,26 +92,32 @@ exports.createPaymentRequest = function (req, res) {
     time: now.toISOString()
   }, paymentRequest);
 
-  db.insert("payments", data).then((records) => {
-    // records.insertedIds['0'];
-    delete paymentRequest.return_url;
-    // paymentRequest.id = paymentRequest.payment_id;
+  promise.then((finished) => {
+    if (finished) {
+      return;
+    }
 
-    // Set status to timeout when expiring
-    var secs = exp - now;
-    console.log(now, paymentRequest.expires, secs);
-    setTimeout(() => {
-      var query = {
-        payment_id: paymentRequest.payment_id
-      }
-      console.log("Payment expired - " + query.payment_id);
-      db.findAndModify("payments", query, { status: "timeout" });
-    }, secs);
+    db.insert("payments", data).then((records) => {
+      // records.insertedIds['0'];
+      delete paymentRequest.return_url;
+      // paymentRequest.id = paymentRequest.payment_id;
 
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify(paymentRequest));
-  }).catch((err) => {
-    res.status(400).send(err.message || err);
-    return;
+      // Set status to timeout when expiring
+      var secs = exp - now;
+      console.log(now, paymentRequest.expires, secs);
+      setTimeout(() => {
+        var query = {
+          payment_id: paymentRequest.payment_id
+        }
+        console.log("Payment expired - " + query.payment_id);
+        db.findAndModify("payments", query, { status: "timeout" });
+      }, secs);
+
+      res.setHeader('Content-Type', 'application/json');
+      res.send(JSON.stringify(paymentRequest));
+    }).catch((err) => {
+      res.status(400).send(err.message || err);
+      return;
+    });
   });
 }

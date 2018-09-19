@@ -18,6 +18,7 @@ exports.getPaymentStatus = function (req, res) {
     if (!resp) {
       res.status(400).send("Payment not found by " + field + " query parameter");
     }
+    resp.amount = parseFloat(resp.amount).toFixed(8);
     res.send(JSON.stringify(resp));
   }).catch((err) => {
     res.status(400).send(err.message || err);
