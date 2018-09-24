@@ -64,7 +64,7 @@ exports.removeMultipleIds = function(name, ids) {
       if (err) {
         return reject(err);
       }
-      return resolve(records);
+      return resolve(resp);
     });
   });
 }

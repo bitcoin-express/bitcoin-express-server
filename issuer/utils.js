@@ -1,7 +1,7 @@
-var coinSelection = require('./coinSelection');
 var atob = require('atob');
 
 var issuer = require('../issuer');
+var coinSelection = require('./coinSelection');
 
 function Coin (base64) {
   try {
@@ -22,7 +22,9 @@ exports.coinsValue = function (coins) {
   coins.forEach((elt) => {
     if (typeof elt === "string") {
       var coin = this.Coin(elt);
-      if (!coin) return;
+      if (!coin) {
+        return;
+      }
       sumCoins += coin.value || 0;
     } else {
       sumCoins += elt.value || 0;
@@ -37,196 +39,8 @@ function _round(number, precision) {
   return Math.round(tempNumber) / factor;
 }
 
-exports.redeemCoins = function (coins, address, args, db, crypto=null) {
-  let defaults = {
-    target: "0",
-    action: "redeem",
-    newCoinList: [],
-    speed: "fastestFee",
-    expiryPeriod_ms: 0.5,
-    policy: "single",
-  };
 
-  args = Object.assign({}, defaults, args);
-
-  if (typeof(address) !== 'string') {
-    // Cannot recover
-    return Promise.reject(Error("Bitcoin address was not a String"));
-  }
-
-  if (!Array.isArray(coins) || coins.length==0) {
-    return Promise.reject(Error("No Coins provided"));
-  }
-
-  let wrongType = false;
-  let base64Coins = new Array();
-  let sumCoins = 0.0;
-
-  coins.forEach((elt) => {
-    if (typeof elt === "string") {
-      let c = Coin(elt);
-      sumCoins += parseFloat(c.value);
-      base64Coins.push(elt);
-      return;
-    }
-    sumCoins += elt.value;
-    if (elt.base64) {
-      base64Coins.push(elt.base64);
-      return;
-    }
-    wrongType = true;
-  });
-
-  if (wrongType) {
-    // Cannot recover
-    return Promise.reject(Error("Redeem requires Coin or base64 string"));
-  }
-
-  let expiryEmail = this._fillEmailArray(sumCoins);
-  if (expiryEmail != null) {
-    args.expiryEmail = expiryEmail;
-  }
-
-
-  // TO_DO is promise??? Is it worth???
-  // _ensureDomainIsSet(args, coins);
-
-  let startRedeem = (beginResponse) => {
-    args.beginResponse = args.beginResponse || beginResponse;
-
-    const tid = beginResponse.headerInfo.tid;
-    const redeemExp = parseFloat(this.getSettingsVariable(REDEEM_EXPIRE)) * (1000 * 60 * 60);
-    const now = new Date().getTime();
-    const newExpiry = isNaN(args.expiryPeriod) ? now + redeemExp : args.expiryPeriod;
-
-    if (!crypto) {
-      crypto = this.getPersistentVariable(CRYPTO, "XBT");
-    }
-
-    let redeemRequest = {
-      issuerRequest: {
-        tid: tid,
-        expiry: new Date(newExpiry).toISOString(),
-        fn: "redeem",
-        bitcoinAddress: address,
-        coin: base64Coins,
-        issuePolicy: args.policy || DEFAULT_SETTINGS.issuePolicy,
-        bitcoinSpeed: args.speed,
-      },
-      recovery: {
-        fn: "redeem",
-        domain: beginResponse.headerInfo.domain,
-        action: args.action,
-      },
-    };
-
-    if (args.target > 0) {
-      redeemRequest.issuerRequest.targetValue = args.target;
-    }
-
-    if (typeof(args.comment) === "string") {
-      redeemRequest.recovery.comment = args.comment;
-    }
-
-    // if expiryEmail is defined and the fee is less than the sum of coins,
-    // add it to the request 
-    if (Array.isArray(args.expiryEmail) && args.expiryEmail.length > 0) {
-      let issuer = args.beginResponse.issuer.find((elt) =>  {
-        return elt.relationship == "home";
-      });
-      let feeExpiryEmail = issuer ? Number.parseFloat(issuer.feeExpiryEmail || "0") : 0;
-      let change = (sumCoins - args.target - issuer.bitcoinFees[args.speed]);
-      if (change > feeExpiryEmail) {
-        redeemRequest.issuerRequest.expiryEmail = args.expiryEmail;
-        redeemRequest.recovery.expiryEmail = args.expiryEmail;
-      }
-    }
-
-    return db.insert("session", { tid: tid, request: redeemRequest }).then((records) => {
-      return db.extractCoins(base64Coins);
-    }).then(() => {
-      return _redeemCoins_inner_(redeemRequest, args, db, crypto);
-    }).catch((err) => {
-      return insertCoins(db, base64Coins).then(() => {
-        throw err;
-      });
-    });
-  };
-
-  if (args.beginResponse) {
-    return startRedeem(args.beginResponse);
-  }
-
-  const params = {
-    issuerRequest: {
-      fn: "redeem"
-    }
-  };
-  return issuer.post("begin", params).then(startRedeem);
-}
-
-
-function _redeemCoins_inner_(request, args, db, crypto = null) {
-  delete request.recovery;
-  let resp = null;
-  let tid = null;
-
-  return issuer.post("redeem", request).then((response) => {
-    resp = response;
-    tid = resp.headerInfo.tid;
-
-    if (resp.deferInfo) {
-      // deferred, no need to call again, just throw the error
-      throw new Error("Redeem deferred. Try again in the future.");
-    }
-
-    if (resp.status !== "ok") {
-      let errMsg = "Redeem response status is not 'ok'";
-      if (resp.error && resp.error.length > 0) {
-        errMsg = resp.error[0].message || errMsg;
-      }
-      throw new Error(errMsg);
-    }
-
-    if (resp.redeemInfo && args.comment) {
-      // used mainly when for bitcoin uri has a message or lable
-      resp.redeemInfo.comment = args.comment;
-    }
-    if (resp.headerInfo && args.action) {
-      resp.headerInfo.fn = args.action;
-    }
-
-    if (resp.coin && resp.coin.length > 0) {
-      return insertCoins(db, resp.coin);
-    }
-    return 0;
-  }).then((numCoins) => {
-    resp.currency = crypto || "XBT";
-    return db.insert("bitcoin_transactions", resp);
-  }).then(() => {
-    return db.remove("session", { tid: tid });
-  }).then(() => {
-    return issuer.post("end", {
-      issuerRequest: {
-        tid: tid,
-      }
-    });
-  }).then(() => resp);
-}
-
-/**
- * Transfer funds from the Wallet to a standard Bitcoin address.
- *
- * @param uri [string] A bitcoin uri that complies with BIP:21
- *
- * @param speed [string] Indicates the urgency of this payment.
- *   Note: the current balance must be sufficient to pay an appropriate
- *   fee for the specified speed.
- *
- * @param confirmation [function] (optional) A function to be called to
- *   allow the user to confirm the payment.
- */
-exports.transferBitcoin = function (uri, coins, balance, speed) {
+exports.transferBitcoin = function (uri, coins, balance, speed, accountId) {
   let payment = coinSelection.parseBitcoinURI(uri);
 
   if (!payment) {
@@ -273,7 +87,7 @@ exports.transferBitcoin = function (uri, coins, balance, speed) {
       beginResponse: beginResponse,
       target: amount,
       speed: speed,
-      comment: comment,
+      comment: message,
       action: `send XBT${amount}`,
       uri: uri,
       address: address,
@@ -313,7 +127,8 @@ exports.transferBitcoin = function (uri, coins, balance, speed) {
       args.outCoinCount = 1;
 
       return new Promise((resolve, reject) => {
-        const params = [allCoins, address, args];
+        console.log("Coins to redeem ", allCoins);
+        const params = [allCoins, address, args, accountId];
         coinSelection.redeemCoins(...params).then(resolve).catch(reject);
       });
     } else {
@@ -334,20 +149,4 @@ function insertCoins(db, base64Coins) {
 
   return Promise.all(promises).then(() => base64Coins.length);
 }
-
-function _ensureDomainIsSet(args, coins) {
-  let self = this;
-  //When /begin has already returned a response, we must use that Issuer's domain 
-  if (args.beginResponse && args.beginResponse.headerInfo && args.beginResponse.headerInfo.domain) {
-    args.domain = args.beginResponse.headerInfo.domain;
-  } else if (typeof(args.domain) === "undefined") {
-    //Set the domain if all coins come from the same Issuer
-    args.domain = self._getSameDomain(coins);    
-  }
-  //finally use the default issuer 
-  if (args.domain === null) {
-    args.domain = self.getSettingsVariable(self.config.DEFAULT_ISSUER);
-  }
-}
-
 

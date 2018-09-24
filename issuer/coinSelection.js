@@ -1,3 +1,8 @@
+var atob = require('atob');
+
+var db = require('../db');
+var issuer = require('../issuer');
+
 const COIN_SELECTION = "coinsSelection";
 const COIN_SELECTION_FN = "coinSelectionFn";
 const DEFAULT_ISSUER = "defaultIssuer";
@@ -7,10 +12,15 @@ const DEFAULT_EXPIRY_PERIOD = (1000 * 60 * 60) * ((24 * 3) - 1);
 let ISSUERS = new Object();
 let WHOLE_COIN_COUNT = 0;
 
+if (typeof localStorage === "undefined" || localStorage === null) {
+  var LocalStorage = require('node-localstorage').LocalStorage;
+  localStorage = new LocalStorage('./scratch');
+}
+
 
 exports.parseBitcoinURI = function(url) {
-  let r = /^bitcoin:([a-zA-Z0-9]{27,34})(?:\?(.*))?$/;
-  let match = r.exec(url);
+  var re = /^bitcoin:([a-zA-Z0-9]{27,34})(?:\?(.*))?$/;
+  let match = re.exec(url);
   if (!match) return null;
 
   let parsed = { url: url }
@@ -790,12 +800,13 @@ function _arraySum(array, item, begin, n) {
   return round(sum,8);
 }
 
-exports.round = function (number, precision) {
+function round(number, precision) {
   let factor = Math.pow(10, precision);
   let tempNumber = number * factor;
   let roundedTempNumber = Math.round(tempNumber);
   return roundedTempNumber / factor;
 }
+exports.round = round;
 
 function _isPlainObject(value) {
   if (Object.prototype.toString.call(value) !== '[object Object]') {
@@ -1146,14 +1157,18 @@ function _uniqueValues(coins) {
  * @element beginResponse [Object] Include this if /begin has been called. If not present redeemCoins
  *    will first call /begin to obtain a transaction ID.
  */
-function redeemCoins(coins, address, args) {
+
+var REDEEM_EXPIRE = (new Date()).getTime() + 0.5 * (1000 * 60 * 60);
+var ISSUE_POLICY = "single";
+
+exports.redeemCoins =  function (coins, address, args, accountId) {
   let defaults = {
     target: "0",
     action: "redeem",
     newCoinList: [],
     speed: "fastest",
-    expiryPeriod_ms: this.getExpiryPeriod(REDEEM_EXPIRE),
-    policy: this.getSettingsVariable(ISSUE_POLICY),
+    expiryPeriod_ms: REDEEM_EXPIRE,
+    policy: ISSUE_POLICY,
   };
 
   args = Object.assign({}, defaults, args);
@@ -1187,25 +1202,36 @@ function redeemCoins(coins, address, args) {
     return Promise.reject(Error("Redeem requires Coin or base64 string"));
   }
 
-  let expiryEmail = this._fillEmailArray(sumCoins);
-  if (expiryEmail != null) {
-    args.expiryEmail = expiryEmail;
+  console.log(sumCoins);
+  if (typeof this._fillEmailArray == "function") {
+    let expiryEmail = this._fillEmailArray(sumCoins);
+    if (expiryEmail != null) {
+      args.expiryEmail = expiryEmail;
+    }
   }
 
-  // TO_DO is promise??? Is it worth???
-  this._ensureDomainIsSet(args, coins);
+  if (typeof this._ensureDomainIsSet == "function") {
+    this._ensureDomainIsSet(args, coins);
+  } else {
+    // When /begin has already returned a response, we must use that Issuer's domain 
+    if (args.beginResponse && args.beginResponse.headerInfo && args.beginResponse.headerInfo.domain) {
+      args.domain = args.beginResponse.headerInfo.domain;
+    } else if (typeof(args.domain) === "undefined") {
+      args.domain = _getSameDomain(coins);    
+    }
+
+    if (!args.domain) {
+      throw new Error("No domain found");
+    }
+  }
 
   let startRedeem = (beginResponse) => {
     args.beginResponse = args.beginResponse || beginResponse;
 
     const tid = beginResponse.headerInfo.tid;
-    const redeemExp = parseFloat(this.getSettingsVariable(REDEEM_EXPIRE)) * (1000 * 60 * 60);
+    const redeemExp = parseFloat(REDEEM_EXPIRE);
     const now = new Date().getTime();
     const newExpiry = isNaN(args.expiryPeriod) ? now + redeemExp : args.expiryPeriod;
-
-    if (!crypto) {
-      crypto = this.getPersistentVariable(CRYPTO, "XBT");
-    }
 
     let redeemRequest = {
       issuerRequest: {
@@ -1247,29 +1273,22 @@ function redeemCoins(coins, address, args) {
     }
 
     let redeemResponse;
-    return storage.sessionStart("Redeem coins").then(() => {
-      return storage.setToPromise(SESSION, tid, redeemRequest);
-    }).then(() => {
-      return storage.flush();
-    }).then(() => {
-      return this.extractCoins(base64Coins, tid);
-    }).then(() => {
-      return this._redeemCoins_inner_(redeemRequest, args, crypto);
-    }).then((response) => {
-      redeemResponse = response;
-      return storage.sessionEnd();
-    }).then(() => {
-      return redeemResponse;
+    return db.extractCoins(base64Coins).then(() => {
+      return _redeemCoins_inner_(redeemRequest, args, accountId);
     }).catch((err) => {
-      if (debug) {
-        console.log(`WalletBF.redeemCoins - Error: ${err.message}`);
-        console.log("WalletBF.redeemCoins - Adding coins back to store");
-      }
-      return storage.addAllIfAbsent(COIN_STORE, base64Coins, false, crypto).then(() => {
-        storage.sessionEnd();
-        return Promise.reject(err);
-      }).catch((err) => {
-        storage.sessionEnd();
+      console.log(err);
+      base64Coins = base64Coins.map((c) => {
+        var coin = Coin(c);
+        return {
+          account_id: accountId,
+          coins: [c],
+          currency: coin.c,
+          date: new Date().toISOString(),
+          value: coin.v,
+        };
+      });
+
+      return db.insert("coins", base64Coins).then(() => {
         return Promise.reject(err);
       });
     });
@@ -1283,45 +1302,31 @@ function redeemCoins(coins, address, args) {
         fn: "redeem"
       }
     };
-    return this.issuer("begin", params, args).then(startRedeem);
+    return issuer.post("begin", params).then(startRedeem);
   }
 }
 
-function _redeemCoins_inner_(request, args, crypto = null) {
+function _redeemCoins_inner_(request, args, accountId) {
   let req = JSON.parse(JSON.stringify(request));
   // clone the request in case of deferral
   delete request.recovery;
 
   let redeem = () => {
     let resp = null;
-
-    const {
-      COIN_STORE,
-      CRYPTO,
-      debug,
-      SESSION,
-      storage,
-    } = this.config;
-
-    if (!crypto) {
-      crypto = this.getPersistentVariable(CRYPTO, "XBT");
-    }
-
-    return this.issuer("redeem", request, args).then((redeemResponse) => {
-      resp = redeemResponse
+    return issuer.post("redeem", request).then((redeemResponse) => {
+      resp = redeemResponse.issuerResponse;
+      console.log("redeemResponse ", resp);
 
       if (resp.deferInfo) {
-        return this._restartDeferral(redeem, resp, req, 15000).then(() => {
-          return Promise.reject(Error("Redeem deferred"));
-        });
+        throw new Error("Redeem deferred");
       }
 
       if (resp.status !== "ok") {
-        let errMsg = "Error on redeem response status";
+        let errMsg = "Redeem response status is " + resp.status;
         if (resp.error && resp.error.length > 0) {
           errMsg = resp.error[0].message;
         }
-        return Promise.reject(Error(errMsg));
+        throw new Error(errMsg);
       }
 
       if (resp.redeemInfo && args.comment) {
@@ -1333,26 +1338,28 @@ function _redeemCoins_inner_(request, args, crypto = null) {
       }
 
       if (resp.coin && resp.coin.length > 0) {
-        return storage.addAllIfAbsent(COIN_STORE, resp.coin, false, crypto);
+        var coinsData = resp.coin.map((c) => {
+          var coin = Coin(c);
+          return {
+            account_id: accountId,
+            coins: [c],
+            currency: coin.c,
+            date: new Date().toISOString(),
+            value: coin.v,
+          };
+        });
+
+        return db.insert("coins", coinsData).then(() => {
+          return resp.coin.length;
+        });
       }
       return 0;
     }).then((numCoins) => {
-      if (debug && numCoins == 0) {
-        console.log("Redeem zero coins");
-      }
-      resp.other = Object.assign({}, args.other || {}, resp.redeemInfo);
-      resp.currency = crypto;
-      return this.recordTransaction(resp);
-    }).then(() => {
-      return storage.removeFrom(SESSION, resp.headerInfo.tid);
-    }).then(() => {
-      const context = {
+      console.log("saved back ", numCoins, " coins");
+      return issuer.post("end", {
         issuerRequest: {
           tid: resp.headerInfo.tid,
         }
-      };
-      return this.issuer("end", context, {
-        domain: args.domain,
       });
     }).then(() => {
       return resp;

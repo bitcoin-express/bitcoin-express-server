@@ -34,11 +34,13 @@ exports.redeem = function (req, res) {
   speed = speed || "fastest";
 
   db.getCoinList(currency, account_id).then((coins) => {
+    console.log("all coins", coins);
     coins = coins[currency];
 
     var total = utils.coinsValue(coins);
+    console.log("total ", total);
     if (total < parseFloat(amount)) {
-      res.status(400).send("Not enough funds");
+      res.status(400).send(`Not enough funds. You have a total of ${currency} ${total}.`);
       return;
     }
 
@@ -49,13 +51,13 @@ exports.redeem = function (req, res) {
 
     var uri = `bitcoin:${address}?amount=${amount}`;
     if (message) {
-      uri += `&message=${message}`;
+      uri += `&message=${encodeURIComponent(message)}`;
     }
     if (label) {
-      uri += `&label=${label}`;
+      uri += `&label=${encodeURIComponent(label)}`;
     }
 
-    return utils.transferBitcoin(uri, coins, total, speed).then((resp) => {
+    return utils.transferBitcoin(uri, coins, total, speed, account_id).then((resp) => {
       res.setHeader('Content-Type', 'application/json');
       console.log("*** BITCOIN TRANSFER COMPLETED ***");
       res.send(JSON.stringify(resp));
