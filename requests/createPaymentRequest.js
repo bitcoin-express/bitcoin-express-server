@@ -9,6 +9,8 @@ exports.createPaymentRequest = function (req, res) {
     merchant_data,
   } = req.body;
 
+  merchant_data = String(merchant_data);
+
   var paymentRequest = Object.assign({}, req.body);
   delete paymentRequest.account;
   delete paymentRequest.account_id;
@@ -41,9 +43,10 @@ exports.createPaymentRequest = function (req, res) {
         return false;
       }
       console.log("Found payment with merchant_data " + merchant_data);
+      query["_id"] = resp._id; 
       return db.findAndModify("payments", query, paymentRequest);
     }).then((response) => {
-      if (!result) {
+      if (!response) {
         return false;
       }
       res.send(JSON.stringify(response));
