@@ -33,7 +33,6 @@ exports.register = function (req, res) {
   }
 
   if (email) {
-    data["emailCustomerContact"] = email;
     data["emailAccountContact"] = email;
     data["offerEmailReceipt"] = false;
     data["offerEmailRefund"] = false;

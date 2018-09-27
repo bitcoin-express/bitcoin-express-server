@@ -9,9 +9,24 @@ exports.createPaymentRequest = function (req, res) {
     merchant_data,
   } = req.body;
 
+  var {
+    acceptableIssuers,
+    defaultCurrency,
+    defaultTimeout,
+    homeIssuer,
+    paymentPath,
+    serverDomain,
+  } = account;
+
   merchant_data = String(merchant_data);
 
+  var now = new Date();
+  var exp = new Date().addSeconds(defaultTimeout);
+
   var paymentRequest = Object.assign({}, req.body);
+  paymentRequest.expires = paymentRequest.expires || exp.toISOString();
+  paymentRequest.time = now.toISOString();
+
   delete paymentRequest.account;
   delete paymentRequest.account_id;
   paymentRequest.amount = parseFloat(paymentRequest.amount);
@@ -44,6 +59,7 @@ exports.createPaymentRequest = function (req, res) {
       }
       console.log("Found payment with merchant_data " + merchant_data);
       query["_id"] = resp._id; 
+
       return db.findAndModify("payments", query, paymentRequest);
     }).then((response) => {
       if (!response) {
@@ -55,15 +71,6 @@ exports.createPaymentRequest = function (req, res) {
       return false;
     });
   }
-
-  var {
-    acceptableIssuers,
-    defaultCurrency,
-    defaultTimeout,
-    homeIssuer,
-    paymentPath,
-    serverDomain,
-  } = account;
 
   var defIssuers = acceptableIssuers || [homeIssuer];
   var defEmail = {
@@ -81,10 +88,6 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
-  var now = new Date();
-  var exp = new Date().addSeconds(defaultTimeout);
-  paymentRequest.expires = paymentRequest.expires || exp.toISOString();
-
   paymentRequest.payment_id = paymentRequest.payment_id || uuidv1();
   console.log("new payment_id saved - ", paymentRequest.payment_id);
   paymentRequest.issuers = paymentRequest.issuers || defIssuers;
@@ -92,7 +95,6 @@ exports.createPaymentRequest = function (req, res) {
   var data = Object.assign({
     account_id: account_id,
     status: "initial",
-    time: now.toISOString()
   }, paymentRequest);
 
   promise.then((finished) => {

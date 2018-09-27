@@ -28,7 +28,7 @@ var {
 var app = express();
 
 Date.prototype.addSeconds = function (s) {
-  this.setSeconds(this.getSeconds() + s);
+  this.setSeconds(this.getSeconds() + parseInt(s));
   return this;
 }
 
@@ -75,7 +75,7 @@ db.connect(dbConnection, function (err) {
     var now = new Date().addSeconds(30); // 30 sec
     var query = {
       expires: { $lt: now.toISOString() },
-      status: { $nin: ["resolved", "processing"] },
+      status: { $in: ["initial"] },
     };
     console.log('SCHEDULER - Removing expired requests');
     db.remove("payments", query);

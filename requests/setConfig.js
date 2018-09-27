@@ -14,12 +14,11 @@ exports.setConfig = function (req, res) {
   // throwing exceptions when settings values are
   // not right
   db.findAndModify("accounts", query, data).then((result) => {
-    var response = { result: "OK" };
     if (!result) {
       res.status(400).send("Not modified, account not found");
       return;
     }
-    res.send(JSON.stringify(response));
+    res.send(JSON.stringify(result));
   }).catch((err) => {
     res.status(400).send(err.message || err);
     return;

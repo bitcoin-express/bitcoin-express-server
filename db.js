@@ -160,7 +160,14 @@ exports.findAndModify = function(name, query, modification) {
         if (err) {
           return reject(err);
         }
-        return resolve(doc);
+
+        var result = doc.value;
+        delete result._id;
+        delete result.account_id;
+        delete result.authToken;
+        delete result.privateKey;
+
+        return resolve(result);
       }
     );
   });
