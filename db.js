@@ -45,11 +45,11 @@ exports.insert = function(name, obj, done) {
 
 exports.remove = function(name, query) {
   return new Promise((resolve, reject) => {
-    state.db.collection(name).remove(query, function(err, resp) {
+    state.db.collection(name).deleteMany(query, function(err, resp) {
       if (err) {
         return reject(err);
       }
-      return resolve(resp);
+      return resolve(resp.result);
     });
   });
 }
