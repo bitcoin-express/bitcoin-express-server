@@ -75,7 +75,7 @@ db.connect(dbConnection, function (err) {
     var now = new Date().addSeconds(30); // 30 sec
     var query = {
       expires: { $lt: now.toISOString() },
-      status: { $in: ["initial"] },
+      status: { $in: ["initial", "timeout"] },
     };
     db.remove("payments", query).then((resp) => {
       console.log('SCHEDULER - Removing expired requests before ' + now.toISOString(), resp);

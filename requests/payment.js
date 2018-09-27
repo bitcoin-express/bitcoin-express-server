@@ -102,7 +102,6 @@ exports.payment = function (req, res) {
     return Promise.all([prom1, prom2, prom3]);
   }).then(([_p, vi, account]) => {
     tid = vi.issuerResponse.headerInfo.tid;
-    verifyInfo = vi;
 
     if (!account) {
       throw new Error("Payment account does not exist");
@@ -122,9 +121,10 @@ exports.payment = function (req, res) {
     return issuer.post('verify', payload, host);
   }).then((resp) => {
     verifiedCoins = resp.issuerResponse.coin;
+    verifyInfo = resp.issuerResponse.verifyInfo;
     console.log("verified coins ", verifiedCoins);
 
-    var value = resp.issuerResponse.verifyInfo.actualValue;
+    var value = verifyInfo.actualValue;
     if (value < amount) {
       throw new Error("After verify coins, the amount is not enough");
     }
