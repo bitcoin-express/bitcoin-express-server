@@ -5,12 +5,7 @@ var utils = require('../issuer/utils');
 
 var FIAT = ["USD", "GBP", "EUR"];
 
-exports.getBalance = function (req, res) {
-  var {
-    account_id,
-    currency,
-  } = req.query;
-
+function getListBalances(account_id, currency) {
   var prom1 = Promise.resolve(null);
   var exchange;
   if (currency && FIAT.indexOf(currency) > -1) {
@@ -20,38 +15,47 @@ exports.getBalance = function (req, res) {
   }
   var prom2 = db.getCoinList(currency, account_id);
 
-  Promise.all([prom1, prom2]).then(([rates, coins]) => {
+  return Promise.all([prom1, prom2]).then(([rates, coins]) => {
     var response = [];
     var totalFiat = 0.0;
 
     if (Object.keys(coins).length == 0) {
       if (currency) {
-        res.send("{}");
-        return;
+        return Promise.resolve({});
       }
-      res.send("[]");
-      return;
+      return Promise.resolve([]);
     }
 
     // If currency request, return only the coins value of
     // that currency
     if (currency) {
       coins = coins[currency];
-    }
-
-    Object.keys(coins).forEach((curr) => {
-      var value = utils.coinsValue(coins[curr]);
+      var value = utils.coinsValue(coins);
       var obj = {
-        currency: curr,
+        currency: currency,
         total: value,
-        numCoins: coins[curr].length
+        numCoins: coins.length
       }
       response.push(obj);
       if (exchange && rates) {
-        var rate = parseFloat(rates[curr][exchange]);
+        var rate = parseFloat(rates[currency][exchange]);
         totalFiat += rate * parseFloat(value);
       }
-    });
+    } else {
+      Object.keys(coins).forEach((curr) => {
+        var value = utils.coinsValue(coins[curr]);
+        var obj = {
+          currency: curr,
+          total: value,
+          numCoins: coins[curr].length
+        };
+        response.push(obj);
+        if (exchange && rates) {
+          var rate = parseFloat(rates[curr][exchange]);
+          totalFiat += rate * parseFloat(value);
+        }
+      });
+    }
 
     if (exchange) {
       response.push({
@@ -60,6 +64,18 @@ exports.getBalance = function (req, res) {
       });
     }
 
+    return response;
+  });
+};
+
+exports.getListBalances = getListBalances;
+exports.getBalance = function (req, res) {
+  var {
+    account_id,
+    currency,
+  } = req.query;
+
+  getListBalances(account_id, currency).then((response) => {
     res.send(JSON.stringify(response));
   }).catch((err) => {
     throw err;

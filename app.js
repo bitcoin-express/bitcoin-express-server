@@ -1,8 +1,10 @@
-var bodyParser = require('body-parser');
 var express = require('express');
+var session = require('express-session');
+
 var fs = require('fs');
+var bodyParser = require('body-parser');
 var https = require('https');
-var ObjectId = require('mongodb').ObjectId;
+var exphbs = require('express-handlebars');
 
 var { createPaymentRequest } = require("./requests/createPaymentRequest");
 var { getBalance } = require("./requests/getBalance");
@@ -25,6 +27,8 @@ var {
   corsMiddleware,
 } = require('./middlewares');
 
+var { panelRoute } = require('./routes');
+
 var app = express();
 
 Date.prototype.addSeconds = function (s) {
@@ -32,10 +36,31 @@ Date.prototype.addSeconds = function (s) {
   return this;
 }
 
+
+// Prepare templating for Control Panel
+app.engine('handlebars', exphbs({
+  defaultLayout: 'main',
+  // Specify helpers which are only registered on this instance.
+  helpers: {
+    json: function (context) { return JSON.stringify(context); },
+  }
+}));
+app.set('view engine', 'handlebars');
+app.use(express.static(__dirname + '/assets'));
+
+
+// Middelwares and config for REST API
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(corsMiddleware);
 app.use(authMiddleware);
+app.use(session({
+  secret: 'btc-express',
+  resave: true,
+  saveUninitialized: true
+}));
+
+
 
 // Connect to Mongo on start
 db.connect(dbConnection, function (err) {
@@ -46,8 +71,10 @@ db.connect(dbConnection, function (err) {
   }
 
   app.get('/', (req, res) => {
-    res.send('Hello Bitcoin-Express wallet merchant!');
+    res.render('index');
   });
+  app.all('/panel/*', panelRoute);
+
   app.post('/createPaymentRequest', createPaymentRequest);
   app.get('/getBalance', getBalance);
   app.post('/getCoins', getCoins);

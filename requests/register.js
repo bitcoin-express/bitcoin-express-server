@@ -4,7 +4,7 @@ var os = require('os');
 var db = require('../db');
 var config = require("../config.json");
 
-exports.register = function (req, res) {
+exports.registerAccount = function (req) {
   var {
     domain,
     email,
@@ -13,8 +13,7 @@ exports.register = function (req, res) {
   console.log(req.body)
 
   if (!domain) {
-    res.status(400).send("Missing domain value");
-    return;
+    return Promise.reject(new Error("Missing domain value"));
   }
   var diffHell = crypto.createDiffieHellman(60);
   diffHell.generateKeys();
@@ -43,12 +42,17 @@ exports.register = function (req, res) {
   }
 
   console.log(data);
-  db.insert("accounts", data).then((records) => {
+  return db.insert("accounts", data).then((records) => {
     delete data.privateKey;
     delete data._id;
-    res.send(JSON.stringify(data));
+    return data;
+  });
+};
+
+exports.register = function (req, res) {
+  this.registerAccount(req).then((resp) => {
+    res.send(JSON.stringify(resp));
   }).catch((err) => {
     res.status(400).send(err.message || err);
-    return;
   });
-}
+};

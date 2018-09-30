@@ -1,0 +1,18 @@
+<link href='https://fonts.googleapis.com/css?family=Open+Sans:700,600' rel='stylesheet' type='text/css'>
+
+<form method="post" id="register_form" action="/panel/confirmRegistration">
+  <div class="box">
+    <h1>New Account Registered!</h1>
+
+    <small>You have just created the new domain account <i>{{{json name}}}</i>. Please <b>keep safe the following auth token</b> in order to sign in and create your payments.</small><br />
+    <h2 style="color: blue">{{{json authToken}}}</h2>
+
+    <div style="margin-left: 80px">
+      <a href="/">
+        <div id="btn2">Back to Sign In</div>
+      </a>
+    </div>
+  </div> <!-- End Box -->
+</form>
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js" type="text/javascript"></script>

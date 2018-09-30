@@ -1,9 +1,11 @@
 var db = require('./db');
-var authReqs = ["/register", "/payment"];
+var authReqs = ["/register", "/payment", "/panel"];
 
 exports.authMiddleware = function (req, res, next) {
-  console.log(req.originalUrl)
-  if (authReqs.some(str => str.startsWith(req.originalUrl))) {
+  var url = req.originalUrl;
+  console.log(url);
+
+  if (url == "/" || authReqs.some(str => url.startsWith(str))) {
     next();
     return;
   }

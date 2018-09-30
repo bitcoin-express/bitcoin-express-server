@@ -34,15 +34,6 @@ exports.insert = function(name, obj, done) {
 }
 
 
-/*exports.unset = function(name, query, unset) {
-  // unset = { description : 1}
-  return this.findOne(name, query).then((doc) => {
-    console.log("holaaa", name, query, unset, doc)
-    state.db.collection(name).update({ _id: 1234 }, { $unset : unset })
-  })
-}*/
-
-
 exports.remove = function(name, query) {
   return new Promise((resolve, reject) => {
     state.db.collection(name).deleteMany(query, function(err, resp) {
@@ -69,7 +60,7 @@ exports.removeMultipleIds = function(name, ids) {
   });
 }
 
-exports.findOne = function(name, query) {
+exports.findOne = function(name, query, clean=false) {
   if (!state.db) {
     return Promise.reject(new Error("No DB"));
   }
@@ -79,6 +70,20 @@ exports.findOne = function(name, query) {
       if (err) {
         return reject(err);
       }
+
+      if (!resp) {
+        var err = new Error("findOne can't find '" + name +
+          "' from query '" + JSON.stringify(query) + "'" );
+        return reject(err);
+      }
+
+      if (clean) {
+        delete resp._id;
+        delete resp.account_id;
+        delete resp.authToken;
+        delete resp.privateKey;
+      }
+
       return resolve(resp);
     });
   });
@@ -140,6 +145,17 @@ exports.find = function(name, query, special={}, skip=null, limit=null) {
       if (err) {
         return reject(err);
       }
+
+      if (Array.isArray(resp)) {
+        resp = resp.map((item) => {
+          delete item._id;
+          delete item.account_id;
+          delete item.authToken;
+          delete item.privateKey;
+          return item;
+        });
+      }
+
       return resolve(resp);
     });
   });
