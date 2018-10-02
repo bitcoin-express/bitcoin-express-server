@@ -23,15 +23,18 @@ function displayHome(res, account_id, account) {
 
   Promise.all(promises).then((responses) => {
     var btcBalance = 0.0;
+    var btcCoins = 0;
     if (responses[2] && responses[2].length > 0) {
       btcBalance = responses[2][0].total;
+      btcCoins = responses[2][0].numCoins;
     }
     res.render('home', {
       transactions: responses[1],
       settings: responses[0],
       accountName: account.name || "unnamed",
       accountId: account_id,
-      btcBalance: btcBalance
+      btcBalance: btcBalance,
+      btcCoins: btcCoins
     });
   }).catch((err) => {
     res.render('index', { error: err.message });

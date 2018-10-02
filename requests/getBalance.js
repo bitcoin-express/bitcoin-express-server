@@ -1,4 +1,5 @@
 var https = require('https');
+const { ObjectId } = require('mongodb');
 
 var db = require('../db');
 var utils = require('../issuer/utils');
@@ -6,6 +7,14 @@ var utils = require('../issuer/utils');
 var FIAT = ["USD", "GBP", "EUR"];
 
 function getListBalances(account_id, currency) {
+  if (!account_id) {
+    return Promise.reject(new Error("Missing account id"));
+  }
+
+  if (typeof account_id === "string") {
+    account_id = ObjectId(account_id);
+  }
+
   var prom1 = Promise.resolve(null);
   var exchange;
   if (currency && FIAT.indexOf(currency) > -1) {
