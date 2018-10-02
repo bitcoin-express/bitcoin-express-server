@@ -18,24 +18,43 @@ function displayHome(res, account_id, account) {
       return result;
     }),
     findTransactions(account_id),
-    getListBalances(account_id, "XBT")
+    getListBalances(account_id)
   ];
 
   Promise.all(promises).then((responses) => {
     var btcBalance = 0.0;
     var btcCoins = 0;
+    var ethBalance = 0.0;
+    var ethCoins = 0;
     if (responses[2] && responses[2].length > 0) {
-      btcBalance = responses[2][0].total;
-      btcCoins = responses[2][0].numCoins;
+      responses[2].forEach((r) => {
+        if (r.currency == "XBT") {
+          btcBalance = r.total;
+          btcCoins = r.numCoins;
+        } else if (r.currency == "ETH") {
+          ethBalance = r.total;
+          ethCoins = r.numCoins;
+        }
+      });
     }
-    res.render('home', {
+
+    var data = {
       transactions: responses[1],
       settings: responses[0],
       accountName: account.name || "unnamed",
       accountId: account_id,
-      btcBalance: btcBalance,
-      btcCoins: btcCoins
-    });
+    };
+
+    if (btcBalance > 0) {
+      data["btcBalance"] = btcBalance;
+      data["btcCoins"] = btcCoins;
+    }
+    if (ethBalance > 0) {
+      data["ethBalance"] = ethBalance;
+      data["ethCoins"] = ethCoins;
+    }
+
+    res.render('home', data);
   }).catch((err) => {
     res.render('index', { error: err.message });
   });

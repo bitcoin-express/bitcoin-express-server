@@ -7,10 +7,19 @@
         &#8634;
       </a> | {{{json accountName}}} | <a href="/panel/logout" style="text-decoration: none; color: green;">
         Logout
-      </a></br>
-      <span style="font-size: 18px; color: #3498db">
-        {{{json btcBalance}}} XBT <small style="color: #c50c0c">({{{json btcCoins}}} coins)</small>
-      </span>
+      </a>
+      {{#if btcBalance}}
+        </br>
+        <span style="font-size: 18px; color: #3498db">
+          {{{json btcBalance}}} XBT <small style="color: #c50c0c">({{{json btcCoins}}} coins)</small>
+        </span>
+      {{/if}}
+      {{#if ethBalance}}
+        </br>
+        <span style="font-size: 18px; color: #3498db">
+          {{{json ethBalance}}} XBT <small style="color: #c50c0c">({{{json ethCoins}}} coins)</small>
+        </span>
+      {{/if}}
     </p>
 
     <table id="transactions" class="display" width="100%" cellspacing="0" style="font-size: 11px;">
