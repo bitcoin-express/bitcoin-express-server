@@ -1,26 +1,22 @@
 <link rel='stylesheet' type='text/css' href='https://fonts.googleapis.com/css?family=Open+Sans:700,600'>
 <link rel="stylesheet" type="text/css" href="//cdn.datatables.net/1.10.12/css/jquery.dataTables.css">
 
-<div style="padding: 20px 15px; margin:  5vh 5vw; background-color: white; border-radius: 10px;">
+<div style="padding: 30px 45px; margin:  5vh 5vw; background-color: white; border-radius: 10px;">
+  <div style="position: absolute; font-size: 30px">Merchant Gateway</div>
     <p id="panel" class="section" style="color: black; margin: 0 15px 40px 0; text-align: right;font-size: 20px;">
       <a href="/panel/home" style="text-decoration: none; color: green;">
         &#8634;
-      </a> | {{{json accountName}}} | <a href="/panel/logout" style="text-decoration: none; color: green;">
+      </a> | {{{accountName}}} | <a href="/panel/logout" style="text-decoration: none; color: green;">
         Logout
       </a>
-      {{#if btcBalance}}
+      {{#each coins}}
         </br>
-        <span style="font-size: 18px; color: #3498db">
-          {{{json btcBalance}}} XBT <small style="color: #c50c0c">({{{json btcCoins}}} coins)</small>
+        <span style="font-size: 15px; color: #3498db">
+          {{{this.total}}} {{{this.currency}}} <small style="color: #c50c0c">({{{this.numCoins}}} coins)</small>
         </span>
-      {{/if}}
-      {{#if ethBalance}}
-        </br>
-        <span style="font-size: 18px; color: #3498db">
-          {{{json ethBalance}}} ETH <small style="color: #c50c0c">({{{json ethCoins}}} coins)</small>
-        </span>
-      {{/if}}
+      {{/each}}
     </p>
+    <hr /><br />
 
     <table id="transactions" class="display" width="100%" cellspacing="0" style="font-size: 11px;">
       <thead>

@@ -22,20 +22,9 @@ function displayHome(res, account_id, account) {
   ];
 
   Promise.all(promises).then((responses) => {
-    var btcBalance = 0.0;
-    var btcCoins = 0;
-    var ethBalance = 0.0;
-    var ethCoins = 0;
+    var coins = [];
     if (responses[2] && responses[2].length > 0) {
-      responses[2].forEach((r) => {
-        if (r.currency == "XBT") {
-          btcBalance = r.total;
-          btcCoins = r.numCoins;
-        } else if (r.currency == "ETH") {
-          ethBalance = r.total;
-          ethCoins = r.numCoins;
-        }
-      });
+      coins = responses[2];
     }
 
     var data = {
@@ -43,17 +32,8 @@ function displayHome(res, account_id, account) {
       settings: responses[0],
       accountName: account.name || "unnamed",
       accountId: account_id,
+      coins: coins
     };
-
-    if (btcBalance > 0) {
-      data["btcBalance"] = btcBalance;
-      data["btcCoins"] = btcCoins;
-    }
-    if (ethBalance > 0) {
-      data["ethBalance"] = ethBalance;
-      data["ethCoins"] = ethCoins;
-    }
-
     res.render('home', data);
   }).catch((err) => {
     res.render('index', { error: err.message });
