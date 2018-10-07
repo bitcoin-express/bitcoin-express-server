@@ -2,6 +2,10 @@ var uuidv1 = require('uuid/v1');
 
 var db = require('../db');
 
+var {
+  emailContact
+} = require("../config.json");
+
 exports.createPaymentRequest = function (req, res) {
   var {
     account,
@@ -46,6 +50,10 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
+  if (emailContact && emailContact.length > 0) {
+    paymentRequest.emailContact = emailContact;
+  }
+
   var promise = Promise.resolve(false);
   if (merchant_data) {
     var query = {
@@ -53,20 +61,27 @@ exports.createPaymentRequest = function (req, res) {
       merchant_data: merchant_data,
     };
 
-    promise = db.findOne('payments', query).then((resp) => {
+    promise = db.findOne('payments', query, true).then((resp) => {
       if (!resp) {
         return false;
       }
       console.log("Found payment with merchant_data " + merchant_data);
-      query["_id"] = resp._id; 
 
-      return db.findAndModify("payments", query, paymentRequest);
-    }).then((response) => {
-      if (!response) {
-        return false;
+      if (resp.status == "resolved") {
+        // The payment is inmutable
+        res.send(JSON.stringify(resp));
+        return true;
       }
-      res.send(JSON.stringify(response));
-      return true;
+
+      // Reset payment to initial status
+      paymentRequest.status = "initial";
+      return db.findAndModify("payments", query, paymentRequest).then((response) => {
+        if (!response) {
+          return false;
+        }
+        res.send(JSON.stringify(response));
+        return true;
+      });
     }).catch((err) => {
       return false;
     });

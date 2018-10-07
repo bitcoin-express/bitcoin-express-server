@@ -161,7 +161,7 @@ exports.find = function(name, query, special={}, skip=null, limit=null) {
   });
 }
 
-exports.findAndModify = function(name, query, modification) {
+exports.findAndModify = function(name, query, modification, options = { new: true }) {
   if (!state.db) {
     return Promise.reject(new Error("No DB"));
   }
@@ -171,7 +171,7 @@ exports.findAndModify = function(name, query, modification) {
       query,
       [], // represents a sort order if multiple matches
       { $set: modification },
-      { new: true }, // options - new to return the modified document
+      options, // options - new to return the modified document
       (err, doc) => {
         if (err) {
           return reject(err);

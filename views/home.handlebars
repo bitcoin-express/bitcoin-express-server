@@ -91,10 +91,10 @@ var showTransactions = function() {
             { data: 'payment_id' },
             { data: 'merchant_data',
               render: function ( data, type, full, meta ) {
-                      if(data == null) {
-                          return "N/A";
-                      }
-                    return data;
+              if (data == null) {
+                return "N/A";
+              }
+              return data;
             }},
             { data: 'return_url' }
         ],

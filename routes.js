@@ -17,7 +17,7 @@ function displayHome(res, account_id, account) {
       }
       return result;
     }),
-    findTransactions(account_id),
+    findTransactions(account_id, { descending: 0 }),
     getListBalances(account_id)
   ];
 

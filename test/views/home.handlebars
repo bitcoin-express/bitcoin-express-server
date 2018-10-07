@@ -21,9 +21,13 @@
           if ("status" in PaymentAck) {
             console.log("Status is "+PaymentAck.status);
             if (PaymentAck.status == "ok" && "return_url" in PaymentAck) {
-              setTimeout(function () {
-                return window.location.replace(PaymentAck.return_url);
-              }, 5000);
+              try {
+                new URL(PaymentAck.return_url);
+                setTimeout(function () {
+                  return window.location.replace(PaymentAck.return_url);
+                }, 5000);
+              } catch (_) {
+              }
             }
           }
         }

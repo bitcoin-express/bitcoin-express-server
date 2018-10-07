@@ -41,8 +41,8 @@ exports.payment = function (req, res) {
       throw new Error("Can not find payment with payment_id " + payment_id);
     }
 
+    // STATUS RESOLVED - Return the payment directly.
     if (resp.status == "resolved") {
-      // The payment is resolved, throw error and intercept it
       var response = {
         PaymentAck: {
           status: "ok",
@@ -54,7 +54,17 @@ exports.payment = function (req, res) {
       res.setHeader('Content-Type', 'application/json');
       console.log("*** PAYMENT COMPLETED AND CORRECT ***");
       res.send(JSON.stringify(response));
+      // if error message is "-1", the catch clause ignores the exception
       throw new Error("-1");
+    }
+
+    // STATUS TIMEOUT or PROCESSING - Return the error, not possible to proceed
+    // with the payment
+    if (resp.status == "processing") {
+      throw new Error("A payment is already in process for this request.");
+    }
+    if (resp.status == "timeout") {
+      throw new Error("The payment expired.");
     }
 
     amount = resp.amount;
@@ -85,26 +95,41 @@ exports.payment = function (req, res) {
     };
 
     if (defIssuers[0] != "*" && !coins.every(inIssuerList)) {
-      throw new Error("Some coins are not from the list of acceptable issuers" +
-        " or mixed coins are from different issuers."
+      throw new Error("Some coins are not from the list of acceptable " +
+        "issuers or mixed coins are from different issuers."
       );
     }
 
-    var prom1 = db.findAndModify("payments", query, { status: "processing" });
-    var prom2 = issuer.post('begin', {
+    var modifyOptions = { new: false }; // returns payment document before being modified
+    var modification = { status: "processing" };
+    var promiseModifyPayment = db.findAndModify(
+      "payments", query, modification, modifyOptions
+    );
+
+    var promiseBeginIssuer = issuer.post('begin', {
       issuerRequest: {
         fn: "verify"
       }
     }, host);
-    var prom3 = db.findOne("accounts", {
+
+    var promiseFindAccount = db.findOne("accounts", {
       "_id": accountId
     });
-    return Promise.all([prom1, prom2, prom3]);
-  }).then(([_p, vi, account]) => {
+
+    return Promise.all([promiseModifyPayment, promiseBeginIssuer, promiseFindAccount]);
+  }).then(([prevPayment, vi, account]) => {
     tid = vi.issuerResponse.headerInfo.tid;
 
     if (!account) {
       throw new Error("Payment account does not exist");
+    }
+
+    if (prevPayment.status != "initial") {
+      // RACE CONDITION - WEIRD TO HAPPEN
+      // It seems another payment request arrived and modify the payment status.
+      throw new Error("Thre is a payment processing this request or the " +
+        "payment has just expired."
+      );
     }
 
     var payload = {
@@ -172,19 +197,19 @@ exports.payment = function (req, res) {
     res.send(JSON.stringify(response));
   }).catch((err) => {
     if (err.message == "-1") {
+      // A way to escape from the chain of promises.
+      // Ignore errors when message is "-1"
       return;
     }
+
+    res.status(400).send(err.message || err);
     if (tid && host) {
-      return issuer.post('end', {
+      // 'end' issuer transaction, but it can be ignored. 
+      issuer.post('end', {
         issuerRequest: {
           tid: tid
         }
-      }, host).then(() => {
-        res.status(400).send(err.message || err);
-        return;
-      });
+      }, host);
     }
-    res.status(400).send(err.message || err);
-    return;
   });
 }

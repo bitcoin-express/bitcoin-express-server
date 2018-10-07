@@ -1,7 +1,7 @@
 var db = require('../db');
 const { ObjectId } = require('mongodb');
 
-function findTransactions(account_id, offset, limit, before, orderBy) {
+function findTransactions(account_id, { offset, limit, before, orderBy, descending=-1 }) {
   if (!account_id) {
     return Promise.reject(new Error("Missing account id"));
   }
@@ -9,7 +9,7 @@ function findTransactions(account_id, offset, limit, before, orderBy) {
   orderBy = orderBy || "paid";
   // -1: descending
   var special = {
-    $orderby: { [orderBy]: -1 },
+    $orderby: { [orderBy]: descending },
     fields: {
       _id: 0,
       account_id: 0,
@@ -38,7 +38,7 @@ exports.getTransactions = function (req, res) {
     before,
   } = req.query;
 
-  findTransactions(account_id, offset, limit, before, orderBy).then((resp) => {
+  findTransactions(account_id, { offset, limit, before, orderBy }).then((resp) => {
     var data = {
       offset: offset,
       limit: limit,
