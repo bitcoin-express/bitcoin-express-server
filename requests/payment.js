@@ -9,12 +9,12 @@ exports.payment = function (req, res) {
     payment_id,
     merchant_data,
     memo,
+    receipt_to,
+    refund_to,
     // The next params are  used for this demo,
     // it needs to be implemented
     client,
     language_preference,
-    receipt_to,
-    refund_to,
   } = req.body;
 
   if (!payment_id && !merchant_data) {
@@ -175,6 +175,8 @@ exports.payment = function (req, res) {
     };
     if (memo) payData["memo"] = memo;
     if (client) payData["client"] = client;
+    if (receipt_to) payData["receipt_to"] = receipt_to;
+    if (refund_to) payData["refund_to"] = refund_to;
 
     var prom1 = db.findAndModify("payments", query, payData);
     var prom2 = issuer.post('end', {

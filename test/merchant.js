@@ -30,11 +30,12 @@ app.use(function(req, res, next) {
 // GET - https://localhost:8080/
 app.get('/', function (req, res) {
   var post_data = JSON.stringify({
-    amount: 0.0000002,
-    return_url: "The item bought is empty",
+    amount: 0.000002,
+    return_url: ". The item bought is empty",
     // "https://www.audible.com/pd/The-Art-of-Asking-Audiobook/B00OQT8AG2",
     memo: "The art of asking",
     auth: pwd,
+    seller: "SuperStore",
   });
 
   var options = {

@@ -17,6 +17,7 @@ exports.createPaymentRequest = function (req, res) {
     acceptableIssuers,
     defaultCurrency,
     defaultTimeout,
+    domain,
     homeIssuer,
     paymentPath,
     serverDomain,
@@ -30,6 +31,10 @@ exports.createPaymentRequest = function (req, res) {
   var paymentRequest = Object.assign({}, req.body);
   paymentRequest.expires = paymentRequest.expires || exp.toISOString();
   paymentRequest.time = now.toISOString();
+
+  if (domain) {
+    paymentRequest.domain = domain;
+  }
 
   delete paymentRequest.account;
   delete paymentRequest.account_id;
@@ -70,6 +75,11 @@ exports.createPaymentRequest = function (req, res) {
       if (resp.status == "resolved") {
         // The payment is inmutable
         res.send(JSON.stringify(resp));
+        return true;
+      }
+
+      if (resp.status == "processing") {
+        res.status(400).send("A payment is already in process for this request.");
         return true;
       }
 
@@ -114,7 +124,7 @@ exports.createPaymentRequest = function (req, res) {
 
   promise.then((finished) => {
     if (finished) {
-      return;
+      return true;
     }
 
     db.insert("payments", data).then((records) => {
@@ -138,7 +148,7 @@ exports.createPaymentRequest = function (req, res) {
       res.send(JSON.stringify(paymentRequest));
     }).catch((err) => {
       res.status(400).send(err.message || err);
-      return;
+      return false;
     });
   });
 }
