@@ -23,7 +23,7 @@ Closed endpoints require the valid authentication string included in the body re
 | GET | [/getPaymentStatus?queryField=XXX&queryData=YYY&auth=ZZZ](docs/getPaymentStatus.md) | Retrieves a specific location object by payment_id or merchant_data |
 | GET | [/getTransactions?offset=XX&limit=YY&before=ZZ&auth=MM](docs/getTransactions.md) | Retrieves the whole list of transactions from the DB |
 | POST | [/redeem](docs/redeem.md) | Sends funds from the wallet to a Bitcoin address |
-| POST | [/setConfig](docs/setConfis.md) | Update settings configuration values |
+| POST | [/setConfig](docs/setConfig.md) | Update settings configuration values |
 
 
 # Installation
