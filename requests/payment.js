@@ -64,7 +64,8 @@ exports.payment = function (req, res) {
       var response = {
         PaymentAck: {
           status: "ok",
-          id: payment_id || id,
+          id: id || payment_id,
+          return_url: returnUrl,
         }
       };
 
@@ -213,7 +214,8 @@ exports.payment = function (req, res) {
     var response = {
       PaymentAck: {
         status: "ok",
-        id: payment_id || id,
+        id: id || payment_id,
+        return_url: returnUrl,
       }
     };
 

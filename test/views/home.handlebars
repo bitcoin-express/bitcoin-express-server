@@ -36,7 +36,7 @@
       });
     };
 
-    document.getElementById("mock_payment").addEventListener('click', function () {
+    $(document).ready(function() {
       startPayment({
         fullScreen: false,
         PaymentRequest: {

@@ -18,10 +18,10 @@ Closed endpoints require the valid authentication string included in the body re
 | HTTP Method        | URL           | Description  |
 | ------------- |-------------| -----|
 | POST | [/createPaymentRequest](docs/createPaymentRequest.md) | Creates and stores in DB a new paymentRequest, and returns the paymentRequest |
-| GET | [/getBalance?currency=XXX](docs/getBalance.md) | Retrieves the sum of the coin values from the wallet |
+| GET | [/getBalance](docs/getBalance.md) | Retrieves the sum of the coin values from the wallet |
 | POST | [/getCoins](docs/getCoins.md) | Extract desired amount of Coins in the standard Bitcoin-express file format |
-| GET | [/getPaymentStatus?queryField=XXX&queryData=YYY&auth=ZZZ](docs/getPaymentStatus.md) | Retrieves a specific location object by payment_id or merchant_data |
-| GET | [/getTransactions?offset=XX&limit=YY&before=ZZ&auth=MM](docs/getTransactions.md) | Retrieves the whole list of transactions from the DB |
+| GET | [/getPaymentStatus](docs/getPaymentStatus.md) | Retrieves a specific location object by payment_id or merchant_data |
+| GET | [/getTransactions](docs/getTransactions.md) | Retrieves the whole list of transactions from the DB |
 | POST | [/redeem](docs/redeem.md) | Sends funds from the wallet to a Bitcoin address |
 | POST | [/setConfig](docs/setConfig.md) | Update settings configuration values |
 

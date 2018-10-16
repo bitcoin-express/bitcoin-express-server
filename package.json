@@ -1,6 +1,6 @@
 {
   "name": "bitcoin-express-server",
-  "version": "0.0.06",
+  "version": "0.0.07",
   "description": "npm install express --save",
   "main": "app.js",
   "dependencies": {
