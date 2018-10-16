@@ -3,7 +3,8 @@ var uuidv1 = require('uuid/v1');
 var db = require('../db');
 
 var {
-  emailContact
+  domain,
+  emailContact,
 } = require("../config.json");
 
 exports.createPaymentRequest = function (req, res) {
@@ -50,13 +51,13 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
-  if (!paymentRequest.return_url) {
-    res.status(400).send("No return_url included");
-    return;
-  }
-
   if (emailContact && emailContact.length > 0) {
     paymentRequest.emailContact = emailContact;
+  }
+
+  if (!paymentRequest.return_url) {
+    // res.status(400).send("No return_url included");
+    paymentRequest.return_url = `domain:${domain}`;
   }
 
   var promise = Promise.resolve(false);
@@ -80,6 +81,15 @@ exports.createPaymentRequest = function (req, res) {
 
       if (resp.status == "processing") {
         res.status(400).send("A payment is already in process for this request.");
+        return true;
+      }
+
+      const {
+        payment_id,
+      } = paymentRequest;
+      if (payment_id && payment_id != resp.payment_id) {
+        console.log("Error different payments id ", payment_id, resp.payment_id);
+        res.status(400).send("Not allowed to update payment_id.");
         return true;
       }
 

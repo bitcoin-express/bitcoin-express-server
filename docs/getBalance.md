@@ -12,18 +12,20 @@ Get the sum of the coins values stored from all the payments in the merchant wal
 
 **Query parameters**
 
-- An *auth* string token that matches with the merchant's account.
-- A *currency* indicating if we want to retrieve only the balance of one currency.
+- An *auth* [required] string token that matches with the merchant's account.
+- A *currency* [optional] indicating if we want to retrieve only the balance of one currency.
 
 **Query example**
 
 ```json
-?currency=XBT&auth=<auth token>
+?auth=<auth token>&currency=<XBT,ETH,BCH,USD,GBP,EUR>
 ```
 
 ## Success Response
 
-**Condition** : If everything is OK the total stored balance for each currency and the number of coins.
+**Condition** : If everything is OK, a list with the total stored balance for each currency and the number of coins.
+If currency query string is not set, returns the list of all the currencies with coins included by payments for the merchant.
+If the currency query string set is a fiat ("USD", "EUR", "GBP"), returns all the crypto currencies values plus the fiat value from all the coins.
 
 **Code** : `200 OK`
 
@@ -32,10 +34,6 @@ Get the sum of the coins values stored from all the payments in the merchant wal
 ```json
 [
   {
-    "currency": "ETH",
-    "total": 0.0019350,
-    "numCoins": 22
-  }, {
     "currency": "XBT",
     "total": 0.0001295,
     "numCoins": 12

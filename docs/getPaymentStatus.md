@@ -4,21 +4,22 @@
 
 **Method** : `GET`
 
-**Auth required** : NO
+**Auth required** : YES
 
 **Permissions required** : None
 
 **Query parameters**
 
-- A *queryField* indicating if we want to retrieve the payment request by searching the "payment_id" or the "merchant_data".
-- A *queryData* indicating the vaule of the query field.
+- A *auth* [required] authentication code.
+- A *queryData* [required] indicating the vaule of the query field.
+- A *queryField* [required] indicating if we want to retrieve the payment request by searching the "payment_id" or the "merchant_data".
 
 **Query example**
 
 All parameters must be included.
 
 ```json
-?queryField=payment_id&queryData=83j372hd-wkweht78
+?auth=<auth token>&queryField=<payment_id, merchant_data>&queryData=<query field's value>
 ```
 
 ## Success Response

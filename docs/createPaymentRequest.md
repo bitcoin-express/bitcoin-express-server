@@ -17,32 +17,34 @@ Provide the Payment basic information.
 ```json
 
 {
+    "ack_memo": "string - purchase information stored and displayed at the wallet's item section",
     "amount": "float (required) - amount of the payment",
-    "memo": "string (required) - short description of the item, preferably in the buyer's preferred language",
-    "return_url": "string (required) - valid currency for this payment",
-    "issuers": "array[string] - list of acceptable issuers",
-    "expires": "string - seconds from now when the payment must expire",
-    "currency": "string - valid currency for this payment",
-    "merchant_data": "string - typically a reference that is meaningful to the merchant – for example an invoice number",
+    "auth": "string (required) - authentication code",
+    "currency": "string - valid currency for this payment. If not set, it will use the default merchant_config.defaultCurrency",
     "email": {
       "contact": "string - contact email of the merchat",
       "receipt": "boolean - send receipt to users after payment",
       "refund": "boolean - refunds allowed"
     },
-    "auth": "string - authentication code",
+    "expires": "string - seconds from now when the payment must expire. If not set by default expires will be set from the value of merchant_config.defaultTimeout",
+    "issuers": "array[string] - list of acceptable issuers",
+    "memo": "string (required) - short description of the item, preferably in the buyer's preferred language",
+    "merchant_data": "string - typically a reference that is meaningful to the merchant – for example an invoice number",
+    "return_url": "string - the url returned when the payment is successful, when the item is a link to the product. Otherwise the return_url will be set as: 'domain: ' + merchant_config.domain",
 }
 ```
 
-**Data example** "return_url", "amount" and "memo" fields are required and must be sent.
+**Data example** "auth", "amount" and "memo" fields are required and must be sent.
 
 ```json
 {
+    "ack_memo": "Success paid for 'The art of asking'",
     "amount": 0.0000095,
-    "return_url": "http://myawesomeitem.com/123",
+    "auth": "dummy_password",
     "currency": "XBT",
     "issuers": ["be.ap.rmp.net", "eu.carrotpay.com"],
     "memo": "The art of asking",
-    "auth": "dummy_password",
+    "return_url": "http://myawesomeitem.com/123",
 }
 ```
 
@@ -64,10 +66,10 @@ Provide the Payment basic information.
     "contact": "sales@merchant.com",
     "receipt": true,
     "refund": false
-   },
-   "payment_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
-   "payment_url": "https://testserver/pay",
-   "expires": "2018-08-28T06:25:26.505Z"
+  },
+  "payment_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
+  "payment_url": "https://testserver/pay",
+  "expires": "2018-08-28T06:25:26.505Z"
 }
 ```
 

@@ -10,7 +10,7 @@
 
 **Query parameters**
 
-- An *auth* string token that matches with the merchant's account.
+- An *auth* [required] string token that matches with the merchant's account.
 - An *offset* integer to retrieve from the beginning of the data set [default to zero].
 - A *limit* of items to be returned.
 - An *orderBy* field name.

@@ -27,7 +27,7 @@ exports.payment = function (req, res) {
     return;
   }
 
-  var expires, key, tid, verifiedCoins, host,
+  var ack_memo, expires, key, tid, verifiedCoins, host, seller,
     amount, currency, returnUrl, verifyInfo, accountId;
 
   var query = payment_id ? {
@@ -38,7 +38,25 @@ exports.payment = function (req, res) {
 
   db.findOne('payments', query).then((resp) => {
     if (!resp) {
-      throw new Error("Can not find payment with payment_id " + payment_id);
+      // throw new Error("Can not find payment with payment_id " + payment_id);
+      var response = {
+        PaymentAck: {
+          status: "payment_unknow",
+        }
+      };
+      res.send(JSON.stringify(response));
+      // if error message is "-1", the catch clause ignores the exception
+      throw new Error("-1");
+    }
+
+    ack_memo = resp.ack_memo;
+    returnUrl = resp.return_url;
+    seller = resp.seller;
+
+    if (!returnUrl) {
+      res.status(400).send("No return_url in this payment");
+      // if error message is "-1", the catch clause ignores the exception
+      throw new Error("-1");
     }
 
     // STATUS RESOLVED - Return the payment directly.
@@ -46,10 +64,16 @@ exports.payment = function (req, res) {
       var response = {
         PaymentAck: {
           status: "ok",
-          id: id,
-          return_url: resp.return_url,
+          id: payment_id || id,
         }
       };
+
+      if (ack_memo) {
+        response.PaymentAck.memo = ack_memo;
+      }
+      if (seller) {
+        response.PaymentAck.seller = seller;
+      }
 
       res.setHeader('Content-Type', 'application/json');
       console.log("*** PAYMENT COMPLETED AND CORRECT ***");
@@ -70,7 +94,6 @@ exports.payment = function (req, res) {
     amount = resp.amount;
     currency = resp.currency;
     expires = resp.expires;
-    returnUrl = resp.return_url;
     accountId = resp.account_id;
 
     var defIssuers = resp.issuers;
@@ -89,9 +112,9 @@ exports.payment = function (req, res) {
 
     var inIssuerList = (c) => {
       var coin = utils.Coin(c);
-      var domain = coin.d;
-      var inList = defIssuers.indexOf(domain) > -1;
-      return inList && domain == host;
+      var coinDomain = coin.d;
+      var inList = defIssuers.indexOf(coinDomain) > -1;
+      return inList && coinDomain == host;
     };
 
     if (defIssuers[0] != "*" && !coins.every(inIssuerList)) {
@@ -190,10 +213,17 @@ exports.payment = function (req, res) {
     var response = {
       PaymentAck: {
         status: "ok",
-        id: id,
-        return_url: returnUrl
+        id: payment_id || id,
       }
     };
+
+    if (ack_memo) {
+      response.PaymentAck.memo = ack_memo;
+    }
+    if (seller) {
+      response.PaymentAck.seller = seller;
+    }
+
     res.setHeader('Content-Type', 'application/json');
     console.log("*** PAYMENT COMPLETED AND CORRECT ***");
     res.send(JSON.stringify(response));
