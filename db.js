@@ -98,14 +98,19 @@ exports.getCoinList = function (currency, account_id) {
   }
   return this.find("coins", query).then((resp) => {
     var coins = {};
+    if (!resp) {
+      return coins;
+    }
     resp.forEach((row) => {
       var c = row["currency"];
       // Because of SINGLE policy
-      var coin = row["coins"][0];
-      if (coins[c]) {
-        coins[c].push(coin);
-      } else {
-        coins[c] = [coin];
+      if (Array.isArray(row["coins"]) && row["coins"].length > 0) {
+        var coin = row["coins"][0];
+        if (coins[c]) {
+          coins[c].push(coin);
+        } else {
+          coins[c] = [coin];
+        }
       }
     });
     return coins;

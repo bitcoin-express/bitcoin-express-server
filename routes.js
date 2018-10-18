@@ -1,4 +1,6 @@
 var db = require('./db');
+var url = require('url');
+const { ObjectId } = require('mongodb');
 
 var { registerAccount } = require("./requests/register");
 var { findTransactions } = require("./requests/getTransactions");
@@ -36,12 +38,13 @@ function displayHome(res, account_id, account) {
     };
     res.render('home', data);
   }).catch((err) => {
+    console.log(err);
     res.render('index', { error: err.message });
   });
 }
 
 exports.panelRoute = function(req, res, next) {
-  switch(req.originalUrl) {
+  switch(url.parse(req.url).pathname) {
     case "/panel/register":
       res.render('register');
       break;
@@ -58,6 +61,15 @@ exports.panelRoute = function(req, res, next) {
       req.session.destroy();
       res.render('index');
       break;
+
+    case "/panel/setConfig":
+      var {
+        account_id,
+        account,
+      } = req.session;
+      console.log(account_id);
+      var query = { "_id": ObjectId(account_id) };
+      db.findAndModify("accounts", query, req.query);
 
     case "/panel/home":
       var {
