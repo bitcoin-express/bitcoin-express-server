@@ -1,11 +1,23 @@
 var uuidv1 = require('uuid/v1');
 
 var db = require('../db');
+var { getDomainFromURL } = require('../issuer/utils');
 
 var {
   domain,
-  emailContact,
+  emailCustomerContact,
 } = require("../config.json");
+
+
+function cleanResponse(paymentRequest) {
+  if (typeof paymentRequest == "string") {
+    paymentRequest = JSON.parse(paymentRequest);
+  }
+  delete paymentRequest.ack_memo;
+  delete paymentRequest.return_url;
+  delete paymentRequest.forceError;
+  return paymentRequest;
+}
 
 exports.createPaymentRequest = function (req, res) {
   var {
@@ -33,8 +45,11 @@ exports.createPaymentRequest = function (req, res) {
   paymentRequest.expires = paymentRequest.expires || exp.toISOString();
   paymentRequest.time = now.toISOString();
 
-  if (domain) {
-    paymentRequest.domain = domain;
+  const { return_url } = paymentRequest;
+  if (return_url) {
+    paymentRequest.seller = getDomainFromURL(return_url);
+  } else if (domain) {
+    paymentRequest.seller = domain;
   }
 
   delete paymentRequest.account;
@@ -51,8 +66,8 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
-  if (emailContact && emailContact.length > 0) {
-    paymentRequest.emailContact = emailContact;
+  if (emailCustomerContact && emailCustomerContact.length > 0) {
+    paymentRequest.emailCustomerContact = emailCustomerContact;
   }
 
   if (!paymentRequest.return_url) {
@@ -75,21 +90,12 @@ exports.createPaymentRequest = function (req, res) {
 
       if (resp.status == "resolved") {
         // The payment is inmutable
-        res.send(JSON.stringify(resp));
+        res.send(JSON.stringify(cleanResponse(resp)));
         return true;
       }
 
       if (resp.status == "processing") {
         res.status(400).send("A payment is already in process for this request.");
-        return true;
-      }
-
-      const {
-        payment_id,
-      } = paymentRequest;
-      if (payment_id && payment_id != resp.payment_id) {
-        console.log("Error different payments id ", payment_id, resp.payment_id);
-        res.status(400).send("Not allowed to update payment_id.");
         return true;
       }
 
@@ -99,7 +105,7 @@ exports.createPaymentRequest = function (req, res) {
         if (!response) {
           return false;
         }
-        res.send(JSON.stringify(response));
+        res.send(JSON.stringify(cleanResponse(response)));
         return true;
       });
     }).catch((err) => {
@@ -109,9 +115,9 @@ exports.createPaymentRequest = function (req, res) {
 
   var defIssuers = acceptableIssuers || [homeIssuer];
   var defEmail = {
-    contact: account.emailContact,
-    receipt: account.offerEmailRecipt,
-    refund: account.offerEmailRefund,
+    contact: account.emailCustomerContact,
+    receipt: account.offerEmailRecipt || false,
+    refund: account.offerEmailRefund || false,
   };
 
   paymentRequest.payment_url = serverDomain + paymentPath + "/payment"
@@ -138,10 +144,7 @@ exports.createPaymentRequest = function (req, res) {
     }
 
     db.insert("payments", data).then((records) => {
-      // records.insertedIds['0'];
-      delete paymentRequest.return_url;
-      // paymentRequest.id = paymentRequest.payment_id;
-
+      paymentRequest = cleanResponse(paymentRequest);
       // Set status to timeout when expiring
       var secs = exp - now;
       console.log(now, paymentRequest.expires, secs);

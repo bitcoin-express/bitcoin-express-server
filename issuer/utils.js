@@ -150,3 +150,11 @@ function insertCoins(db, base64Coins) {
   return Promise.all(promises).then(() => base64Coins.length);
 }
 
+
+exports.getDomainFromURL = function (str) {
+  let domain = str.replace('http://', '')
+    .replace('https://', '')
+    .replace('www.', '')
+    .split(/[/?#]/)[0];
+  return domain;
+}

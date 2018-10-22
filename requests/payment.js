@@ -49,6 +49,11 @@ exports.payment = function (req, res) {
       throw new Error("-1");
     }
 
+    if (resp.forceError) {
+      res.status(400).send("Error forced by forceError parameter");
+      return;
+    }
+
     ack_memo = resp.ack_memo;
     returnUrl = resp.return_url;
     seller = resp.seller;

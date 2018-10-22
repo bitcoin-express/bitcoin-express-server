@@ -72,7 +72,8 @@ exports.findOne = function(name, query, clean=false) {
       }
 
       if (!resp) {
-        var err = new Error("findOne can't find '" + name +
+        delete query.account_id;
+        var err = new Error("Can not find '" + name +
           "' from query '" + JSON.stringify(query) + "'" );
         return reject(err);
       }
