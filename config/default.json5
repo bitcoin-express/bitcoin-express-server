@@ -22,12 +22,38 @@
 
   All keys set as undefined are required to be set in environment specific' files.
   app.js before server initialisation will check if all essential keys are set and throw an error if configuration is
-  not full.
+  not full. 'Essential keys' are all keys stored in 'required_keys' key.
 */
 
 {
+
+  // Server-specific configuration. Not to be shared with users.
   server: {
+    db: {
+      /*
+      To be defined locally:
+      url: <string> i.e: mongodb://localhost:27017/
+      */
+    }
   },
+
+  // Default account-specific configuration
   account: {
-  }
+    //TODO: change all names and add description, move to right section
+    //TODO: remove config.js
+    default_currency: "XBT",
+    default_timeout: 200,
+    email_customer_contact: "",
+    offer_email_receipt: false,
+    offer_email_refund: false,
+    home_issuer: "be.ap.rmp.net",
+    payment_path: "",
+    server_domain: "https://localhost:8443",
+    acceptable_issuers: ["eu.carrotpay.com", "be.ap.rmp.net"]
+  },
+
+  // Keys that are essential for application to run correctly. It's an array of keys' full paths.
+  required_keys: [ 'server.db.url' ],
+
 }
+
