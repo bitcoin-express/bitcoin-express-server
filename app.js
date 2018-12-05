@@ -3,6 +3,14 @@ const session = require('express-session');
 const config = require('config');
 
 
+// Check if all keys, essential for application running, are set in config files.
+// If not - prevent application from running.
+for (let key of config.get('required_keys')) {
+  if (!config.has(key)) {
+    throw new Error(`Missing required configuration key: ${key}`);
+  }
+}
+
 
 var fs = require('fs');
 var bodyParser = require('body-parser');
