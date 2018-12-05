@@ -1,0 +1,33 @@
+/*
+  This file contains all allowed config keys to be used within the application.
+  Application is using node config module (https://github.com/lorenwest/node-config) to handle config files.
+
+  By default application will read config/default.js file and use configuration keys stored in it.
+
+  In order to provide a mechanism to support environment's specific configuration the application will look for files
+  extending the main configuration file where name of this file is stored in an environment variable: NODE_ENV
+
+  In order to store sensitive information the application will look for a file called local.json5 and use configuration
+  stored in it. This file may include credentials, database name and host etc.
+
+  An example - assuming that NODE_ENV is set to "production" load order will be as follows:
+  default.json5
+  production.json5
+  local.json5
+
+  !!!   Please bear in mind that local.json5 should never be added into repository
+  !!!   and is excluded on main .gitignore level.
+
+  Files lower in the overriding chain should only include elements that need be overwritten.
+
+  All keys set as undefined are required to be set in environment specific' files.
+  app.js before server initialisation will check if all essential keys are set and throw an error if configuration is
+  not full.
+*/
+
+{
+  server: {
+  },
+  account: {
+  }
+}
