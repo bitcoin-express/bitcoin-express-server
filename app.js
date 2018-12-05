@@ -1,5 +1,8 @@
-var express = require('express');
-var session = require('express-session');
+const express = require('express');
+const session = require('express-session');
+const config = require('config');
+
+
 
 var fs = require('fs');
 var bodyParser = require('body-parser');
@@ -16,11 +19,8 @@ var { redeem } = require("./requests/redeem");
 var { register } = require("./requests/register");
 var { setConfig } = require("./requests/setConfig");
 
-var db = require('./db');
 
-var {
-  dbConnection
-} = require("./config.json");
+var db = require('./db');
 
 var {
   authMiddleware,
@@ -63,7 +63,7 @@ app.use(session({
 
 
 // Connect to Mongo on start
-db.connect(dbConnection, function (err) {
+db.connect(config.get('server.db.url'), function (err) {
   if (err) {
     console.log('Unable to connect to MongoDB.')
     process.exit(1)

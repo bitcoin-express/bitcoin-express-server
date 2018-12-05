@@ -1,7 +1,4 @@
 var db = require('../db');
-var issuer = require('../issuer');
-var utils = require('../issuer/utils');
-var config = require("../config.json");
 
 const { ObjectId } = require('mongodb');
 

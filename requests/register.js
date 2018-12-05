@@ -1,8 +1,10 @@
-var crypto = require('crypto');
-var os = require('os');
+const crypto = require('crypto');
+const os = require('os');
+const config = require('config');
 
 var db = require('../db');
-var config = require("../config.json");
+
+
 
 function registerAccount(req) {
   var {
@@ -22,13 +24,13 @@ function registerAccount(req) {
     "authToken": diffHell.getPublicKey('hex'),
     "privateKey": diffHell.getPrivateKey('hex'),
     "domain": domain,
-    "serverDomain": config.serverDomain,
-    "homeIssuer": config.homeIssuer,
-    "acceptableIssuers": config.acceptableIssuers,
-    "dbConnection": config.dbConnection,
+    "serverDomain": config.get('account.server_domain'),
+    "homeIssuer": config.get('account.home_issuer'),
+    "acceptableIssuers": config.get('account.acceptable_issuers'),
+    "dbConnection": config.get('server.db.url'),
     "defaultTimeout": 3600,
-    "defaultCurrency": config.defaultCurrency,
-    "paymentPath": config.paymentPath,
+    "defaultCurrency": config.get('account.default_currency'),
+    "paymentPath": config.get('account.payment_path'),
   }
 
   if (email) {

@@ -1,12 +1,8 @@
-var uuidv1 = require('uuid/v1');
+const uuidv1 = require('uuid/v1');
+const config = require('config');
 
 var db = require('../db');
 var { getDomainFromURL } = require('../issuer/utils');
-
-var {
-  domain,
-  emailCustomerContact,
-} = require("../config.json");
 
 
 function cleanResponse(paymentRequest) {
@@ -66,8 +62,8 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
-  if (emailCustomerContact && emailCustomerContact.length > 0) {
-    paymentRequest.emailCustomerContact = emailCustomerContact;
+  if (config.has('account.email_customer_contact') && config.get('account.email_customer_contact').length > 0) {
+    paymentRequest.emailCustomerContact = config.get('account.email_customer_contact');
   }
 
   if (!paymentRequest.return_url) {
