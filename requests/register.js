@@ -4,7 +4,7 @@ var os = require('os');
 var db = require('../db');
 var config = require("../config.json");
 
-exports.registerAccount = function (req) {
+function registerAccount(req) {
   var {
     domain,
     email,
@@ -49,10 +49,13 @@ exports.registerAccount = function (req) {
   });
 };
 
+exports.registerAccount = registerAccount
+
 exports.register = function (req, res) {
-  this.registerAccount(req).then((resp) => {
+  registerAccount(req).then((resp) => {
     res.send(JSON.stringify(resp));
   }).catch((err) => {
     res.status(400).send(err.message || err);
   });
 };
+
