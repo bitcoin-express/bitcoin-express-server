@@ -32,7 +32,7 @@ function registerAccount(req) {
     "paymentPath": config.get('account.payment_path'),
   }
 
-  // TODO: check if this shouldn't be email_customer_contact. If yes, then remove email_account_contact altogether and 
+  // TODO: check if this shouldn't be email_customer_contact. If yes, then remove email_account_contact altogether and
   // update API key as well
   // TODO: check why we are setting this two keys to false
   if (email) {

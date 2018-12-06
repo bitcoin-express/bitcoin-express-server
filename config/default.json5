@@ -78,4 +78,12 @@
 }
 
 
-
+//"defaultCurrency": "XBT", -> account.default_payment_currency
+//"defaultTimeout": 200,   -> account.default_payment_timeout
+//"emailContact": "",
+//"offerEmailRecipt": false,
+//"offerEmailRefund": false,
+//"homeIssuer": "be.ap.rmp.net",
+//"paymentPath": "",
+//"serverDomain": "https://localhost:8443",
+//"acceptableIssuers": ["eu.carrotpay.com", "be.ap.rmp.net"]
