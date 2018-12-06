@@ -7,15 +7,15 @@ var db = require('../db');
 
 
 function registerAccount(req) {
-  var {
-    domain,
-    email,
-    name,
-  } = req.body;
-  console.log(req.body)
-
-  if (!domain) {
-    return Promise.reject(new Error("Missing domain value"));
+    //TODO: change it to JSON
+    //TODO: add checks for fields
+    var {
+        domain,
+        email_account_contact,
+        email_customer_contact,
+        name,
+    } = req.body;
+    console.log(req.body);
   }
   var diffHell = crypto.createDiffieHellman(60);
   diffHell.generateKeys();
@@ -34,11 +34,15 @@ function registerAccount(req) {
 
   // TODO: check if this shouldn't be email_customer_contact. If yes, then remove email_account_contact altogether and
   // update API key as well
-  // TODO: check why we are setting this two keys to false
-  if (email) {
-    data["email_account_contact"] = email;
-    data["provide_receipt_via_email"] = false;
-    data["provide_refund_via_email"] = false;
+  // TODO: to consider - allow to set other options like refund etc. during registration
+  if (email_customer_contact) {
+    data["email_customer_contact"] = email_customer_contact;
+    data["provide_receipt_via_email"] = config.get('account.provide_receipt_via_email');
+    data["provide_refund_via_email"] = config.get('account.provide_refund_via_email');
+  }
+
+  if (email_customer_contact) {
+    data["email_account_contact"] = email_account_contact;
   }
 
   if (name) {
