@@ -79,8 +79,9 @@
   // Settings that are essential for application to run correctly. It's an array of keys' full paths.
   _system_required_keys: [ 'server.db.url', ],
 
+  // TODO: remove auth key from here when auth moved to header
   // Account settings that are accessible/visible by users but can't be overwritten
-  _account_readonly_keys: [],
+  _account_readonly_keys: [ 'auth', ],
 
   // Account settings that are hidden and not visible by users in any way
   _account_hidden_keys: [],

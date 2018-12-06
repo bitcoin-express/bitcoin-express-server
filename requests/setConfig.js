@@ -57,6 +57,11 @@ exports.setConfig = function (req, res) {
   // Check if all provided keys are correct and can be set
   let allowed_settings = config.get('account');
   for (let key of Object.keys(data)) {
+      //TODO: remove when auth is moved to header
+      if (key === 'auth') {
+          continue;
+      }
+
       if (!allowed_settings.hasOwnProperty(key)) {
           return res.status(422).send("At least one set key is unknown");
       }
