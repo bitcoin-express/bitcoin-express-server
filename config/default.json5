@@ -70,8 +70,11 @@
     home_issuer: "be.ap.rmp.net",
     payment_path: "",
     server_domain: "https://localhost:8443",
-    acceptable_issuers: ["eu.carrotpay.com", "be.ap.rmp.net"]
+    acceptable_issuers: ["eu.carrotpay.com", "be.ap.rmp.net"],
   },
+
+  _register_required_keys: [ 'domain', ],
+  _register_allowed_keys: [ 'domain', 'name', 'email_customer_contact', 'email_account_contact', ],
 
   // Settings that are essential for application to run correctly. It's an array of keys' full paths.
   _system_required_keys: [ 'server.db.url', ],

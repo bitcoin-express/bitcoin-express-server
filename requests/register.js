@@ -41,7 +41,7 @@ function registerAccount(req) {
     data["provide_refund_via_email"] = config.get('account.provide_refund_via_email');
   }
 
-  if (email_customer_contact) {
+  if (email_account_contact) {
     data["email_account_contact"] = email_account_contact;
   }
 
