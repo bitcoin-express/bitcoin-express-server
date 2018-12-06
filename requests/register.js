@@ -29,7 +29,7 @@ function registerAccount(req) {
     "acceptableIssuers": config.get('account.acceptable_issuers'),
     "dbConnection": config.get('server.db.url'),
     "defaultTimeout": 3600,
-    "defaultCurrency": config.get('account.default_currency'),
+    "default_currency": config.get('account.default_currency'),
     "paymentPath": config.get('account.payment_path'),
   }
 

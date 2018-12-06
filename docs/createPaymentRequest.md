@@ -20,7 +20,7 @@ Provide the Payment basic information.
     "ack_memo": "string - purchase information stored and displayed at the wallet's item section",
     "amount": "float (required) - amount of the payment",
     "auth": "string (required) - authentication code",
-    "currency": "string - valid currency for this payment. If not set, it will use the default merchant_config.defaultCurrency",
+    "currency": "string - valid currency for this payment. If not set, it will use the default merchant_config.default_currency",
     "email": {
       "contact": "string - contact email of the merchat",
       "receipt": "boolean - send receipt to users after payment",

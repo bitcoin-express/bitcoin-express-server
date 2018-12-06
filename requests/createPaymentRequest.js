@@ -24,7 +24,7 @@ exports.createPaymentRequest = function (req, res) {
 
   var {
     acceptableIssuers,
-    defaultCurrency,
+    default_currency,
     defaultTimeout,
     domain,
     homeIssuer,
@@ -117,7 +117,7 @@ exports.createPaymentRequest = function (req, res) {
   };
 
   paymentRequest.payment_url = serverDomain + paymentPath + "/payment"
-  paymentRequest.currency = paymentRequest.currency || defaultCurrency;
+  paymentRequest.currency = paymentRequest.currency || default_currency;
   paymentRequest.email = paymentRequest.email || defEmail;
 
   if (!paymentRequest.currency) {

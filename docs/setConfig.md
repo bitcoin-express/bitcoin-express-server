@@ -19,7 +19,7 @@ Provide the basic information for the extraction.
   "acceptableIssuers": "array<string> - A comma separated list of Issuer domains whose Coins are acceptable (e.g. [(eu.carrotpay.com), bitex.com])",
   "auth": "string (required) - the auth token",
   "createAuthToken": "boolean - request the Wallet to create a new account and to store the authentication token in an 'auth' element in the config file. If 'auth' already exists, this setting is ignored",
-  "defaultCurrency": "string - the default currency of payments (e.g. 'XBT')",
+  "default_currency": "string - the default currency of payments (e.g. 'XBT')",
   "defaultTimeout": "string - the period (in seconds) that a payment request is valid when expires parameter is not set",
   "domain": "string - the domain of this Merchant (e.g. 'seller.com')",
   "homeIssuer": "string - the domain of this Merchant's Home Issuer (e.g. 'eu.carrotpay.com')",
@@ -36,7 +36,7 @@ Provide the basic information for the extraction.
 
 ```json
 {
-  "defaultCurrency": "XBT",
+  "default_currency": "XBT",
   "auth": "<auth token>"
 }
 ```
@@ -60,7 +60,7 @@ Provide the basic information for the extraction.
   ],
   "dbConnection": "mongodb://localhost:27017/",
   "defaultTimeout": 3600,
-  "defaultCurrency": "XBT",
+  "default_currency": "XBT",
   "paymentPath": "",
   "offerEmailReceipt": true,
   "offerEmailRecipt": true
