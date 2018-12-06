@@ -28,8 +28,12 @@
       Account settings that are accessible/visible by users but can't be overwritten. These keys can't be modified via
       setConfig method although they will be returned in getSettings set,
     * _account_hidden_keys:
-      Account settings that are hidden and not visible by users in any way. These keys won't be returned in getSettings set.
-
+      Account settings that are hidden and not visible by users in any way. These keys won't be returned in
+      getSettings set.
+    * _register_required_keys:
+      Keys that are required to be provided during registration of a new account.
+    * _register_allowed_keys:
+      Keys that are allowed to be provided during registration of a new account.
 */
 
 {
@@ -78,7 +82,10 @@
     server_domain: "https://localhost:8443"
   },
 
+  // Keys that are required to be provided during registration of a new account
   _register_required_keys: [ 'domain', ],
+
+  // Keys that are allowed to be provided during registration of a new account
   _register_allowed_keys: [ 'domain', 'name', 'email_customer_contact', 'email_account_contact', ],
 
   // Settings that are essential for application to run correctly. It's an array of keys' full paths.
