@@ -48,8 +48,8 @@ Provide the basic information for the extraction.
    "default_payment_timeout": "3600",
    "email_customer_contact": "",
    "email_account_contact": "sales@mySite.com",
-   "offerEmailReceipt": false,
-   "offerEmailRefund": false,
+   "provide_receipt_via_email": false,
+   "provide_refund_via_email": false,
    "paymentPath": "/"
 }
 ```

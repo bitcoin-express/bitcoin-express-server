@@ -112,8 +112,8 @@ exports.createPaymentRequest = function (req, res) {
   var defIssuers = acceptableIssuers || [homeIssuer];
   var defEmail = {
     contact: account.email_customer_contact,
-    receipt: account.offerEmailRecipt || false,
-    refund: account.offerEmailRefund || false,
+    receipt: account.provide_receipt_via_email || config.get('account.provide_receipt_via_email'),
+    refund: account.provide_refund_via_email || config.get('account.provide_refund_via_email'),
   };
 
   paymentRequest.payment_url = serverDomain + paymentPath + "/payment"

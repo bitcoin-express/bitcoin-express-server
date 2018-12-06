@@ -25,8 +25,8 @@ Provide the basic information for the extraction.
   "homeIssuer": "string - the domain of this Merchant's Home Issuer (e.g. 'eu.carrotpay.com')",
   "paymentPath": "string - the path that will be prepend to the domain to reach the /payment function that receives the payment Coins",
   "email_customer_contact": "string - the Merchant's contact email address. The configuration value may be overridden by passing a 'email.contact' element in the parameter to /createPaymentRequest",
-  "offerEmailReceipt": "boolean - a boolean to indicate if the buyer may expect a payment receipt, upon the occasion of providing an email address during payment",
-  "offerEmailRefund": "boolean - to indicate if the buyer may expect the possibility of a refund",
+  "provide_receipt_via_email": "boolean - a boolean to indicate if the buyer may expect a payment receipt, upon the occasion of providing an email address during payment",
+  "provide_refund_via_email": "boolean - to indicate if the buyer may expect the possibility of a refund",
   "encryptCoins": "boolean - indicate if the Wallet should encrypt Coins while they are stored in the database",
 }
 ```
@@ -60,8 +60,8 @@ Provide the basic information for the extraction.
   "default_payment_timeout": 3600,
   "default_payment_currency": "XBT",
   "paymentPath": "",
-  "offerEmailReceipt": true,
-  "offerEmailRecipt": true
+  "provide_receipt_via_email": true,
+  "provide_refund_via_email": true
 }
 ```
 

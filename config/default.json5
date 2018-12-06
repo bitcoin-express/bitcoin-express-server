@@ -55,11 +55,16 @@
     // Time in seconds after which a payment requested will be invalidated and no longer possible to proceed
     default_payment_timeout: 3600,
 
+    //TODO: add description after it's clear what to do with this
     email_customer_contact: "",
     email_account_contact: "",
 
-    offer_email_receipt: false,
-    offer_email_refund: false,
+    // Is a merchant providing an option to send a receipt via email
+    provide_receipt_via_email: false,
+
+    // Is a merchant providing an option to send a refund via email
+    provide_refund_via_email: false,
+
     home_issuer: "be.ap.rmp.net",
     payment_path: "",
     server_domain: "https://localhost:8443",

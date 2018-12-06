@@ -37,8 +37,8 @@ function registerAccount(req) {
   // TODO: check why we are setting this two keys to false
   if (email) {
     data["email_account_contact"] = email;
-    data["offerEmailReceipt"] = false;
-    data["offerEmailRefund"] = false;
+    data["provide_receipt_via_email"] = false;
+    data["provide_refund_via_email"] = false;
   }
 
   if (name) {
