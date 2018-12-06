@@ -42,12 +42,12 @@ Provide the basic information for the extraction.
 {
    "authToken": "3ZmSnYiLAog",
    "domain": " mySite.com ",
-   "emailAccountContact": " sales@mySite.com ",
    "name": "Clothing",
    "homeIssuer": "eu.carrotpay.com",
    "acceptableIssuers": "[(eu.carrotpay.com)]",
    "default_payment_timeout": "3600",
-   "emailCustomerContact": "",
+   "email_customer_contact": "",
+   "email_account_contact": "sales@mySite.com",
    "offerEmailReceipt": false,
    "offerEmailRefund": false,
    "paymentPath": "/"

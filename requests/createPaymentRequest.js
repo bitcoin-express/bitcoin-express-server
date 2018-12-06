@@ -63,7 +63,7 @@ exports.createPaymentRequest = function (req, res) {
   }
 
   if (config.has('account.email_customer_contact') && config.get('account.email_customer_contact').length > 0) {
-    paymentRequest.emailCustomerContact = config.get('account.email_customer_contact');
+    paymentRequest.email_customer_contact = config.get('account.email_customer_contact');
   }
 
   if (!paymentRequest.return_url) {
@@ -111,7 +111,7 @@ exports.createPaymentRequest = function (req, res) {
 
   var defIssuers = acceptableIssuers || [homeIssuer];
   var defEmail = {
-    contact: account.emailCustomerContact,
+    contact: account.email_customer_contact,
     receipt: account.offerEmailRecipt || false,
     refund: account.offerEmailRefund || false,
   };

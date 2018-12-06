@@ -24,7 +24,7 @@ Provide the basic information for the extraction.
   "domain": "string - the domain of this Merchant (e.g. 'seller.com')",
   "homeIssuer": "string - the domain of this Merchant's Home Issuer (e.g. 'eu.carrotpay.com')",
   "paymentPath": "string - the path that will be prepend to the domain to reach the /payment function that receives the payment Coins",
-  "emailCustomerContact": "string - the Merchant's contact email address. The configuration value may be overridden by passing a 'email.contact' element in the parameter to /createPaymentRequest",
+  "email_customer_contact": "string - the Merchant's contact email address. The configuration value may be overridden by passing a 'email.contact' element in the parameter to /createPaymentRequest",
   "offerEmailReceipt": "boolean - a boolean to indicate if the buyer may expect a payment receipt, upon the occasion of providing an email address during payment",
   "offerEmailRefund": "boolean - to indicate if the buyer may expect the possibility of a refund",
   "encryptCoins": "boolean - indicate if the Wallet should encrypt Coins while they are stored in the database",
