@@ -20,13 +20,13 @@ Provide the Payment basic information.
     "ack_memo": "string - purchase information stored and displayed at the wallet's item section",
     "amount": "float (required) - amount of the payment",
     "auth": "string (required) - authentication code",
-    "currency": "string - valid currency for this payment. If not set, it will use the default merchant_config.default_currency",
+    "currency": "string - valid currency for this payment. If not set, it will use the default merchant_config.default_payment_currency",
     "email": {
       "contact": "string - contact email of the merchat",
       "receipt": "boolean - send receipt to users after payment",
       "refund": "boolean - refunds allowed"
     },
-    "expires": "string - seconds from now when the payment must expire. If not set by default expires will be set from the value of merchant_config.defaultTimeout",
+    "expires": "string - seconds from now when the payment must expire. If not set by default expires will be set from the value of merchant_config.default_payment_timeout",
     "issuers": "array[string] - list of acceptable issuers",
     "memo": "string (required) - short description of the item, preferably in the buyer's preferred language",
     "merchant_data": "string - typically a reference that is meaningful to the merchant – for example an invoice number",

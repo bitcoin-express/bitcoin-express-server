@@ -48,8 +48,13 @@
   account: {
     //TODO: change all names and add description, move to right section
     //TODO: remove config.js
-    default_currency: "XBT",
-    default_timeout: 200,
+
+    // If there is no currency set on user's account or in payment request use this as a default
+    default_payment_currency: "XBT",
+
+    // Time in seconds after which a payment requested will be invalidated and no longer possible to proceed
+    default_payment_timeout: 3600,
+
     email_customer_contact: "",
     offer_email_receipt: false,
     offer_email_refund: false,
@@ -69,4 +74,6 @@
   _account_hidden_keys: [],
 
 }
+
+
 

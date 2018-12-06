@@ -46,7 +46,7 @@ Provide the basic information for the extraction.
    "name": "Clothing",
    "homeIssuer": "eu.carrotpay.com",
    "acceptableIssuers": "[(eu.carrotpay.com)]",
-   "defaultTimeout": "3600",
+   "default_payment_timeout": "3600",
    "emailCustomerContact": "",
    "offerEmailReceipt": false,
    "offerEmailRefund": false,

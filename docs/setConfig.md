@@ -19,8 +19,8 @@ Provide the basic information for the extraction.
   "acceptableIssuers": "array<string> - A comma separated list of Issuer domains whose Coins are acceptable (e.g. [(eu.carrotpay.com), bitex.com])",
   "auth": "string (required) - the auth token",
   "createAuthToken": "boolean - request the Wallet to create a new account and to store the authentication token in an 'auth' element in the config file. If 'auth' already exists, this setting is ignored",
-  "default_currency": "string - the default currency of payments (e.g. 'XBT')",
-  "defaultTimeout": "string - the period (in seconds) that a payment request is valid when expires parameter is not set",
+  "default_payment_currency": "string - the default currency of payments (e.g. 'XBT')",
+  "default_payment_timeout": "string - the period (in seconds) that a payment request is valid when expires parameter is not set",
   "domain": "string - the domain of this Merchant (e.g. 'seller.com')",
   "homeIssuer": "string - the domain of this Merchant's Home Issuer (e.g. 'eu.carrotpay.com')",
   "paymentPath": "string - the path that will be prepend to the domain to reach the /payment function that receives the payment Coins",
@@ -35,7 +35,7 @@ Provide the basic information for the extraction.
 
 ```json
 {
-  "default_currency": "XBT",
+  "default_payment_currency": "XBT",
   "auth": "<auth token>"
 }
 ```
@@ -57,8 +57,8 @@ Provide the basic information for the extraction.
     "eu.carrotpay.com",
     "be.ap.rmp.net"
   ],
-  "defaultTimeout": 3600,
-  "default_currency": "XBT",
+  "default_payment_timeout": 3600,
+  "default_payment_currency": "XBT",
   "paymentPath": "",
   "offerEmailReceipt": true,
   "offerEmailRecipt": true

@@ -24,8 +24,8 @@ exports.createPaymentRequest = function (req, res) {
 
   var {
     acceptableIssuers,
-    default_currency,
-    defaultTimeout,
+    default_payment_currency,
+    default_payment_timeout,
     domain,
     homeIssuer,
     paymentPath,
@@ -35,7 +35,7 @@ exports.createPaymentRequest = function (req, res) {
   merchant_data = String(merchant_data);
 
   var now = new Date();
-  var exp = new Date().addSeconds(defaultTimeout);
+  var exp = new Date().addSeconds(default_payment_timeout);
 
   var paymentRequest = Object.assign({}, req.body);
   paymentRequest.expires = paymentRequest.expires || exp.toISOString();
@@ -117,7 +117,7 @@ exports.createPaymentRequest = function (req, res) {
   };
 
   paymentRequest.payment_url = serverDomain + paymentPath + "/payment"
-  paymentRequest.currency = paymentRequest.currency || default_currency;
+  paymentRequest.currency = paymentRequest.currency || default_payment_currency;
   paymentRequest.email = paymentRequest.email || defEmail;
 
   if (!paymentRequest.currency) {

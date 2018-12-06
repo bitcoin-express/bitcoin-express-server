@@ -27,8 +27,8 @@ function registerAccount(req) {
     "serverDomain": config.get('account.server_domain'),
     "homeIssuer": config.get('account.home_issuer'),
     "acceptableIssuers": config.get('account.acceptable_issuers'),
-    "defaultTimeout": 3600,
-    "default_currency": config.get('account.default_currency'),
+    "default_payment_timeout": config.get('account.default_payment_timeout'),
+    "default_payment_currency": config.get('account.default_payment_currency'),
     "paymentPath": config.get('account.payment_path'),
   }
 
