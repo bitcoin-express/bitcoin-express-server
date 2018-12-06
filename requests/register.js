@@ -16,7 +16,27 @@ function registerAccount(req) {
         name,
     } = req.body;
     console.log(req.body);
+
+
+  // Check if all passed keys are allowed
+  for (let key of Object.keys(req.body)) {
+    if (!config.get('_register_allowed_keys').includes(key)) {
+        return Promise.reject(new Error(`Unknown key name: ${key}`));
+    }
   }
+
+  // Check if all required keys are passed
+  let missing_required_keys = [];
+  for (let required_key of config.get('_register_required_keys')) {
+    if (!req.body.hasOwnProperty(required_key)) {
+      missing_required_keys.push(required_key);
+    }
+  }
+
+  if (missing_required_keys.length > 0) {
+      return Promise.reject(new Error(`Missing required keys: ${missing_required_keys.join(', ')}`));
+  }
+
   var diffHell = crypto.createDiffieHellman(60);
   diffHell.generateKeys();
 
