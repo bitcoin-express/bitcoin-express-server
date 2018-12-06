@@ -23,11 +23,11 @@ exports.createPaymentRequest = function (req, res) {
   } = req.body;
 
   var {
-    acceptableIssuers,
+    acceptable_issuers,
     default_payment_currency,
     default_payment_timeout,
     domain,
-    homeIssuer,
+    home_issuer,
     paymentPath,
     serverDomain,
   } = account;
@@ -109,7 +109,7 @@ exports.createPaymentRequest = function (req, res) {
     });
   }
 
-  var defIssuers = acceptableIssuers || [homeIssuer];
+  var defIssuers = acceptable_issuers || [home_issuer];
   var defEmail = {
     contact: account.email_customer_contact,
     receipt: account.provide_receipt_via_email || config.get('account.provide_receipt_via_email'),

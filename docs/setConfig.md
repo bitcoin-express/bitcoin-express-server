@@ -16,13 +16,13 @@ Provide the basic information for the extraction.
 
 ```json
 {
-  "acceptableIssuers": "array<string> - A comma separated list of Issuer domains whose Coins are acceptable (e.g. [(eu.carrotpay.com), bitex.com])",
+  "acceptable_issuers": "array<string> - A comma separated list of Issuer domains whose Coins are acceptable (e.g. [(eu.carrotpay.com), bitex.com])",
   "auth": "string (required) - the auth token",
   "createAuthToken": "boolean - request the Wallet to create a new account and to store the authentication token in an 'auth' element in the config file. If 'auth' already exists, this setting is ignored",
   "default_payment_currency": "string - the default currency of payments (e.g. 'XBT')",
   "default_payment_timeout": "string - the period (in seconds) that a payment request is valid when expires parameter is not set",
   "domain": "string - the domain of this Merchant (e.g. 'seller.com')",
-  "homeIssuer": "string - the domain of this Merchant's Home Issuer (e.g. 'eu.carrotpay.com')",
+  "home_issuer": "string - the domain of this Merchant's Home Issuer (e.g. 'eu.carrotpay.com')",
   "paymentPath": "string - the path that will be prepend to the domain to reach the /payment function that receives the payment Coins",
   "email_customer_contact": "string - the Merchant's contact email address. The configuration value may be overridden by passing a 'email.contact' element in the parameter to /createPaymentRequest",
   "provide_receipt_via_email": "boolean - a boolean to indicate if the buyer may expect a payment receipt, upon the occasion of providing an email address during payment",
@@ -52,8 +52,8 @@ Provide the basic information for the extraction.
 {
   "domain": "store.com",
   "serverDomain": "https://www.superstore.com",
-  "homeIssuer": "be.ap.rmp.net",
-  "acceptableIssuers": [
+  "home_issuer": "be.ap.rmp.net",
+  "acceptable_issuers": [
     "eu.carrotpay.com",
     "be.ap.rmp.net"
   ],

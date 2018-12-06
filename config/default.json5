@@ -67,10 +67,15 @@
     // Is a merchant providing an option to send a refund via email
     provide_refund_via_email: false,
 
-    home_issuer: "be.ap.rmp.net",
+    // A default issuer to work with
+    home_issuer: 'be.ap.rmp.net',
+
+    // Issuers that the Merchant accepts Coins from
+    acceptable_issuers: [ 'eu.carrotpay.com', 'be.ap.rmp.net', ],
+
+
     payment_path: "",
-    server_domain: "https://localhost:8443",
-    acceptable_issuers: ["eu.carrotpay.com", "be.ap.rmp.net"],
+    server_domain: "https://localhost:8443"
   },
 
   _register_required_keys: [ 'domain', ],
