@@ -21,7 +21,7 @@
   Files lower in the overriding chain should only include elements that need be overwritten.
 
   Special keys:
-    * _required_keys:
+    * _system_required_keys:
       app.js before server initialisation will check if all essential settings, mentioned in this key, are set and throw
       an error if configuration is not full,
     * _account_readonly_keys:
@@ -72,7 +72,7 @@
   },
 
   // Settings that are essential for application to run correctly. It's an array of keys' full paths.
-  _required_keys: [ 'server.db.url' ],
+  _system_required_keys: [ 'server.db.url', ],
 
   // Account settings that are accessible/visible by users but can't be overwritten
   _account_readonly_keys: [],
