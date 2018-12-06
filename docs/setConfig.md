@@ -28,7 +28,6 @@ Provide the basic information for the extraction.
   "offerEmailReceipt": "boolean - a boolean to indicate if the buyer may expect a payment receipt, upon the occasion of providing an email address during payment",
   "offerEmailRefund": "boolean - to indicate if the buyer may expect the possibility of a refund",
   "encryptCoins": "boolean - indicate if the Wallet should encrypt Coins while they are stored in the database",
-  "dbConnection": "string - default the private Merchant Wallet will use a local MongoDB and it is the Merchant's responsibility to make regular backups of the MongoDB files"
 }
 ```
 
@@ -58,7 +57,6 @@ Provide the basic information for the extraction.
     "eu.carrotpay.com",
     "be.ap.rmp.net"
   ],
-  "dbConnection": "mongodb://localhost:27017/",
   "defaultTimeout": 3600,
   "default_currency": "XBT",
   "paymentPath": "",

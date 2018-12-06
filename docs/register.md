@@ -46,7 +46,6 @@ Provide the basic information for the extraction.
    "name": "Clothing",
    "homeIssuer": "eu.carrotpay.com",
    "acceptableIssuers": "[(eu.carrotpay.com)]",
-   "dbConnection": "mongodb://localhost:27017/",
    "defaultTimeout": "3600",
    "emailCustomerContact": "",
    "offerEmailReceipt": false,
