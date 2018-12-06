@@ -20,9 +20,16 @@
 
   Files lower in the overriding chain should only include elements that need be overwritten.
 
-  All keys set as undefined are required to be set in environment specific' files.
-  app.js before server initialisation will check if all essential keys are set and throw an error if configuration is
-  not full. 'Essential keys' are all keys stored in 'required_keys' key.
+  Special keys:
+    * _required_keys:
+      app.js before server initialisation will check if all essential settings, mentioned in this key, are set and throw
+      an error if configuration is not full,
+    * _account_readonly_keys:
+      Account settings that are accessible/visible by users but can't be overwritten. These keys can't be modified via
+      setConfig method although they will be returned in getSettings set,
+    * _account_hidden_keys:
+      Account settings that are hidden and not visible by users in any way. These keys won't be returned in getSettings set.
+
 */
 
 {
@@ -52,8 +59,14 @@
     acceptable_issuers: ["eu.carrotpay.com", "be.ap.rmp.net"]
   },
 
-  // Keys that are essential for application to run correctly. It's an array of keys' full paths.
-  required_keys: [ 'server.db.url' ],
+  // Settings that are essential for application to run correctly. It's an array of keys' full paths.
+  _required_keys: [ 'server.db.url' ],
+
+  // Account settings that are accessible/visible by users but can't be overwritten
+  _account_readonly_keys: [],
+
+  // Account settings that are hidden and not visible by users in any way
+  _account_hidden_keys: [],
 
 }
 
