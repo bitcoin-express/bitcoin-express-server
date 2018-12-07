@@ -102,8 +102,8 @@ db.connect(config.get('server.db.url'), function (err) {
     passphrase: 'bitcoinexpress'
   }, app);
 
-  httpsServer.listen(8443, function() {
-    console.log('Listening on port 8443...');
+  httpsServer.listen(config.get('server.port'), function() {
+    console.log(`Listening on port ${config.get('server.port')}...`);
   });
 
   setInterval(() => {

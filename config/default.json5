@@ -56,6 +56,9 @@
       // Path to the API endpoint, used to create API requests to other API methods via the external link
       endpoint_path: ''
     },
+
+    // Port number that node.js will run on
+    port: '8443',
   },
 
   // Default account-specific configuration
@@ -86,10 +89,6 @@
 
     // Issuers that the Merchant accepts Coins from
     acceptable_issuers: [ 'eu.carrotpay.com', 'be.ap.rmp.net', ],
-
-
-    payment_path: "",
-    server_domain: "https://localhost:8443"
   },
 
   // Keys that are required to be provided during registration of a new account
@@ -107,5 +106,4 @@
 
   // Account settings that are hidden and not visible by users in any way
   _account_hidden_keys: [],
-
 }
