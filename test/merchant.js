@@ -1,3 +1,4 @@
+const config = require('config');
 var bodyParser = require('body-parser');
 var express = require('express');
 var exphbs = require('express-handlebars');
@@ -40,7 +41,7 @@ app.get('/', function (req, res) {
 
   var options = {
     host: 'localhost',
-    port: '8443',
+    port: config.get('server.port'),
     path: '/createPaymentRequest',
     method: 'POST',
     headers: {
@@ -88,7 +89,7 @@ app.post('/pay', function (req, res) {
 
   var options = {
     host: 'localhost',
-    port: '8443',
+    port: config.get('server.port'),
     path: '/payment',
     method: 'POST',
     headers: {
@@ -128,7 +129,7 @@ app.post('/pay', function (req, res) {
 app.get('/panel', function (req, res) {
   var options = {
     host: 'localhost',
-    port: '8443',
+    port: config.get('server.port'),
     path: '/getBalance',
     method: 'GET',
     headers: {

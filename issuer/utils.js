@@ -1,3 +1,5 @@
+const config = require('config');
+
 var atob = require('atob');
 
 var issuer = require('../issuer');
@@ -7,7 +9,7 @@ function Coin (base64) {
   try {
     let obj = JSON.parse(atob(base64));  
     obj.base64 = base64;
-    obj.value = _round(parseFloat(obj.v), 8);
+    obj.value = _round(parseFloat(obj.v), config.get('system.decimal_point_precision'));
     return obj;
   } catch(err) {
     throw err;
@@ -77,7 +79,7 @@ exports.transferBitcoin = function (uri, coins, balance, speed, accountId) {
     const recommendedFees = beginResponse.issuer[0].bitcoinFees;
     const bitcoinFee = recommendedFees[speed] || 0;
 
-    let txAmount = _round(parseFloat(amount) + bitcoinFee, 8);
+    let txAmount = _round(parseFloat(amount) + bitcoinFee, config.get('system.decimal_point_precision'));
     if (txAmount > balance) {
       throw new Error("Insufficient funds to pay fees");
     }
@@ -114,7 +116,7 @@ exports.transferBitcoin = function (uri, coins, balance, speed, accountId) {
         return 0;
       });
 
-      let change = _round(selection.faceValue - txAmount, 8);
+      let change = _round(selection.faceValue - txAmount, config.get('system.decimal_point_precision'));
       while(allCoins.length > 1) {
         if ((change < allCoins[0].value)) {
           break;

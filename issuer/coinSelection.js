@@ -1,3 +1,6 @@
+const config = require('config');
+const DECIMAL_POINT_PRECISION = config.get('system.decimal_point_precision');
+
 var atob = require('atob');
 
 var db = require('../db');
@@ -193,7 +196,7 @@ exports.coinSelection = function(target, coins, args) {
 
   let faceValue = _arraySum(wkCoins, "value", 0, wkCoins.length);
   let verificationFee = args.singleCoin ? _calcVerificationFee(faceValue, wkCoins.length, args) : {totalFee:0};
-  let verifiedValue = round(faceValue - verificationFee.totalFee,8);
+  let verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
 
   //Activity: 'insufficient funds' TEST CASE#5_5
   if (target > faceValue) {
@@ -260,7 +263,7 @@ exports.coinSelection = function(target, coins, args) {
     if (wkCoins.length > 0) {
       faceValue = _arraySum(wkCoins, "value", 0, wkCoins.length);
       verificationFee = args.singleCoin ? _calcVerificationFee(faceValue, wkCoins.length, args) : {totalFee:wkCoins[0].fee};
-      verifiedValue = round(faceValue - verificationFee.totalFee,8);
+      verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
     } else {
       faceValue = 0;
       verifiedValue = 0;
@@ -286,14 +289,14 @@ exports.coinSelection = function(target, coins, args) {
   //Some coins are not cost effective to split when used on their own but may be used in combination
   //as their combined value will not increase the minimum fee.
 //Activity: 'consolidate small coins'
-  let valueAttractingMinFee = round(((issuer.feeMin - issuer.feeFixed) / issuer.feeVariable),8);
+  let valueAttractingMinFee = round(((issuer.feeMin - issuer.feeFixed) / issuer.feeVariable), DECIMAL_POINT_PRECISION);
   let joinCandidates = new Array();
   let joinCandidateSum = 0;
   while(wkCoins.length > 0 && (joinCandidateSum + wkCoins[0].value) <= valueAttractingMinFee) {
       joinCandidateSum += wkCoins[0].value;
       joinCandidates.push(wkCoins.shift());
   }
-  joinCandidateSum = round(joinCandidateSum,8);
+  joinCandidateSum = round(joinCandidateSum, DECIMAL_POINT_PRECISION);
 
   if(args.debug) console.log("### 4. working coins "+wkCoins.length,wkCoins,joinCandidates.length,joinCandidates);
 
@@ -324,9 +327,9 @@ exports.coinSelection = function(target, coins, args) {
   let preSelectedSum = 0; //holds the faceValue sum of all pre-selected coins
   while(wkCoins.length > COMBINATION_SEARCH) {
       let largestCoinIndex = wkCoins.length - 1;
-      faceValue = round(preSelectedSum + wkCoins[largestCoinIndex].value,8);
+      faceValue = round(preSelectedSum + wkCoins[largestCoinIndex].value, DECIMAL_POINT_PRECISION);
       verificationFee = args.singleCoin ? _calcVerificationFee(faceValue, (++preSelectedCoinCount), args) : {totalFee:0};
-      verifiedValue = round(faceValue - verificationFee.totalFee,8);
+      verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
       if(args.debug) console.log("preSelectedSum",preSelectedSum,"wkCoins[largestCoinIndex].value", wkCoins[largestCoinIndex].value, "target",target);
 
       if(verifiedValue > target) break; //This may already be too large so no point in pre-selecting more coins
@@ -341,13 +344,13 @@ exports.coinSelection = function(target, coins, args) {
 
   if(preSelectedSum > 0) { //adjust the target and possibly remove larger coins
       if(args.debug) console.log("preSelectedSum",preSelectedSum,"joinCandidateSum",joinCandidateSum, "total face value",preSelectedSum + joinCandidateSum);
-      faceValue = round(preSelectedSum + joinCandidateSum,8);
+      faceValue = round(preSelectedSum + joinCandidateSum, DECIMAL_POINT_PRECISION);
       if(args.singleCoin) {
           verificationFee = _calcVerificationFee(faceValue, (joinCandidates.length +  selection.length), args);
       } else {
           verificationFee = _calcVerificationFee(joinCandidateSum, joinCandidates.length, args);
       }
-      verifiedValue = round(faceValue - verificationFee.totalFee,8);
+      verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
 
       if(args.debug) console.log("verifiedValue",verifiedValue,"verificationFee.totalFee",verificationFee.totalFee,"target",target);
 
@@ -356,7 +359,7 @@ exports.coinSelection = function(target, coins, args) {
           if(args.debug) console.log("preselected + joinCandiates is insufficient");
 
           let toVerify = args.singleCoin ? joinCandidates.concat(selection): joinCandidates;
-          let tv = args.singleCoin ? target : round(target - preSelectedSum,8);
+          let tv = args.singleCoin ? target : round(target - preSelectedSum, DECIMAL_POINT_PRECISION);
 
           if(tv >= coinMinValue) {
               responseObj =  {targetValue:tv, selection: args.singleCoin ? [] : selection, toVerify:toVerify, singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
@@ -367,7 +370,7 @@ exports.coinSelection = function(target, coins, args) {
       }
 
 //Activity: 'adjust target for pre-selected coins'
-      target = round(target - preSelectedSum, 8);
+      target = round(target - preSelectedSum, DECIMAL_POINT_PRECISION);
 if(args.debug) console.log("New target is ",target,"and joinCandidateContribution is ",joinCandidateContribution,"pre-selection",selection);
 
       //Having changed the target it's possible that wkCoins now contains one or more coins
@@ -395,7 +398,7 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
               }
               faceValue = _arraySum(selection, "value", 0, selection.length);
               verificationFee = _calcVerificationFee(faceValue, selection.length, args);
-              verifiedValue = round(faceValue - verificationFee.totalFee,8);
+              verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
               responseObj =  {targetValue:realTarget, selection:[], toVerify:selection, singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
               _archiveCoinSelection("CS:12 TC15 Join candidate + reduced target - single coin", responseObj.targetValue, startTime, ops, totalNumberOfCoins, responseObj);
 //EXIT POINT ********
@@ -405,10 +408,10 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
           let joinSum = _arraySum(joinCandidates, "value", 0, joinCandidates.length);
           verificationFee = _calcVerificationFee(joinSum, joinCandidates.length, args);
           let preSelectedSum = _arraySum(selection, "value", 0, selection.length);
-          let tv = round(realTarget - preSelectedSum,8);
+          let tv = round(realTarget - preSelectedSum, DECIMAL_POINT_PRECISION);
           if(tv > coinMinValue && tv < (joinSum - verificationFee.totalFee)) {
-              faceValue = round(preSelectedSum + joinSum, 8);
-              verifiedValue = round(faceValue - verificationFee.totalFee,8);
+              faceValue = round(preSelectedSum + joinSum, DECIMAL_POINT_PRECISION);
+              verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
               responseObj =  {targetValue:tv, selection:selection, toVerify:joinCandidates, singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
               _archiveCoinSelection("CS:13 TC16 Join candidate + reduced target - multi coin", responseObj.targetValue, startTime, ops, totalNumberOfCoins, responseObj);
 //EXIT POINT ********
@@ -437,7 +440,7 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
 
   //A function to select an exact match combination of coins
   let pwrSearch = function(element) {
-      let val = round(target - element.s,8);
+      let val = round(target - element.s, DECIMAL_POINT_PRECISION);
       if(val <= 0) {
           return false;
       }
@@ -485,7 +488,7 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
               }
               faceValue = _arraySum(selection, "value", 0, selection.length);
               verificationFee = _calcVerificationFee(faceValue, selection.length, args);
-              verifiedValue = round(faceValue - verificationFee.totalFee,8);
+              verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
               responseObj =  {targetValue:realTarget, selection:selection, toVerify:[], singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
               _archiveCoinSelection("CS:14 TC5 Combination of whole coins", responseObj.targetValue, startTime, ops, totalNumberOfCoins, responseObj);
               WHOLE_COIN_COUNT += 1;
@@ -512,7 +515,7 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
           return 0;
       });
 
-      target = round(target - joinCandidateSum, 8); //reduce the target by the join candidate sum
+      target = round(target - joinCandidateSum, DECIMAL_POINT_PRECISION); //reduce the target by the join candidate sum
       if(args.debug) console.log("target is "+target+" after reducing joinCandidateSum which was "+joinCandidateSum,"selection",selection,"selection total value",_arrayTotalValue(selection, args));
 
       //Once again having reduced the target we may need to remove larger coins
@@ -560,7 +563,7 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
               }
               faceValue = _arraySum(wk, "value", 0, wk.length);
               verificationFee = _calcVerificationFee(faceValue, wk.length, args);
-              verifiedValue = round(faceValue - verificationFee.totalFee,8);
+              verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
               if(verifiedValue >= realTarget) {
                   responseObj =  {targetValue:realTarget, selection:[], toVerify:wk, singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
                   _archiveCoinSelection("CS:15 TC10 singleCoin - combination of coins", responseObj.targetValue, startTime, ops, totalNumberOfCoins, responseObj);
@@ -600,10 +603,10 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
                       wk.push(wkCoins[match.l[i]]);
                   }
                   let sum = _arraySum(wk, "value", 0, wk.length);
-                  let tv = round(realTarget - sum,8);
+                  let tv = round(realTarget - sum, DECIMAL_POINT_PRECISION);
                   if(tv >= coinMinValue) {//Issuer will reject any target value smaller than minCoinValue
-                      faceValue = round(sum + candidateToSplit.value,8);
-                      verifiedValue = round(faceValue - candidateToSplit.fee,8);
+                      faceValue = round(sum + candidateToSplit.value, DECIMAL_POINT_PRECISION);
+                      verifiedValue = round(faceValue - candidateToSplit.fee, DECIMAL_POINT_PRECISION);
                       if(verifiedValue >= realTarget) {
                           responseObj =  {targetValue:tv, selection:wk, toVerify:[candidateToSplit], singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
                           _archiveCoinSelection("CS:16 TC11 Combination with unique split candidate", responseObj.targetValue, startTime, ops, totalNumberOfCoins, responseObj);
@@ -626,7 +629,7 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
           selection.push(reducedTargetDefaultCandidate);
           faceValue = _arraySum(selection, "value", 0, selection.length);
           verificationFee = _calcVerificationFee(faceValue, selection.length, args);
-          verifiedValue = round(faceValue - verificationFee.totalFee,8);
+          verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
           if(verifiedValue >= realTarget) {
               responseObj =  {targetValue:realTarget, selection:[], toVerify:selection, singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
               _archiveCoinSelection("CS:17 TC7 Default reduced candidate selected", responseObj.targetValue, startTime, ops, totalNumberOfCoins, responseObj);
@@ -637,10 +640,10 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
 //Activity: 'revert to reduced target default candidate - multi coin' TEST CASE#8
           if(args.debug) console.log("Activity: 'revert to reduced target default candidate - multi coin' TEST CASE#8");
           let sum = _arraySum(selection, "value", 0, selection.length);
-          let tv = round(realTarget - sum,8);
-          verifiedValue = round(reducedTargetDefaultCandidate.verifiedValue + sum,8);
+          let tv = round(realTarget - sum, DECIMAL_POINT_PRECISION);
+          verifiedValue = round(reducedTargetDefaultCandidate.verifiedValue + sum, DECIMAL_POINT_PRECISION);
           if(tv >= coinMinValue && tv <= verifiedValue) {
-              faceValue = round(reducedTargetDefaultCandidate.value + sum,8);
+              faceValue = round(reducedTargetDefaultCandidate.value + sum, DECIMAL_POINT_PRECISION);
               responseObj =  {targetValue:tv, selection:selection, toVerify:[reducedTargetDefaultCandidate], singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
               _archiveCoinSelection("CS:18 TC8 Default reduced candidate selected", responseObj.targetValue, startTime, ops, totalNumberOfCoins, responseObj);
 //EXIT POINT ********
@@ -676,7 +679,7 @@ if(args.debug) console.log("New target is ",target,"and joinCandidateContributio
 //Activity: 'revert to all coins - single coin' TEST CASE#12
       faceValue = _arraySum(allCoins, "value", 0, allCoins.length);
       verificationFee = _calcVerificationFee(faceValue, allCoins.length, args);
-      verifiedValue = round(faceValue - verificationFee.totalFee,8);
+      verifiedValue = round(faceValue - verificationFee.totalFee, DECIMAL_POINT_PRECISION);
 console.log(faceValue+"|"+verificationFee.totalFee+"|"+verifiedValue+"|"+realTarget);
       if(verifiedValue >= realTarget) {
           responseObj =  {targetValue:realTarget, selection:[], toVerify:allCoins, singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
@@ -696,7 +699,7 @@ console.log(faceValue+"|"+verificationFee.totalFee+"|"+verifiedValue+"|"+realTar
       let tv = realTarget;//default to whole amount
       let coinToSplitIndex = allCoins.findIndex(function(element) {
           let remainder = faceValue - element.value;
-          tv = round(realTarget - remainder,8);
+          tv = round(realTarget - remainder, DECIMAL_POINT_PRECISION);
           return (coinMinValue <= tv && tv <= element.verifiedValue); //looks like this coin can be split to the desired value
       });
 
@@ -709,7 +712,7 @@ console.log(faceValue+"|"+verificationFee.totalFee+"|"+verifiedValue+"|"+realTar
           }
       })
 
-      verifiedValue = round((coinToSplit === null ? 0 : coinToSplit.verifiedValue) + _arraySum(selection, "value", 0, allCoins.length),8);
+      verifiedValue = round((coinToSplit === null ? 0 : coinToSplit.verifiedValue) + _arraySum(selection, "value", 0, allCoins.length), DECIMAL_POINT_PRECISION);
       responseObj =  {targetValue:tv, selection:selection, toVerify:coinToSplit === null ? [] : [coinToSplit], singleCoin:args.singleCoin, faceValue:faceValue, verifiedValue:verifiedValue};
       _archiveCoinSelection("CS:21 TC13 All coin", responseObj.targetValue, startTime, ops, totalNumberOfCoins, responseObj);
 //EXIT POINT ********
@@ -761,7 +764,7 @@ function _archiveCoinSelection(description, target, startTime, cycles, numberOfC
     str += (sep + elt.v);
     sep = ", ";
   });
-  str += "] (sum="+round(sum,8)+")";
+  str += "] (sum="+round(sum, DECIMAL_POINT_PRECISION)+")";
   arch.selection = str;
   
   let coinSelection = JSON.parse(localStorage.getItem(COIN_SELECTION) || "[]"); 
@@ -797,7 +800,7 @@ function _arraySum(array, item, begin, n) {
     let ix = ((begin+x) % array.length);
     sum += array[ix][item];
   }
-  return round(sum,8);
+  return round(sum, DECIMAL_POINT_PRECISION);
 }
 
 function round(number, precision) {
@@ -854,12 +857,12 @@ function Coin(base64, includeFee, args, passphrase) {
   try {
     let obj = JSON.parse(atob(base64));  
     obj.base64 = base64;
-    obj.value = round(parseFloat(obj.v), 8);
+    obj.value = round(parseFloat(obj.v), DECIMAL_POINT_PRECISION);
 
     if (includeFee) {
       let fees = _getVerificationFee(obj, args);
-      obj.fee = round(fees.totalFee, 8);
-      obj.verifiedValue = round(obj.value - obj.fee, 8);
+      obj.fee = round(fees.totalFee, DECIMAL_POINT_PRECISION);
+      obj.verifiedValue = round(obj.value - obj.fee, DECIMAL_POINT_PRECISION);
     }
     return obj;
   } catch(err) {
@@ -924,7 +927,7 @@ function _getVerificationFee(aCoin, args) {
   let localArgs = Object.assign({}, defaults, _isPlainObject(args) ? args : {});
   
   if (!("value" in aCoin)) {
-    aCoin.value = round(Number.parseFloat(aCoin.v), 8);
+    aCoin.value = round(Number.parseFloat(aCoin.v), DECIMAL_POINT_PRECISION);
   }
 
   return _calcVerificationFee(aCoin.value, localArgs.inCoinCount, localArgs);
@@ -953,14 +956,14 @@ function _calcVerificationFee(value, inCoinCount, args) {
   //Cannot have a negative coin count
   let coinCountFee = (coinCount > 0) ? (coinCount * Number.parseFloat(args.issuerService.feePerCoin)) : 0;
   let expiryHours= Math.floor(Number.isInteger(args.expiryPeriod_ms) ? args.expiryPeriod_ms / (1000 * 60 * 60) : 0);
-  let expiryFee = round(expiryHours * Number.parseFloat(args.issuerService.feeExpiry), 8);
+  let expiryFee = round(expiryHours * Number.parseFloat(args.issuerService.feeExpiry), DECIMAL_POINT_PRECISION);
 
   let expiryEmailFee = 0;
   if ("expiryEmail" in args && args.expiryEmail.length > 0) {
-    expiryEmailFee= round(Number.parseFloat(args.issuerService.feeExpiryEmail), 8);
+    expiryEmailFee= round(Number.parseFloat(args.issuerService.feeExpiryEmail), DECIMAL_POINT_PRECISION);
   }
 
-  let variableFee  = round(value * Number.parseFloat(args.issuerService.feeVariable), 8);
+  let variableFee  = round(value * Number.parseFloat(args.issuerService.feeVariable), DECIMAL_POINT_PRECISION);
   let naturalFee = variableFee + Number.parseFloat(args.issuerService.feeFixed);
 
   let totalFee = 0;
@@ -973,8 +976,8 @@ function _calcVerificationFee(value, inCoinCount, args) {
   }
   
   return {
-    variableFee: round(variableFee,8),
-    totalFee: round(totalFee,8)
+    variableFee: round(variableFee, DECIMAL_POINT_PRECISION),
+    totalFee: round(totalFee, DECIMAL_POINT_PRECISION)
   };
 }
 
@@ -993,13 +996,13 @@ function getIssuerInfo(name) {
 function _setVerifiedValue(coinObj, args) {
 
   let value = Number.parseFloat(coinObj.v);
-  coinObj.value = round(value, 8);
+  coinObj.value = round(value, DECIMAL_POINT_PRECISION);
   
   let fees = _getVerificationFee(coinObj,args);
   coinObj.fee = fees.totalFee;
-  coinObj.verifiedValue = round(value - fees.totalFee, 8);
+  coinObj.verifiedValue = round(value - fees.totalFee, DECIMAL_POINT_PRECISION);
   coinObj.variableFee = fees.variableFee;
-  coinObj.variableValue = round(value - fees.variableFee, 8); 
+  coinObj.variableValue = round(value - fees.variableFee, DECIMAL_POINT_PRECISION);
 }
 
 /**
@@ -1040,7 +1043,7 @@ function _arrayTotalValue(arr, args, verifyAllCoins) {
   };
   let fees = _getVerificationFee(coin, localArgs);
   
-  return round(sum - fees.totalFee,8);
+  return round(sum - fees.totalFee, DECIMAL_POINT_PRECISION);
 }
 
 function _powerSet(coins) {
@@ -1077,7 +1080,7 @@ function _sumCoinValue(src, arr) {
   for(x=0; x<l; x++) {
     sum += src[arr[x]].value;
   }
-  return round(sum,8);
+  return round(sum, DECIMAL_POINT_PRECISION);
 }
 
 /**

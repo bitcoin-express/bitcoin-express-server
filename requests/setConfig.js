@@ -1,7 +1,5 @@
+const config = require('config');
 var db = require('../db');
-var issuer = require('../issuer');
-var utils = require('../issuer/utils');
-var config = require("../config.json");
 
 const { ObjectId } = require('mongodb');
 
@@ -15,7 +13,19 @@ function getSettings(account_id) {
   }
   var query = { "_id": account_id };
 
-  return db.findOne("accounts", query, true);
+  return db.findOne("accounts", query, true).then((resp) => {
+    // Before returning config values remove all keys that are configured as hidden
+    let hidden_settings = config.get('_account_hidden_keys');
+    if (hidden_settings.length > 0) {
+        for (let key of Object.keys(resp)) {
+            if (hidden_settings.includes(key)) {
+                delete resp[key];
+            }
+        }
+    }
+
+    return resp;
+  });
 };
 
 exports.getSettings = getSettings;
@@ -37,9 +47,36 @@ exports.setConfig = function (req, res) {
     });
   }
 
-  // Improve request by checking values and 
+
+
+  // TODO: Improve request by checking values and
   // throwing exceptions when settings values are
   // not right
+
+
+  // Check if all provided keys are correct and can be set
+  let allowed_settings = config.get('account');
+  for (let key of Object.keys(data)) {
+      //TODO: remove when auth is moved to header
+      if (key === 'auth') {
+          continue;
+      }
+
+      if (!allowed_settings.hasOwnProperty(key)) {
+          return res.status(422).send("At least one set key is unknown");
+      }
+  }
+
+  // Before returning config values remove all keys that are configured as readonly
+  let readonly_settings = config.get('_account_readonly_keys');
+  if (readonly_settings.length > 0) {
+      for (let key of Object.keys(data)) {
+          if (readonly_settings.includes(key)) {
+              return res.status(403).send("Can not modify readonly setting");
+          }
+      }
+  }
+
   var query = { "_id": req.body.account_id };
   db.findAndModify("accounts", query, data).then((result) => {
     if (!result) {

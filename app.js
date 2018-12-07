@@ -1,9 +1,38 @@
-var express = require('express');
-var session = require('express-session');
+const express = require('express');
+const session = require('express-session');
+const config = require('config');
+
+
+// Check if all keys, essential for application running, are set in config files.
+// If not - prevent application from running.
+for (let key of config.get('_system_required_keys')) {
+  if (!config.has(key)) {
+    throw new Error(`Missing required configuration key: ${key}`);
+  }
+}
+
 
 var fs = require('fs');
 var bodyParser = require('body-parser');
-var https = require('https');
+
+const web_server = {
+  handler: undefined,
+  options: undefined,
+};
+
+if (config.get('server.ssl.disabled')) {
+    web_server.handler = require('http');
+    web_server.options = {};
+}
+else {
+    web_server.handler = require('https');
+    web_server.options = {
+        key: fs.readFileSync(config.get('server.ssl.key_file_path'), config.get('server.ssl.key_file_encoding')),
+        cert: fs.readFileSync(config.get('server.ssl.certificate_file_path'), config.get('server.ssl.certificate_file_encoding')),
+        passphrase: config.get('server.ssl.key_file_passphrase')
+    };
+}
+
 var exphbs = require('express-handlebars');
 
 var { createPaymentRequest } = require("./requests/createPaymentRequest");
@@ -16,11 +45,8 @@ var { redeem } = require("./requests/redeem");
 var { register } = require("./requests/register");
 var { setConfig } = require("./requests/setConfig");
 
-var db = require('./db');
 
-var {
-  dbConnection
-} = require("./config.json");
+var db = require('./db');
 
 var {
   authMiddleware,
@@ -55,15 +81,13 @@ app.use(bodyParser.json());
 app.use(corsMiddleware);
 app.use(authMiddleware);
 app.use(session({
-  secret: 'btc-express',
+  secret: config.get('server.session.secret'),
   resave: true,
   saveUninitialized: true
 }));
 
-
-
 // Connect to Mongo on start
-db.connect(dbConnection, function (err) {
+db.connect(config.get('server.db.url'), function (err) {
   if (err) {
     console.log('Unable to connect to MongoDB.')
     process.exit(1)
@@ -85,17 +109,8 @@ db.connect(dbConnection, function (err) {
   app.post('/register', register);
   app.post('/setConfig', setConfig);
 
-  var privateKey  = fs.readFileSync('./sslcert/bitcoinexpress.key', 'utf8');
-  var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');
-
-  var httpsServer = https.createServer({
-    key: privateKey,
-    cert: certificate,
-    passphrase: 'bitcoinexpress'
-  }, app);
-
-  httpsServer.listen(8443, function() {
-    console.log('Listening on port 8443...');
+  web_server.handler.createServer(web_server.options, app).listen(config.get('server.port'), function() {
+    console.log(`Listening on port ${config.get('server.port')}...`);
   });
 
   setInterval(() => {

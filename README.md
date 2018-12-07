@@ -1,6 +1,6 @@
 # API
 
-This Merchant Wallet API example runs in the merchant's own server environment with optional authentication by means of using the config.json file. It stores coins, creates/stores payment requests and provides a service to retrieve the balance and redeem saved coins to a Bitcoin address. It **MUST** be private and **NOT PUBLIC** (accessible from Internet).
+This Merchant Wallet API example runs in the merchant's own server environment with optional authentication by means of using the config files. It stores coins, creates/stores payment requests and provides a service to retrieve the balance and redeem saved coins to a Bitcoin address. It **MUST** be private and **NOT PUBLIC** (accessible from Internet).
 
 ## Open endpoints
 
@@ -13,7 +13,7 @@ The following endpoints does not require authentication.
 
 ## Endpoints that require Authentication
 
-Closed endpoints require the valid authentication string included in the body request. It will be valid if the string is the same as the *authentication* value from the **config.json** file.
+Closed endpoints require the valid authentication string included in the body request. It will be valid if the string is the same as the *authentication* value from the config file.
 
 | HTTP Method        | URL           | Description  |
 | ------------- |-------------| -----|

@@ -1,12 +1,8 @@
-var uuidv1 = require('uuid/v1');
+const uuidv1 = require('uuid/v1');
+const config = require('config');
 
 var db = require('../db');
 var { getDomainFromURL } = require('../issuer/utils');
-
-var {
-  domain,
-  emailCustomerContact,
-} = require("../config.json");
 
 
 function cleanResponse(paymentRequest) {
@@ -27,19 +23,17 @@ exports.createPaymentRequest = function (req, res) {
   } = req.body;
 
   var {
-    acceptableIssuers,
-    defaultCurrency,
-    defaultTimeout,
+    acceptable_issuers,
+    default_payment_currency,
+    default_payment_timeout,
     domain,
-    homeIssuer,
-    paymentPath,
-    serverDomain,
+    home_issuer
   } = account;
 
   merchant_data = String(merchant_data);
 
   var now = new Date();
-  var exp = new Date().addSeconds(defaultTimeout);
+  var exp = new Date().addSeconds(default_payment_timeout);
 
   var paymentRequest = Object.assign({}, req.body);
   paymentRequest.expires = paymentRequest.expires || exp.toISOString();
@@ -66,8 +60,8 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
-  if (emailCustomerContact && emailCustomerContact.length > 0) {
-    paymentRequest.emailCustomerContact = emailCustomerContact;
+  if (config.has('account.email_customer_contact') && config.get('account.email_customer_contact').length > 0) {
+    paymentRequest.email_customer_contact = config.get('account.email_customer_contact');
   }
 
   if (!paymentRequest.return_url) {
@@ -113,15 +107,15 @@ exports.createPaymentRequest = function (req, res) {
     });
   }
 
-  var defIssuers = acceptableIssuers || [homeIssuer];
+  var defIssuers = acceptable_issuers || [home_issuer];
   var defEmail = {
-    contact: account.emailCustomerContact,
-    receipt: account.offerEmailRecipt || false,
-    refund: account.offerEmailRefund || false,
+    contact: account.email_customer_contact,
+    receipt: account.provide_receipt_via_email || config.get('account.provide_receipt_via_email'),
+    refund: account.provide_refund_via_email || config.get('account.provide_refund_via_email'),
   };
 
-  paymentRequest.payment_url = serverDomain + paymentPath + "/payment"
-  paymentRequest.currency = paymentRequest.currency || defaultCurrency;
+  paymentRequest.payment_url = config.get('server.api.endpoint_url') + config.get('server.api.endpoint_path') + "/payment"
+  paymentRequest.currency = paymentRequest.currency || default_payment_currency;
   paymentRequest.email = paymentRequest.email || defEmail;
 
   if (!paymentRequest.currency) {

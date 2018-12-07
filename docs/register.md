@@ -42,16 +42,14 @@ Provide the basic information for the extraction.
 {
    "authToken": "3ZmSnYiLAog",
    "domain": " mySite.com ",
-   "emailAccountContact": " sales@mySite.com ",
    "name": "Clothing",
-   "homeIssuer": "eu.carrotpay.com",
-   "acceptableIssuers": "[(eu.carrotpay.com)]",
-   "dbConnection": "mongodb://localhost:27017/",
-   "defaultTimeout": "3600",
-   "emailCustomerContact": "",
-   "offerEmailReceipt": false,
-   "offerEmailRefund": false,
-   "paymentPath": "/"
+   "home_issuer": "eu.carrotpay.com",
+   "acceptable_issuers": "[(eu.carrotpay.com)]",
+   "default_payment_timeout": "3600",
+   "email_customer_contact": "",
+   "email_account_contact": "sales@mySite.com",
+   "provide_receipt_via_email": false,
+   "provide_refund_via_email": false
 }
 ```
 
