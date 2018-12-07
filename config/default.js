@@ -45,7 +45,6 @@ module.exports = {
     // Port number that node.js will run on
     port: '8443',
 
-
     // Database related settings
     db: {
       // Db URL to be defined locally, i.e.: mongodb://localhost:27017/
@@ -67,6 +66,10 @@ module.exports = {
 
     // SSL related settings
     ssl: {
+      // If for some reason you want to run http version of a web server, instead of https, set this option to true
+      // Remember to change server.port as well if necessary
+      disabled: false,
+
       key_file_path: `${__dirname}/../sslcert/bitcoinexpress.key`,
       key_file_encoding: 'utf8',
       key_file_passphrase: undefined,

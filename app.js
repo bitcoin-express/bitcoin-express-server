@@ -14,7 +14,25 @@ for (let key of config.get('_system_required_keys')) {
 
 var fs = require('fs');
 var bodyParser = require('body-parser');
-var https = require('https');
+
+const web_server = {
+  handler: undefined,
+  options: undefined,
+};
+
+if (config.get('server.ssl.disabled')) {
+    web_server.handler = require('http');
+    web_server.options = {};
+}
+else {
+    web_server.handler = require('https');
+    web_server.options = {
+        key: fs.readFileSync(config.get('server.ssl.key_file_path'), config.get('server.ssl.key_file_encoding')),
+        cert: fs.readFileSync(config.get('server.ssl.certificate_file_path'), config.get('server.ssl.certificate_file_encoding')),
+        passphrase: config.get('server.ssl.key_file_passphrase')
+    };
+}
+
 var exphbs = require('express-handlebars');
 
 var { createPaymentRequest } = require("./requests/createPaymentRequest");
@@ -91,14 +109,7 @@ db.connect(config.get('server.db.url'), function (err) {
   app.post('/register', register);
   app.post('/setConfig', setConfig);
 
-  const private_key  = fs.readFileSync(config.get('server.ssl.key_file_path'), config.get('server.ssl.key_file_encoding'));
-  const certificate = fs.readFileSync(config.get('server.ssl.certificate_file_path'), config.get('server.ssl.certificate_file_encoding'));
-
-  https.createServer({
-    key: private_key,
-    cert: certificate,
-    passphrase: config.get('server.ssl.key_file_passphrase')
-  }, app).listen(config.get('server.port'), function() {
+  web_server.handler.createServer(web_server.options, app).listen(config.get('server.port'), function() {
     console.log(`Listening on port ${config.get('server.port')}...`);
   });
 
