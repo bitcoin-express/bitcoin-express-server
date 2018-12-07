@@ -63,7 +63,7 @@ app.use(bodyParser.json());
 app.use(corsMiddleware);
 app.use(authMiddleware);
 app.use(session({
-  secret: 'btc-express',
+  secret: config.get('server.session.secret'),
   resave: true,
   saveUninitialized: true
 }));
