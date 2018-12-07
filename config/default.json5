@@ -43,9 +43,19 @@
     db: {
       /*
       To be defined locally:
-      url: <string> i.e: mongodb://localhost:27017/
+      url: <string> i.e.: mongodb://localhost:27017/
       */
-    }
+    },
+    api: {
+      /*
+      To be defined locally:
+      // URL that AI endpoint is accessible from the Internet, in most cases domain under which gateway is operating
+      endpoint_url: <string> scheme://address[:port]
+      */
+
+      // Path to the API endpoint, used to create API requests to other API methods via the external link
+      endpoint_path: ''
+    },
   },
 
   // Default account-specific configuration
@@ -89,7 +99,7 @@
   _register_allowed_keys: [ 'domain', 'name', 'email_customer_contact', 'email_account_contact', ],
 
   // Settings that are essential for application to run correctly. It's an array of keys' full paths.
-  _system_required_keys: [ 'server.db.url', ],
+  _system_required_keys: [ 'server.db.url', 'server.api.endpoint_url', 'server.api.endpoint_path', ],
 
   // TODO: remove auth key from here when auth moved to header
   // Account settings that are accessible/visible by users but can't be overwritten
@@ -99,14 +109,3 @@
   _account_hidden_keys: [],
 
 }
-
-
-//"defaultCurrency": "XBT", -> account.default_payment_currency
-//"defaultTimeout": 200,   -> account.default_payment_timeout
-//"emailContact": "",
-//"offerEmailRecipt": false,
-//"offerEmailRefund": false,
-//"homeIssuer": "be.ap.rmp.net",
-//"paymentPath": "",
-//"serverDomain": "https://localhost:8443",
-//"acceptableIssuers": ["eu.carrotpay.com", "be.ap.rmp.net"]

@@ -49,8 +49,7 @@ Provide the basic information for the extraction.
    "email_customer_contact": "",
    "email_account_contact": "sales@mySite.com",
    "provide_receipt_via_email": false,
-   "provide_refund_via_email": false,
-   "paymentPath": "/"
+   "provide_refund_via_email": false
 }
 ```
 

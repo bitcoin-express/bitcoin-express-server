@@ -44,12 +44,10 @@ function registerAccount(req) {
     "authToken": diffHell.getPublicKey('hex'),
     "privateKey": diffHell.getPrivateKey('hex'),
     "domain": domain,
-    "serverDomain": config.get('account.server_domain'),
     "home_issuer": config.get('account.home_issuer'),
     "acceptable_issuers": config.get('account.acceptable_issuers'),
     "default_payment_timeout": config.get('account.default_payment_timeout'),
     "default_payment_currency": config.get('account.default_payment_currency'),
-    "paymentPath": config.get('account.payment_path'),
   }
 
   // TODO: check if this shouldn't be email_customer_contact. If yes, then remove email_account_contact altogether and

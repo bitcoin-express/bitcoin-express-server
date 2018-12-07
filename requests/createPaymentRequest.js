@@ -27,9 +27,7 @@ exports.createPaymentRequest = function (req, res) {
     default_payment_currency,
     default_payment_timeout,
     domain,
-    home_issuer,
-    paymentPath,
-    serverDomain,
+    home_issuer
   } = account;
 
   merchant_data = String(merchant_data);
@@ -116,7 +114,7 @@ exports.createPaymentRequest = function (req, res) {
     refund: account.provide_refund_via_email || config.get('account.provide_refund_via_email'),
   };
 
-  paymentRequest.payment_url = serverDomain + paymentPath + "/payment"
+  paymentRequest.payment_url = config.get('server.api.endpoint_url') + config.get('server.api.endpoint_path') + "/payment"
   paymentRequest.currency = paymentRequest.currency || default_payment_currency;
   paymentRequest.email = paymentRequest.email || defEmail;
 
