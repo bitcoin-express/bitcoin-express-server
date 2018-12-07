@@ -40,10 +40,21 @@ module.exports = {
 
   // Server-specific configuration. Not to be shared with users.
   server: {
+    // General settings
+
+    // Port number that node.js will run on
+    port: '8443',
+
+
+    // Database related settings
     db: {
       // Db URL to be defined locally, i.e.: mongodb://localhost:27017/
       url: undefined,
+      name: 'bitcoin-express',
     },
+
+
+    // API related settings
     api: {
       // URL that AI endpoint is accessible from the Internet, in most cases domain under which gateway is operating
       // i.e.: scheme://address[:port]
@@ -53,9 +64,8 @@ module.exports = {
       endpoint_path: ''
     },
 
-    // Port number that node.js will run on
-    port: '8443',
 
+    // SSL related settings
     ssl: {
       key_file_path: `${__dirname}/../sslcert/bitcoinexpress.key`,
       key_file_encoding: 'utf8',

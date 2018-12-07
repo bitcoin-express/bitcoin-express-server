@@ -1,3 +1,5 @@
+const config = require('config');
+
 var MongoClient = require('mongodb').MongoClient;
 var ObjectId = require('mongodb').ObjectId;
 
@@ -10,7 +12,7 @@ exports.connect = function(url, done) {
 
   MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
     if (err) return done(err);
-    state.db = db.db("bitcoin-express");
+    state.db = db.db(config.get('server.db.name'));
     done();
   })
 }
