@@ -69,7 +69,6 @@ app.use(session({
 }));
 
 
-
 // Connect to Mongo on start
 db.connect(config.get('server.db.url'), function (err) {
   if (err) {
@@ -93,16 +92,14 @@ db.connect(config.get('server.db.url'), function (err) {
   app.post('/register', register);
   app.post('/setConfig', setConfig);
 
-  const privateKey  = fs.readFileSync(config.get('server.ssl.key_file_path'), config.get('server.ssl.key_file_encoding'));
+  const private_key  = fs.readFileSync(config.get('server.ssl.key_file_path'), config.get('server.ssl.key_file_encoding'));
   const certificate = fs.readFileSync(config.get('server.ssl.certificate_file_path'), config.get('server.ssl.certificate_file_encoding'));
 
-  const httpsServer = https.createServer({
-    key: privateKey,
+  https.createServer({
+    key: private_key,
     cert: certificate,
-    passphrase: 'bitcoinexpress'
-  }, app);
-
-  httpsServer.listen(config.get('server.port'), function() {
+    passphrase: config.get('server.ssl.key_file_passphrase')
+  }, app).listen(config.get('server.port'), function() {
     console.log(`Listening on port ${config.get('server.port')}...`);
   });
 

@@ -59,6 +59,7 @@ module.exports = {
     ssl: {
       key_file_path: `${__dirname}/../sslcert/bitcoinexpress.key`,
       key_file_encoding: 'utf8',
+      key_file_passphrase: undefined,
 
       certificate_file_path: `${__dirname}/../sslcert/bitcoinexpress.crt`,
       certificate_file_encoding: 'utf8',
@@ -102,7 +103,7 @@ module.exports = {
   _register_allowed_keys: [ 'domain', 'name', 'email_customer_contact', 'email_account_contact', ],
 
   // Settings that are essential for application to run correctly. It's an array of keys' full paths.
-  _system_required_keys: [ 'server.db.url', 'server.api.endpoint_url', 'server.api.endpoint_path', ],
+  _system_required_keys: [ 'server.db.url', 'server.api.endpoint_url', 'server.api.endpoint_path', 'server.ssl.key_file_passphrase', ],
 
   // TODO: remove auth key from here when auth moved to header
   // Account settings that are accessible/visible by users but can't be overwritten
