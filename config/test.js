@@ -7,6 +7,3 @@
 
   In order to mae this file be parsed set NODE_ENV environment variable to: test
 */
-{
-
-}

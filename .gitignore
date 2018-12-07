@@ -4,5 +4,5 @@ package-lock.json
 /sslcert/bitcoinexpress.key
 /sslcert/bitcoinexpress.csr
 /sslcert/bitcoinexpress.crt
-/config/local.json5
+/config/local.js
 /config/local-*

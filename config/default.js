@@ -7,15 +7,15 @@
   In order to provide a mechanism to support environment's specific configuration the application will look for files
   extending the main configuration file where name of this file is stored in an environment variable: NODE_ENV
 
-  In order to store sensitive information the application will look for a file called local.json5 and use configuration
+  In order to store sensitive information the application will look for a file called local.js and use configuration
   stored in it. This file may include credentials, database name and host etc.
 
   An example - assuming that NODE_ENV is set to "production" load order will be as follows:
   default.json5
-  production.json5
-  local.json5
+  production.js
+  local.js
 
-  !!!   Please bear in mind that local.json5 should never be added into repository
+  !!!   Please bear in mind that local.js should never be added into repository
   !!!   and is excluded on main .gitignore level.
 
   Files lower in the overriding chain should only include elements that need be overwritten.
@@ -36,22 +36,18 @@
       Keys that are allowed to be provided during registration of a new account.
 */
 
-{
+module.exports = {
 
   // Server-specific configuration. Not to be shared with users.
   server: {
     db: {
-      /*
-      To be defined locally:
-      url: <string> i.e.: mongodb://localhost:27017/
-      */
+      // Db URL to be defined locally, i.e.: mongodb://localhost:27017/
+      url: undefined,
     },
     api: {
-      /*
-      To be defined locally:
       // URL that AI endpoint is accessible from the Internet, in most cases domain under which gateway is operating
-      endpoint_url: <string> scheme://address[:port]
-      */
+      // i.e.: scheme://address[:port]
+      endpoint_url: undefined,
 
       // Path to the API endpoint, used to create API requests to other API methods via the external link
       endpoint_path: ''
@@ -59,6 +55,14 @@
 
     // Port number that node.js will run on
     port: '8443',
+
+    ssl: {
+      key_file_path: `${__dirname}/../sslcert/bitcoinexpress.key`,
+      key_file_encoding: 'utf8',
+
+      certificate_file_path: `${__dirname}/../sslcert/bitcoinexpress.crt`,
+      certificate_file_encoding: 'utf8',
+    },
   },
 
   // Default account-specific configuration
@@ -106,4 +110,4 @@
 
   // Account settings that are hidden and not visible by users in any way
   _account_hidden_keys: [],
-}
+};

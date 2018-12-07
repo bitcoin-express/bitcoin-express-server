@@ -93,10 +93,10 @@ db.connect(config.get('server.db.url'), function (err) {
   app.post('/register', register);
   app.post('/setConfig', setConfig);
 
-  var privateKey  = fs.readFileSync('./sslcert/bitcoinexpress.key', 'utf8');
-  var certificate = fs.readFileSync('./sslcert/bitcoinexpress.crt', 'utf8');
+  const privateKey  = fs.readFileSync(config.get('server.ssl.key_file_path'), config.get('server.ssl.key_file_encoding'));
+  const certificate = fs.readFileSync(config.get('server.ssl.certificate_file_path'), config.get('server.ssl.certificate_file_encoding'));
 
-  var httpsServer = https.createServer({
+  const httpsServer = https.createServer({
     key: privateKey,
     cert: certificate,
     passphrase: 'bitcoinexpress'
