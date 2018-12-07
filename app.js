@@ -68,7 +68,6 @@ app.use(session({
   saveUninitialized: true
 }));
 
-
 // Connect to Mongo on start
 db.connect(config.get('server.db.url'), function (err) {
   if (err) {

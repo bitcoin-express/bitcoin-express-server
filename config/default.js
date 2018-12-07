@@ -127,4 +127,16 @@ module.exports = {
 
   // Account settings that are hidden and not visible by users in any way
   _account_hidden_keys: [],
+
+  // !!!! SYSTEM SETTINGS !!!!
+  // DO NOT MODIFY ANYTHING BELOW THIS LINE UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!
+  // THIS MAY - AND WILL - AFFECT HOW THE WHOLE APPLICATION WORKS AND MAY LEAD TO SERVER CRASH AND/OR LOOSING DATA -
+  // INCLUDING TRANSACTIONS LOGS!
+  //
+  // YOU HAVE BEEN WARNED!
+  //
+  system: {
+    decimal_point_precision: 8,
+  },
 };
+
