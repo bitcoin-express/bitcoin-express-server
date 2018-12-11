@@ -1,0 +1,187 @@
+#%RAML 1.0
+title: Bitcoin-Express Merchant Gateway
+version: v1.0a
+baseUri: https://api.gateway.url/{version}
+description: |
+  This is an initial draft of a draft of documentation for Bitcoin-Express Merchant Gateway API.
+protocols: [HTTPS]
+mediaType: application/json
+annotationTypes:
+  deprecated: nil
+  experimental: nil | string
+securitySchemes:
+  passthrough:
+    type: Pass Through
+    description: |
+      By default each request - unless stated otherwise - requires authentication header passed together with the request.
+    describedBy:
+      headers:
+        BE-MG-Auth-Token: string
+      responses:
+resourceTypes:
+types:
+traits:
+securedBy: passthrough
+
+/transactions:
+  securedBy: passthrough
+  description: |
+    All operations on different types of transactions, uncluding payments
+  get:
+    description: |
+        Old: /getTransactions
+        Return all transactions according to given parameters
+  post:
+    description: |
+      Old: /createPaymentRequest and /payment
+
+      A transations' factory - can create any type of transaction according to type parameter
+    body:
+      application/json:
+  /{transation_id}:
+    description: |
+      Operations that work on specific transation.
+    get:
+      description: Returns information about specified transaction
+    /status:
+      get:
+        description: |
+          Old: /getPaymentStatus
+
+          Returns only a status of specified transaction
+        queryParameters:
+          field:
+            type: string
+            enum: [ id, merchant_data ]
+          value:
+            type: string
+  /payment-requests:
+    post:
+      description: |
+        Old: /createPaymentRequest
+
+        I am still thinking if there should be an endpoint like this - normaly we should use POST /transactions with specified type. This would be only an alias.
+
+        Creates a new payment request
+      body:
+        application/json:
+  /payments:
+    post:
+      description: |
+        Old: payment
+
+        I am still thinking if there should be an endpoint like this - normaly we should use POST /transactions with specified type. This would be only an alias.
+
+        Creates a new payment
+/coins:
+  securedBy: passthrough
+  get:
+    description: |
+      Old: getBalance
+
+      Get a list of currency balances
+    queryParameters:
+      currency:
+        type: string
+        required: false
+        description: For which currency should the balance be returned for
+  delete:
+    description: |
+      Old: /getCoins
+
+      Extract coins from the wallet.
+  /transfers:
+    post:
+      description: |
+        Old: /redeem
+
+        I am still thinking if this should be here or maybe rather in /transactions sections.
+/settings:
+  securedBy: passthrough
+  get:
+    description: Get all current settings for the account
+    responses:
+      200:
+  patch:
+    description: |
+      Old: /setConfig
+
+      Modifies chosen account's settings
+    body:
+      application/json:
+        minProperties: 1
+        properties:
+          default_payment_currency:
+            type: string
+            enum: [ XBT ]
+            required: false
+            description: Default currency for transactions. It will be used by default if there is no explicit xurrency set for a transaction.
+          default_payment_timeout:
+            type: string
+            default: "3600"
+            required: false
+            description: Time in seconds after which a not-finished transaction will be marked as expired.
+          email_customer_contact:
+            type: string
+            required: false
+            description: Merchant's contact email for customer related queries
+          email_account_contact:
+            type: string
+            required: false
+            description: Merchant's contact email for account related queries
+          provide_receipt_via_email:
+            type: boolean
+            default: false
+            required: false
+            description: Is a merchant providing an option to send a receipt via email
+          provide_refund_via_email:
+            type: boolean
+            default: false
+            required: false
+            description: Is a merchant providing an option to send a refund via email
+          home_issuer:
+            type: string
+            default: "be.ap.rmp.net"
+            required: false
+            description: A default issuer to work with
+          acceptable_issuers:
+            type: string[]
+            default: [ 'eu.carrotpay.com', 'be.ap.rmp.net' ]
+            required: false
+            description: Issuers that the Merchant accepts Coins from
+/accounts:
+  post:
+    securedBy:
+    body:
+      application/json:
+        description: |
+          Old: /register
+
+          Creates a new merchant's account in the system
+        properties:
+          domain:
+            type: string
+            description: The domain name of the Merchant's service
+          email_account_contact:
+            type: string
+            required: false
+            description: Email address for account related queries
+          email_customer_contact:
+            type: string
+            required: false
+            description: Email address for customer related queries
+          name:
+            type: string
+            required: false
+            description: Name of the account's holder
+        example: |
+          {
+            "domain": "mysite.url",
+            "email_account_contact": "account@mysite.url",
+            "email_customer_contact": "sales@mysite.url",
+            "name": "John Smith"
+          }
+    responses:
+      201:
+
+

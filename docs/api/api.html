@@ -1,0 +1,176 @@
+<!DOCTYPE HTML><html><head><title>Bitcoin-Express Merchant Gateway API documentation</title><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><meta name="generator" content="https://github.com/raml2html/raml2html 7.2.1"><link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"><script type="text/javascript" src="https://code.jquery.com/jquery-1.11.0.min.js"></script><script type="text/javascript" src="https://netdna.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script><script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script><script type="text/javascript">
+      $(document).ready(function() {
+  $('.page-header pre code, .top-resource-description pre code, .modal-body pre code').each(function(i, block) {
+    hljs.highlightBlock(block);
+  });
+
+  $('[data-toggle]').click(function() {
+    var selector = $(this).data('target') + ' pre code';
+    $(selector).each(function(i, block) {
+      hljs.highlightBlock(block);
+    });
+  });
+
+  // open modal on hashes like #_action_get
+  $(window).bind('hashchange', function(e) {
+    var anchor_id = document.location.hash.substr(1); //strip #
+    var element = $('#' + anchor_id);
+
+    // do we have such element + is it a modal?  --> show it
+    if (element.length && element.hasClass('modal')) {
+      element.modal('show');
+    }
+  });
+
+  // execute hashchange on first page load
+  $(window).trigger('hashchange');
+
+  // remove url fragment on modal hide
+  $('.modal').on('hidden.bs.modal', function() {
+    try {
+      if (history && history.replaceState) {
+          history.replaceState({}, '', '#');
+      }
+    } catch(e) {}
+  });
+});
+    </script><style>
+      .hljs {
+  background: transparent;
+}
+.parent {
+  color: #999;
+}
+.list-group-item > .badge {
+  float: none;
+  margin-right: 6px;
+}
+.panel-title > .methods {
+  float: right;
+}
+.badge {
+  border-radius: 0;
+  text-transform: uppercase;
+  width: 70px;
+  font-weight: normal;
+  color: #f3f3f6;
+  line-height: normal;
+}
+.badge_get {
+  background-color: #63a8e2;
+}
+.badge_post {
+  background-color: #6cbd7d;
+}
+.badge_put {
+  background-color: #22bac4;
+}
+.badge_delete {
+  background-color: #d26460;
+}
+.badge_patch {
+  background-color: #ccc444;
+}
+.list-group,
+.panel-group {
+  margin-bottom: 0;
+}
+.panel-group .panel+.panel-white {
+  margin-top: 0;
+}
+.panel-group .panel-white {
+  border-bottom: 1px solid #F5F5F5;
+  border-radius: 0;
+}
+.panel-white:last-child {
+  border-bottom-color: white;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+}
+.panel-white .panel-heading {
+  background: white;
+}
+.tab-pane ul {
+  padding-left: 2em;
+}
+.tab-pane h1 {
+  font-size: 1.3em;
+}
+.tab-pane h2 {
+  font-size: 1.2em;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #ddd;
+}
+.tab-pane h3 {
+  font-size: 1.1em;
+}
+.tab-content {
+  border-left: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+  border-bottom: 1px solid #ddd;
+  padding: 10px;
+}
+#sidebar {
+  margin-top: 30px;
+  padding-right: 5px;
+  overflow: auto;
+  height: 90%;
+}
+.top-resource-description {
+  border-bottom: 1px solid #ddd;
+  background: #fcfcfc;
+  padding: 15px 15px 0 15px;
+  margin: -15px -15px 10px -15px;
+}
+.resource-description {
+  border-bottom: 1px solid #fcfcfc;
+  background: #fcfcfc;
+  padding: 15px 15px 0 15px;
+  margin: -15px -15px 10px -15px;
+}
+.resource-description p:last-child {
+  margin: 0;
+}
+.list-group .badge {
+  float: left;
+}
+.method_description {
+  margin-left: 85px;
+}
+.method_description p:last-child {
+  margin: 0;
+}
+.list-group-item {
+  cursor: pointer;
+}
+.list-group-item:hover {
+  background-color: #f5f5f5;
+}
+pre code {
+  overflow: auto;
+  word-wrap: normal;
+  white-space: pre;
+}
+.items {
+  background: #f5f5f5;
+  color: #333;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 9.5px;
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.42857143;
+}
+.examples {
+  margin-left: 0.5em;
+}
+.resource-modal li > ul {
+  margin-bottom: 1em;
+}
+    </style></head><body data-spy="scroll" data-target="#sidebar"><div class="container"><div class="row"><div class="col-md-9" role="main"><div class="page-header"><h1>Bitcoin-Express Merchant Gateway API documentation <small>version v1.0a</small></h1><p>https://api.gateway.url/{version}</p><p>This is an initial draft of a draft of documentation for Bitcoin-Express Merchant Gateway API.</p><ul><li><strong>version</strong>: <em>required (v1.0a)</em></li></ul></div><div class="panel panel-default"><div class="panel-heading"><h3 id="transactions" class="panel-title">/transactions</h3></div><div class="panel-body"><div class="top-resource-description"><p>All operations on different types of transactions, uncluding payments</p></div><div class="panel-group"><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_transactions"><span class="parent"></span>/transactions</a> <span class="methods"><a href="#transactions_get"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a> <a href="#transactions_post"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_transactions" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#transactions_get'" class="list-group-item"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: /getTransactions Return all transactions according to given parameters</p></div><div class="clearfix"></div></div><div onclick="window.location.href = '#transactions_post'" class="list-group-item"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: /createPaymentRequest and /payment</p><p>A transations&#39; factory - can create any type of transaction according to type parameter</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="transactions_get"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent"></span>/transactions</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: /getTransactions Return all transactions according to given parameters</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li><a href="#transactions_get_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane" id="transactions_get_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div><div class="modal fade" tabindex="0" id="transactions_post"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent"></span>/transactions</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: /createPaymentRequest and /payment</p><p>A transations&#39; factory - can create any type of transaction according to type parameter</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#transactions_post_request" data-toggle="tab">Request</a></li><li><a href="#transactions_post_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="transactions_post_request"><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: any</p></div><div class="tab-pane" id="transactions_post_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div></div><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_transactions__transation_id_"><span class="parent">/transactions</span>/{transation_id}</a> <span class="methods"><a href="#transactions__transation_id__get"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_transactions__transation_id_" class="panel-collapse collapse"><div class="panel-body"><div class="resource-description"><p>Operations that work on specific transation.</p></div><div class="list-group"><div onclick="window.location.href = '#transactions__transation_id__get'" class="list-group-item"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Returns information about specified transaction</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="transactions__transation_id__get"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent">/transactions</span>/{transation_id}</h4></div><div class="modal-body"><div class="alert alert-info"><p>Returns information about specified transaction</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#transactions__transation_id__get_request" data-toggle="tab">Request</a></li><li><a href="#transactions__transation_id__get_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="transactions__transation_id__get_request"><h3>URI Parameters</h3><ul><li><strong>transation_id</strong>: <em>required (string)</em></li></ul></div><div class="tab-pane" id="transactions__transation_id__get_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div></div><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_transactions__transation_id__status"><span class="parent">/transactions/{transation_id}</span>/status</a> <span class="methods"><a href="#transactions__transation_id__status_get"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_transactions__transation_id__status" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#transactions__transation_id__status_get'" class="list-group-item"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: /getPaymentStatus</p><p>Returns only a status of specified transaction</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="transactions__transation_id__status_get"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent">/transactions/{transation_id}</span>/status</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: /getPaymentStatus</p><p>Returns only a status of specified transaction</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#transactions__transation_id__status_get_request" data-toggle="tab">Request</a></li><li><a href="#transactions__transation_id__status_get_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="transactions__transation_id__status_get_request"><h3>URI Parameters</h3><ul><li><strong>transation_id</strong>: <em>required (string)</em></li></ul><h3>Query Parameters</h3><ul><li><strong>field</strong>: <em>required (one of id, merchant_data)</em></li><li><strong>value</strong>: <em>required (string)</em></li></ul></div><div class="tab-pane" id="transactions__transation_id__status_get_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div></div><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_transactions_payment_requests"><span class="parent">/transactions</span>/payment-requests</a> <span class="methods"><a href="#transactions_payment_requests_post"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_transactions_payment_requests" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#transactions_payment_requests_post'" class="list-group-item"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: /createPaymentRequest</p><p>I am still thinking if there should be an endpoint like this - normaly we should use POST /transactions with specified type. This would be only an alias.</p><p>Creates a new payment request</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="transactions_payment_requests_post"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent">/transactions</span>/payment-requests</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: /createPaymentRequest</p><p>I am still thinking if there should be an endpoint like this - normaly we should use POST /transactions with specified type. This would be only an alias.</p><p>Creates a new payment request</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#transactions_payment_requests_post_request" data-toggle="tab">Request</a></li><li><a href="#transactions_payment_requests_post_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="transactions_payment_requests_post_request"><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: any</p></div><div class="tab-pane" id="transactions_payment_requests_post_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div></div><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_transactions_payments"><span class="parent">/transactions</span>/payments</a> <span class="methods"><a href="#transactions_payments_post"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_transactions_payments" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#transactions_payments_post'" class="list-group-item"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: payment</p><p>I am still thinking if there should be an endpoint like this - normaly we should use POST /transactions with specified type. This would be only an alias.</p><p>Creates a new payment</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="transactions_payments_post"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent">/transactions</span>/payments</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: payment</p><p>I am still thinking if there should be an endpoint like this - normaly we should use POST /transactions with specified type. This would be only an alias.</p><p>Creates a new payment</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li><a href="#transactions_payments_post_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane" id="transactions_payments_post_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class="panel-heading"><h3 id="coins" class="panel-title">/coins</h3></div><div class="panel-body"><div class="panel-group"><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_coins"><span class="parent"></span>/coins</a> <span class="methods"><a href="#coins_get"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a> <a href="#coins_delete"><span class="badge badge_delete">delete <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_coins" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#coins_get'" class="list-group-item"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: getBalance</p><p>Get a list of currency balances</p></div><div class="clearfix"></div></div><div onclick="window.location.href = '#coins_delete'" class="list-group-item"><span class="badge badge_delete">delete <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: /getCoins</p><p>Extract coins from the wallet.</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="coins_get"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent"></span>/coins</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: getBalance</p><p>Get a list of currency balances</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#coins_get_request" data-toggle="tab">Request</a></li><li><a href="#coins_get_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="coins_get_request"><h3>Query Parameters</h3><ul><li><strong>currency</strong>: <em>(string)</em><p>For which currency should the balance be returned for</p></li></ul></div><div class="tab-pane" id="coins_get_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div><div class="modal fade" tabindex="0" id="coins_delete"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_delete">delete <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent"></span>/coins</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: /getCoins</p><p>Extract coins from the wallet.</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li><a href="#coins_delete_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane" id="coins_delete_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div></div><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_coins_transfers"><span class="parent">/coins</span>/transfers</a> <span class="methods"><a href="#coins_transfers_post"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_coins_transfers" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#coins_transfers_post'" class="list-group-item"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: /redeem</p><p>I am still thinking if this should be here or maybe rather in /transactions sections.</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="coins_transfers_post"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_post">post <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent">/coins</span>/transfers</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: /redeem</p><p>I am still thinking if this should be here or maybe rather in /transactions sections.</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li><a href="#coins_transfers_post_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane" id="coins_transfers_post_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class="panel-heading"><h3 id="settings" class="panel-title">/settings</h3></div><div class="panel-body"><div class="panel-group"><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_settings"><span class="parent"></span>/settings</a> <span class="methods"><a href="#settings_get"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a> <a href="#settings_patch"><span class="badge badge_patch">patch <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_settings" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#settings_get'" class="list-group-item"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Get all current settings for the account</p></div><div class="clearfix"></div></div><div onclick="window.location.href = '#settings_patch'" class="list-group-item"><span class="badge badge_patch">patch <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: /setConfig</p><p>Modifies chosen account&#39;s settings</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="settings_get"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent"></span>/settings</h4></div><div class="modal-body"><div class="alert alert-info"><p>Get all current settings for the account</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#settings_get_response" data-toggle="tab">Response</a></li><li><a href="#settings_get_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="settings_get_response"><h2>HTTP status code <a href="http://httpstatus.es/200" target="_blank">200</a></h2></div><div class="tab-pane" id="settings_get_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div><div class="modal fade" tabindex="0" id="settings_patch"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_patch">patch <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent"></span>/settings</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: /setConfig</p><p>Modifies chosen account&#39;s settings</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>passthrough</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#settings_patch_request" data-toggle="tab">Request</a></li><li><a href="#settings_patch_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="settings_patch_request"><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: object</p><strong>Properties</strong><ul><li><strong>default_payment_currency</strong>: <em>(XBT)</em><p>Default currency for transactions. It will be used by default if there is no explicit xurrency set for a transaction.</p></li><li><strong>default_payment_timeout</strong>: <em>(string - default: 3600)</em><p>Time in seconds after which a not-finished transaction will be marked as expired.</p></li><li><strong>email_customer_contact</strong>: <em>(string)</em><p>Merchant&#39;s contact email for customer related queries</p></li><li><strong>email_account_contact</strong>: <em>(string)</em><p>Merchant&#39;s contact email for account related queries</p></li><li><strong>provide_receipt_via_email</strong>: <em>(boolean - default: false)</em><p>Is a merchant providing an option to send a receipt via email</p></li><li><strong>provide_refund_via_email</strong>: <em>(boolean - default: false)</em><p>Is a merchant providing an option to send a refund via email</p></li><li><strong>home_issuer</strong>: <em>(string - default: be.ap.rmp.net)</em><p>A default issuer to work with</p></li><li><strong>acceptable_issuers</strong>: <em>(array of )</em><p>Issuers that the Merchant accepts Coins from</p></li></ul></div><div class="tab-pane" id="settings_patch_securedby"><h1>Secured by passthrough</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class="panel-heading"><h3 id="accounts" class="panel-title">/accounts</h3></div><div class="panel-body"><div class="panel-group"><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_accounts"><span class="parent"></span>/accounts</a> <span class="methods"><a href="#accounts_post"><span class="badge badge_post">post</span></a></span></h4></div><div id="panel_accounts" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#accounts_post'" class="list-group-item"><span class="badge badge_post">post</span><div class="method_description"></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="accounts_post"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_post">post</span> <span class="parent"></span>/accounts</h4></div><div class="modal-body"><ul class="nav nav-tabs"><li class="active"><a href="#accounts_post_request" data-toggle="tab">Request</a></li><li><a href="#accounts_post_response" data-toggle="tab">Response</a></li></ul><div class="tab-content"><div class="tab-pane active" id="accounts_post_request"><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: object</p><strong>Properties</strong><ul><li><strong>domain</strong>: <em>required (string)</em><p>The domain name of the Merchant&#39;s service</p></li><li><strong>email_account_contact</strong>: <em>(string)</em><p>Email address for account related queries</p></li><li><strong>email_customer_contact</strong>: <em>(string)</em><p>Email address for customer related queries</p></li><li><strong>name</strong>: <em>(string)</em><p>Name of the account&#39;s holder</p></li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>{
+  "domain": "mysite.url",
+  "email_account_contact": "account@mysite.url",
+  "email_customer_contact": "sales@mysite.url",
+  "name": "John Smith"
+}
+</code></pre></div></div><div class="tab-pane" id="accounts_post_response"><h2>HTTP status code <a href="http://httpstatus.es/201" target="_blank">201</a></h2></div></div></div></div></div></div></div></div></div></div></div><div class="col-md-3"><div id="sidebar" class="hidden-print affix" role="complementary"><ul class="nav nav-pills nav-stacked"><li><a href="#transactions">/transactions</a></li><li><a href="#coins">/coins</a></li><li><a href="#settings">/settings</a></li><li><a href="#accounts">/accounts</a></li></ul></div></div></div></div></body></html>
