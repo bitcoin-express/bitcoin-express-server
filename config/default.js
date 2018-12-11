@@ -140,6 +140,7 @@ module.exports = {
   //
   system: {
     decimal_point_precision: 8,
+    root_dir: require('path').resolve(`${__dirname}/..`),
   },
 };
 
