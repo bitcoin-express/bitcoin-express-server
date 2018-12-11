@@ -121,6 +121,8 @@ db.connect(config.get('server.db.url'), function (err) {
     };
     db.remove("payments", query).then((resp) => {
       console.log('SCHEDULER - Removing expired requests before ' + now.toISOString(), resp);
+    }).catch((err) => {
+      console.log('SCHEDULER ERROR - Removing expired requests before ' + now.toISOString(), err);
     });
   }, 5 * 60 * 1000); // interval of 5 min
 })

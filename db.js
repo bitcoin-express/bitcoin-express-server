@@ -47,11 +47,16 @@ exports.insert = function(name, obj) {
 
 
 exports.remove = function(name, query) {
+  if (!state.db) {
+      return Promise.reject(new Error("No DB"), []);
+  }
+
   return new Promise((resolve, reject) => {
     state.db.collection(name).deleteMany(query, function(err, resp) {
       if (err) {
         return reject(err);
       }
+
       return resolve(resp.result);
     });
   });
