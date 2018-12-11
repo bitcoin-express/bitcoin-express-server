@@ -112,6 +112,11 @@ module.exports = {
 
     // Issuers that the Merchant accepts Coins from
     acceptable_issuers: [ 'eu.carrotpay.com', 'be.ap.rmp.net', ],
+
+    // Keys that can be configured on the account level but not require default values. These are used for checking by
+    // setConfig fail-safe mechanisms
+    domain: undefined,
+    name: undefined,
   },
 
   // Keys that are required to be provided during registration of a new account
@@ -129,7 +134,8 @@ module.exports = {
   _account_readonly_keys: [ 'auth', ],
 
   // Account settings that are hidden and not visible by users in any way
-  _account_hidden_keys: [],
+  // TODO: remove authToken and privateKey after refactorisation
+  _account_hidden_keys: [ '_id', 'account_id', 'auth_token', 'private_key', 'authToken', 'privateKey' ],
 
   // !!!! SYSTEM SETTINGS !!!!
   // DO NOT MODIFY ANYTHING BELOW THIS LINE UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!
