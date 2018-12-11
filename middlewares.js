@@ -1,26 +1,26 @@
-var db = require('./db');
-var authReqs = ["/register", "/payment", "/panel"];
+const db = require('./db');
+const authReqs = [ '/register', '/payment', '/panel', ];
 
 
 exports.authMiddleware = function (req, res, next) {
   var url = req.originalUrl;
 
   if (url == "/" || authReqs.some(str => url.startsWith(str))) {
-    next();
-    return;
+    return next();
   }
 
+  // TODO: new API: add other methods
   var auth;
   if (req.method == "GET") {
     auth = req.query.auth;
   }
-  if (req.method == "POST") {
+  else if (req.method == "POST") {
     auth = req.body.auth;
     delete req.body.auth;
   }
 
   if (!auth) {
-    res.status(400).send("No auth token provided");
+    res.status(401).send("No auth token provided");
     return;
   }
 
@@ -44,6 +44,7 @@ exports.authMiddleware = function (req, res, next) {
       req.body.account_id = id;
       req.body.account = resp;
     }
+    
     next();
   });
 } 

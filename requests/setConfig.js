@@ -28,6 +28,7 @@ function getSettings(account_id) {
   });
 };
 
+// TODO: getSettings shouldn't be exported in this form - it probably should be used via standard API call, when it's added
 exports.getSettings = getSettings;
 exports.setConfig = function (req, res) {
   var data = Object.assign({}, req.body);
