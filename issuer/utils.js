@@ -1,5 +1,4 @@
 const config = require('config');
-
 var atob = require('atob');
 
 var issuer = require('../issuer');
@@ -137,19 +136,6 @@ exports.transferBitcoin = function (uri, coins, balance, speed, accountId) {
       throw new Error("Insufficient funds");
     }
   });
-}
-
-
-function insertCoins(db, base64Coins) {
-  var promises = base64Coins.map((c) => {
-    return db.insert("coins", {
-      "coins": c,
-      "currency": Coin(c).c,
-      "date": new Date().toISOString()
-    });
-  });
-
-  return Promise.all(promises).then(() => base64Coins.length);
 }
 
 
