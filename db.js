@@ -62,21 +62,6 @@ exports.remove = function(name, query) {
   });
 }
 
-exports.removeMultipleIds = function(name, ids) {
-  var listIds = ids.map((id) => {
-    return ObjectId(id);
-  });
-
-  return new Promise((resolve, reject) => {
-    state.db.collection(name).remove({ _id : { $in: listIds } }, function(err, resp) {
-      if (err) {
-        return reject(err);
-      }
-      return resolve(resp);
-    });
-  });
-}
-
 exports.findOne = function(name, query, clean=false) {
   if (!state.db) {
     return Promise.reject(new Error("No DB"));
@@ -142,9 +127,10 @@ exports.extractCoins = function (coins) {
 
   return Promise.all(promises).then((responses) => {
     var ids = responses.map((resp) => {
-      return resp._id;
+      return ObjectId(resp._id);
     });
-    return this.removeMultipleIds("coins", ids);
+
+    return this.remove('coins', { _id : { $in: ids } });
   });
 }
 
