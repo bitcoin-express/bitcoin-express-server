@@ -151,7 +151,8 @@ exports.createPaymentRequest = function (req, res) {
         var query = {
           payment_id: paymentRequest.payment_id,
           status: { $in: ["initial"] },
-        }
+        };
+
         console.log("Payment expired - " + query.payment_id);
         db.findAndModify("payments", query, { status: "timeout" });
       }, secs);

@@ -166,7 +166,7 @@ exports.find = function(name, query, projection={}, offset=null, limit=null) {
         delete item.account_id;
         delete item.authToken;
         delete item.privateKey;
-        
+
         return item;
       });
 
@@ -175,17 +175,16 @@ exports.find = function(name, query, projection={}, offset=null, limit=null) {
   });
 };
 
-exports.findAndModify = function(name, query, modification, options = { new: true }) {
+exports.findAndModify = function(name, query, modification, options = { returnOriginal: false }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
-  
+
   return new Promise((resolve, reject) => {
-    db_handler.collection(name).findAndModify(
+    db_handler.collection(name).findOneAndUpdate(
       query,
-      [], // represents a sort order if multiple matches
       { $set: modification },
-      options, // options - new to return the modified document
+      options,
       (err, doc) => {
         if (err) {
           return reject(err);
