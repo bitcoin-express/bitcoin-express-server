@@ -8,12 +8,17 @@ var state = {
 }
 
 exports.connect = function(url, done) {
-  if (state.db) return done();
+  if (state.db) {
+    return done();
+  }
 
   MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
-    if (err) return done(err);
+    if (err) {
+      return done(err);
+    }
+
     state.db = db.db(config.get('server.db.name'));
-    done();
+    return done();
   })
 }
 
@@ -21,15 +26,20 @@ exports.get = function() {
   return state.db;
 }
 
-exports.insert = function(name, obj, done) {
-  if (!state.db) return done(new Error("No DB"), []);
+exports.insert = function(name, obj) {
+  if (!state.db) {
+    return Promise.reject(new Error("No DB"), []);
+  }
+
+  let objects = Array.isArray(obj) ? obj : [ obj ];
 
   return new Promise ((resolve, reject) => {
-    state.db.collection(name).insert(obj, (err, records) => {
+    state.db.collection(name).insertMany(objects, (err, records) => {
       if (err) {
         console.log(err);
         return reject(err);
       }
+
       return resolve(records);
     });
   });
