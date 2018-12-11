@@ -1,15 +1,12 @@
 const config = require('config');
 
-var MongoClient = require('mongodb').MongoClient;
-var ObjectId = require('mongodb').ObjectId;
-
-var state = {
-  db: null,
-};
+const MongoClient = require('mongodb').MongoClient;
+const ObjectId = require('mongodb').ObjectId;
+let db_handler = null;
 
 
 exports.connect = function(url, done) {
-  if (state.db) {
+  if (db_handler) {
     return done();
   }
 
@@ -18,26 +15,26 @@ exports.connect = function(url, done) {
       return done(err);
     }
 
-    state.db = db.db(config.get('server.db.name'));
+    db_handler = db.db(config.get('server.db.name'));
     return done();
   })
 };
 
 
 exports.get = function() {
-  return state.db;
+  return db_handler;
 };
 
 
 exports.insert = function(name, obj) {
-  if (!state.db) {
+  if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
   let objects = Array.isArray(obj) ? obj : [ obj ];
 
   return new Promise ((resolve, reject) => {
-    state.db.collection(name).insertMany(objects, (err, records) => {
+    db_handler.collection(name).insertMany(objects, (err, records) => {
       if (err) {
         console.log(err);
         return reject(err);
@@ -50,12 +47,12 @@ exports.insert = function(name, obj) {
 
 
 exports.remove = function(name, query) {
-  if (!state.db) {
+  if (!db_handler) {
       return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    state.db.collection(name).deleteMany(query, function(err, resp) {
+    db_handler.collection(name).deleteMany(query, function(err, resp) {
       if (err) {
         return reject(err);
       }
@@ -67,12 +64,12 @@ exports.remove = function(name, query) {
 
 
 exports.findOne = function(name, query) {
-  if (!state.db) {
+  if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    state.db.collection(name).findOne(query, (err, resp) => {
+    db_handler.collection(name).findOne(query, (err, resp) => {
       if (err) {
         return reject(err);
       }
@@ -142,12 +139,12 @@ exports.extractCoins = function (coins) {
 
 
 exports.find = function(name, query, projection={}, offset=null, limit=null) {
-  if (!state.db) {
+  if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    var cursor = state.db.collection(name).find(query, projection);
+    var cursor = db_handler.collection(name).find(query, projection);
 
     if (offset) {
       cursor = cursor.skip(parseInt(offset));
@@ -178,12 +175,12 @@ exports.find = function(name, query, projection={}, offset=null, limit=null) {
 };
 
 exports.findAndModify = function(name, query, modification, options = { new: true }) {
-  if (!state.db) {
+  if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
   
   return new Promise((resolve, reject) => {
-    state.db.collection(name).findAndModify(
+    db_handler.collection(name).findAndModify(
       query,
       [], // represents a sort order if multiple matches
       { $set: modification },
@@ -193,7 +190,7 @@ exports.findAndModify = function(name, query, modification, options = { new: tru
           return reject(err);
         }
 
-        var result = doc.value;
+        let result = doc.value;
         delete result._id;
         delete result.account_id;
         delete result.authToken;
@@ -203,13 +200,13 @@ exports.findAndModify = function(name, query, modification, options = { new: tru
       }
     );
   });
-}
+};
+
 
 exports.close = function(done) {
-  if (state.db) {
-    state.db.close(function(err, result) {
-      state.db = null
-      state.mode = null
+  if (db_handler) {
+    db_handler.close(function(err, result) {
+      db_handler = null;
       done(err)
     });
   }
