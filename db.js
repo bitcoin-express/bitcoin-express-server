@@ -5,7 +5,7 @@ var ObjectId = require('mongodb').ObjectId;
 
 var state = {
   db: null,
-}
+};
 
 
 exports.connect = function(url, done) {
@@ -21,12 +21,12 @@ exports.connect = function(url, done) {
     state.db = db.db(config.get('server.db.name'));
     return done();
   })
-}
+};
 
 
 exports.get = function() {
   return state.db;
-}
+};
 
 
 exports.insert = function(name, obj) {
@@ -46,7 +46,7 @@ exports.insert = function(name, obj) {
       return resolve(records);
     });
   });
-}
+};
 
 
 exports.remove = function(name, query) {
@@ -63,7 +63,7 @@ exports.remove = function(name, query) {
       return resolve(resp.result);
     });
   });
-}
+};
 
 
 exports.findOne = function(name, query) {
@@ -85,35 +85,46 @@ exports.findOne = function(name, query) {
       return resolve(resp);
     });
   });
-}
+};
+
 
 exports.getCoinList = function (currency, account_id) {
-  var query = {
+  let query = {
     account_id: account_id
   };
+
   if (currency) {
     query["currency"] = currency;
   }
+
   return this.find("coins", query).then((resp) => {
-    var coins = {};
+    let coins = {};
+
     if (!resp) {
       return coins;
     }
+
     resp.forEach((row) => {
-      var c = row["currency"];
+      let c = row["currency"];
+
+      // TODO: what does it mean?
       // Because of SINGLE policy
       if (Array.isArray(row["coins"]) && row["coins"].length > 0) {
-        var coin = row["coins"][0];
+        let coin = row["coins"][0];
+
         if (coins[c]) {
           coins[c].push(coin);
-        } else {
+        }
+        else {
           coins[c] = [coin];
         }
       }
     });
+
     return coins;
   });
-}
+};
+
 
 exports.extractCoins = function (coins) {
   var promises = coins.map((c) => {
