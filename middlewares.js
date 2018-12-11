@@ -33,7 +33,8 @@ exports.authMiddleware = function (req, res, next) {
     var id = resp._id;
     delete resp.privateKey;
     delete resp.authToken;
-    delete resp.id;
+    delete resp.account_id;
+    delete resp._id;
 
     if (req.method == "GET") {
       req.query.account_id = id;

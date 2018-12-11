@@ -97,7 +97,8 @@ exports.panelRoute = function(req, res, next) {
         var id = resp._id;
         delete resp.privateKey;
         delete resp.authToken;
-        delete resp.id;
+        delete resp.account_id;
+        delete resp._id;
         req.session.account_id = id;
         req.session.account = resp;
 

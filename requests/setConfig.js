@@ -13,7 +13,7 @@ function getSettings(account_id) {
   }
   var query = { "_id": account_id };
 
-  return db.findOne("accounts", query, true).then((resp) => {
+  return db.findOne("accounts", query).then((resp) => {
     // Before returning config values remove all keys that are configured as hidden
     let hidden_settings = config.get('_account_hidden_keys');
     if (hidden_settings.length > 0) {

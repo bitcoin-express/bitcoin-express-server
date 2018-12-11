@@ -76,11 +76,16 @@ exports.createPaymentRequest = function (req, res) {
       merchant_data: merchant_data,
     };
 
-    promise = db.findOne('payments', query, true).then((resp) => {
+    promise = db.findOne('payments', query).then((resp) => {
       if (!resp) {
         return false;
       }
       console.log("Found payment with merchant_data " + merchant_data);
+
+      delete resp.privateKey;
+      delete resp.authToken;
+      delete resp.account_id;
+      delete resp._id;
 
       if (resp.status == "resolved") {
         // The payment is inmutable
