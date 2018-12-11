@@ -183,6 +183,7 @@ exports.payment = function (req, res) {
       throw new Error("After verify coins, the amount is not enough");
     }
 
+    // TODO: this sctructure is used many times in different places - it should be a class. Usages: db.insert - maybe more
     var coinData = {
       account_id: accountId,
       coins: verifiedCoins,
