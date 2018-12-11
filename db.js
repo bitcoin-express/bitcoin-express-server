@@ -159,17 +159,18 @@ exports.find = function(name, query, projection={}, offset=null, limit=null) {
         return reject(err);
       }
 
-      if (Array.isArray(resp)) {
-        resp = resp.map((item) => {
-          delete item._id;
-          delete item.account_id;
-          delete item.authToken;
-          delete item.privateKey;
-          return item;
-        });
-      }
+      let response_objects = Array.isArray(resp) ? resp : [ resp ];
 
-      return resolve(resp);
+      response_objects = response_objects.map((item) => {
+        delete item._id;
+        delete item.account_id;
+        delete item.authToken;
+        delete item.privateKey;
+        
+        return item;
+      });
+
+      return resolve(response_objects);
     });
   });
 };
