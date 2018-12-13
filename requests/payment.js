@@ -188,7 +188,7 @@ exports.payment = function (req, res) {
       account_id: accountId,
       coins: verifiedCoins,
       currency: currency,
-      date: new Date().toISOString(),
+      date: new Date(),
       value: value,
     }
     if (memo) coinData["memo"] = memo;
@@ -201,7 +201,7 @@ exports.payment = function (req, res) {
     var payData = {
       status: "resolved",
       verifyInfo: verifyInfo,
-      paid: new Date().toISOString(),
+      paid: new Date(),
     };
     if (memo) payData["memo"] = memo;
     if (client) payData["client"] = client;

@@ -116,13 +116,13 @@ db.connect(config.get('server.db.url'), function (err) {
   setInterval(() => {
     var now = new Date().addSeconds(30); // 30 sec
     var query = {
-      expires: { $lt: now.toISOString() },
+      expires: { $lt: now },
       status: { $in: ["initial", "timeout"] },
     };
     db.remove("payments", query).then((resp) => {
-      console.log('SCHEDULER - Removing expired requests before ' + now.toISOString(), resp);
+      console.log('SCHEDULER - Removing expired requests before ' + now, resp);
     }).catch((err) => {
-      console.log('SCHEDULER ERROR - Removing expired requests before ' + now.toISOString(), err);
+      console.log('SCHEDULER ERROR - Removing expired requests before ' + now, err);
     });
   }, 5 * 60 * 1000); // interval of 5 min
 })

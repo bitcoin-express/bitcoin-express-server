@@ -36,8 +36,8 @@ exports.createPaymentRequest = function (req, res) {
   var exp = new Date().addSeconds(default_payment_timeout);
 
   var paymentRequest = Object.assign({}, req.body);
-  paymentRequest.expires = paymentRequest.expires || exp.toISOString();
-  paymentRequest.time = now.toISOString();
+  paymentRequest.expires = paymentRequest.expires || exp;
+  paymentRequest.time = now;
 
   const { return_url } = paymentRequest;
   if (return_url) {

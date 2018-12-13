@@ -744,7 +744,7 @@ console.log(faceValue+"|"+verificationFee.totalFee+"|"+verifiedValue+"|"+realTar
  */
 function _archiveCoinSelection(description, target, startTime, cycles, numberOfCoins, coinSelectionResponse) {
   let arch = new Object();
-  arch.date = new Date().toISOString();
+  arch.date = new Date();
   arch.description = description;
   arch.target = target;
   arch.elapsedTime_ms = (new Date().getTime() - startTime);
@@ -1239,7 +1239,7 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
     let redeemRequest = {
       issuerRequest: {
         tid: tid,
-        expiry: new Date(newExpiry).toISOString(),
+        expiry: new Date(newExpiry),
         fn: "redeem",
         bitcoinAddress: address,
         coin: base64Coins,
@@ -1286,7 +1286,7 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
           account_id: accountId,
           coins: [c],
           currency: coin.c,
-          date: new Date().toISOString(),
+          date: new Date(),
           value: coin.v,
         };
       });
@@ -1347,7 +1347,7 @@ function _redeemCoins_inner_(request, args, accountId) {
             account_id: accountId,
             coins: [c],
             currency: coin.c,
-            date: new Date().toISOString(),
+            date: new Date(),
             value: coin.v,
           };
         });
