@@ -36,6 +36,8 @@
       Keys that are allowed to be provided during registration of a new account.
 */
 
+var defer = require('config/defer').deferConfig;
+
 module.exports = {
 
   // Server-specific configuration. Not to be shared with users.
@@ -47,9 +49,48 @@ module.exports = {
 
     // Database related settings
     db: {
-      // Db URL to be defined locally, i.e.: mongodb://localhost:27017/
-      url: undefined,
+      // Database connection scheme i.e. mongodb
+      scheme: 'mongodb',
+
+      // Database connection host/ip i.e. localhost
+      address: 'localhost',
+
+      // Port that database interface is accessible on i.e. 27017
+      port: '27017',
+
+      // Database name
       name: 'bitcoin-express',
+
+      // Database user with read/write role
+      user: undefined,
+
+      // Database user's password
+      password: undefined,
+
+      // Pre-constructed full database connection uri
+      uri: defer(function() {
+        let uri = `${this.server.db.scheme}://`;
+
+        if (this.server.db.user) {
+          uri += `${this.server.db.user}:${this.server.db.password}@`;
+        }
+
+        uri += this.server.db.address;
+
+        if (this.server.db.port) {
+          uri += `:${this.server.db.port}`;
+        }
+
+        uri += `/${this.server.db.name}`;
+
+        return uri;
+      }),
+
+      // MongoDB specific settings
+      mongodb: {
+        // Name of replica set that database uses in order to support transactions
+        replica_set: undefined,
+      }
     },
 
 
@@ -126,7 +167,7 @@ module.exports = {
   _register_allowed_keys: [ 'domain', 'name', 'email_customer_contact', 'email_account_contact', ],
 
   // Settings that are essential for application to run correctly. It's an array of keys' full paths.
-  _system_required_keys: [ 'server.db.url', 'server.api.endpoint_url', 'server.api.endpoint_path',
+  _system_required_keys: [ 'server.db.mongodb.replica_set', 'server.db.user', 'server.db.password', 'server.db.scheme', 'server.db.address', 'server.db.name', 'server.api.endpoint_url', 'server.api.endpoint_path',
       'server.ssl.key_file_passphrase', 'server.session.secret', ],
 
   // TODO: remove auth key from here when auth moved to header
