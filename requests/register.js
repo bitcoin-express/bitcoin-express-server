@@ -50,8 +50,6 @@ function registerAccount(req) {
     "default_payment_currency": config.get('account.default_payment_currency'),
   }
 
-  // TODO: check if this shouldn't be email_customer_contact. If yes, then remove email_account_contact altogether and
-  // update API key as well
   // TODO: to consider - allow to set other options like refund etc. during registration
   if (email_customer_contact) {
     data["email_customer_contact"] = email_customer_contact;
