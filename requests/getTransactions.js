@@ -25,7 +25,7 @@ function findTransactions(account_id, { offset, limit, before, orderBy, descendi
     query["time"] = { $lt: before };
   }
 
-  return db.find('payments', query, special, offset, limit);
+  return db.find('payments', query, { projection: special, offset: offset, limit: limit });
 };
 
 exports.findTransactions = findTransactions;

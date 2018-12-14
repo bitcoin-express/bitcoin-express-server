@@ -3,30 +3,36 @@ const config = require('config');
 const MongoClient = require('mongodb').MongoClient;
 const ObjectId = require('mongodb').ObjectId;
 let db_handler = null;
-
+let db_client = null;
 
 exports.connect = function(url, done) {
   if (db_handler) {
     return done();
   }
 
-  MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
+  MongoClient.connect(url, { useNewUrlParser: true, replicaSet: 'rs0' }, function (err, db) {
     if (err) {
       return done(err);
     }
 
     db_handler = db.db(config.get('server.db.name'));
+    db_client = db;
+
     return done();
   })
 };
 
 
-exports.get = function() {
+exports.getHandler = function() {
   return db_handler;
 };
 
+exports.getClient = function() {
+  return db_client;
+};
 
-exports.insert = function(name, obj) {
+
+exports.insert = function(name, obj, args={ db_session: undefined }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
@@ -34,7 +40,7 @@ exports.insert = function(name, obj) {
   let objects = Array.isArray(obj) ? obj : [ obj ];
 
   return new Promise ((resolve, reject) => {
-    db_handler.collection(name).insertMany(objects, (err, records) => {
+    db_handler.collection(name).insertMany(objects, { session: args.db_session }, (err, records) => {
       if (err) {
         console.log(err);
         return reject(err);
@@ -46,13 +52,13 @@ exports.insert = function(name, obj) {
 };
 
 
-exports.remove = function(name, query) {
+exports.remove = function(name, query, args={ db_session: undefined }) {
   if (!db_handler) {
       return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    db_handler.collection(name).deleteMany(query, function(err, resp) {
+    db_handler.collection(name).deleteMany(query, { session: args.db_session }, function(err, resp) {
       if (err) {
         return reject(err);
       }
@@ -63,13 +69,13 @@ exports.remove = function(name, query) {
 };
 
 
-exports.findOne = function(name, query) {
+exports.findOne = function(name, query, args={ db_session: undefined }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    db_handler.collection(name).findOne(query, (err, resp) => {
+    db_handler.collection(name).findOne(query, { session: args.db_session }, (err, resp) => {
       if (err) {
         return reject(err);
       }
@@ -85,7 +91,7 @@ exports.findOne = function(name, query) {
 };
 
 
-exports.getCoinList = function (currency, account_id) {
+exports.getCoinList = function (currency, account_id, args={ db_session: undefined }) {
   let query = {
     account_id: account_id
   };
@@ -94,7 +100,7 @@ exports.getCoinList = function (currency, account_id) {
     query["currency"] = currency;
   }
 
-  return this.find("coins", query).then((resp) => {
+  return this.find("coins", query, args).then((resp) => {
     let coins = {};
 
     if (!resp) {
@@ -123,9 +129,9 @@ exports.getCoinList = function (currency, account_id) {
 };
 
 
-exports.extractCoins = function (coins) {
+exports.extractCoins = function (coins, args={ db_session: undefined }) {
   var promises = coins.map((c) => {
-    return this.findOne("coins", { coins: [c] });
+    return this.findOne("coins", { coins: [c] }, { db_session: args.db_session });
   });
 
   return Promise.all(promises).then((responses) => {
@@ -133,27 +139,24 @@ exports.extractCoins = function (coins) {
       return ObjectId(resp._id);
     });
 
-    return this.remove('coins', { _id : { $in: ids } });
+    return this.remove('coins', { _id : { $in: ids } }, { db_session: args.db_session });
   });
 };
 
 
-exports.find = function(name, query, projection={}, offset=null, limit=null) {
+exports.find = function(name, query, args={ offset: null, limit: null, db_session: undefined, projection: {}, }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    var cursor = db_handler.collection(name).find(query, projection);
-
-    if (offset) {
-      cursor = cursor.skip(parseInt(offset));
-    }
-
-    if (limit) {
-      cursor = cursor.limit(parseInt(limit));
-    }
-
+    var cursor = db_handler.collection(name).find(query, {
+      projection: args.projection,
+      session: args.db_session,
+      skip: args.offset,
+      limit: args.limit,
+    });
+    
     cursor.toArray((err, resp) => {
       if (err) {
         return reject(err);
@@ -175,7 +178,7 @@ exports.find = function(name, query, projection={}, offset=null, limit=null) {
   });
 };
 
-exports.findAndModify = function(name, query, modification, options = { returnOriginal: false }) {
+exports.findAndModify = function(name, query, modification, args={ returnOriginal: false, db_session: undefined }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
@@ -184,7 +187,7 @@ exports.findAndModify = function(name, query, modification, options = { returnOr
     db_handler.collection(name).findOneAndUpdate(
       query,
       { $set: modification },
-      options,
+      { returnOriginal: args.returnOriginal, session: args.db_session },
       (err, doc) => {
         if (err) {
           return reject(err);

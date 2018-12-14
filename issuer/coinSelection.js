@@ -1180,7 +1180,7 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
     return Promise.reject(Error("Bitcoin address was not a String"));
   }
 
-  if (!Array.isArray(coins) || coins.length==0) {
+  if (!Array.isArray(coins) || coins.length===0) {
     return Promise.reject(Error("No Coins provided"));
   }
 
@@ -1352,7 +1352,7 @@ function _redeemCoins_inner_(request, args, accountId) {
           };
         });
 
-        return db.insert("coins", coinsData).then(() => {
+        return db.insert("coins", coinsData, { db_session: args.db_session }).then(() => {
           return resp.coin.length;
         });
       }

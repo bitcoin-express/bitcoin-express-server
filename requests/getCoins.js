@@ -35,7 +35,7 @@ exports.getCoins = function (req, res) {
     account_id: account_id,
     currency: currency
   };
-  db.find('coins', query, special).then((resp) => {
+  db.find('coins', query, { projection: special }).then((resp) => {
     res.send(JSON.stringify(resp));
   }).catch((err) => {
     res.status(400).send(err.message || err);
