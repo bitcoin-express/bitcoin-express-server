@@ -5,21 +5,25 @@ const ObjectId = require('mongodb').ObjectId;
 let db_handler = null;
 let db_client = null;
 
-exports.connect = function(url, done) {
+exports.connect = async function(args, done) {
   if (db_handler) {
     return done();
   }
 
-  MongoClient.connect(url, { useNewUrlParser: true, replicaSet: 'rs0' }, function (err, db) {
-    if (err) {
+  try {
+      let db = await MongoClient.connect((args.uri || config.get('server.db.uri')), {
+          useNewUrlParser: true,
+          replicaSet: (args.replica_set || config.get('server.db.mongodb.replica_set')),
+      });
+
+      db_handler = db.db((args.name || config.get('server.db.name')));
+      db_client = db;
+
+      return done();
+  }
+  catch (err) {
       return done(err);
-    }
-
-    db_handler = db.db(config.get('server.db.name'));
-    db_client = db;
-
-    return done();
-  })
+  }
 };
 
 
