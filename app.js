@@ -86,10 +86,12 @@ app.use(session({
   saveUninitialized: true
 }));
 
+
+
 // Connect to Mongo on start
-db.connect(config.get('server.db.url'), function (err) {
+db.connect(config.get('server.db.uri'), function (err) {
   if (err) {
-    console.log('Unable to connect to MongoDB.')
+    console.log('Unable to connect to MongoDB.', err);
     process.exit(1)
     return;
   }
@@ -120,9 +122,9 @@ db.connect(config.get('server.db.url'), function (err) {
       status: { $in: ["initial", "timeout"] },
     };
     db.remove("payments", query).then((resp) => {
-      console.log('SCHEDULER - Removing expired requests before ' + now, resp);
+      console.log('SCHEDULER - Removing expired requests before ' + now.toUTCString(), 'Items removed: '+resp.n);
     }).catch((err) => {
-      console.log('SCHEDULER ERROR - Removing expired requests before ' + now, err);
+      console.log('SCHEDULER ERROR - Removing expired requests before ' + now.toUTCString(), err);
     });
   }, 5 * 60 * 1000); // interval of 5 min
 })
