@@ -1228,7 +1228,7 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
     }
   }
 
-  let startRedeem = (beginResponse) => {
+  let startRedeem = async (beginResponse) => {
     args.beginResponse = args.beginResponse || beginResponse;
 
     const tid = beginResponse.headerInfo.tid;
@@ -1275,26 +1275,24 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
       }
     }
 
-    let redeemResponse;
-    return db.extractCoins(base64Coins).then(() => {
-      return _redeemCoins_inner_(redeemRequest, args, accountId);
-    }).catch((err) => {
-      console.log(err);
-      base64Coins = base64Coins.map((c) => {
-        var coin = Coin(c);
-        return {
-          account_id: accountId,
-          coins: [c],
-          currency: coin.c,
-          date: new Date(),
-          value: coin.v,
-        };
-      });
+    let db_session = db.getClient().startSession();
+    await db_session.startTransaction();
 
-      return db.insert("coins", base64Coins).then(() => {
+    try {
+        let extraction_result = await db.extractCoins(base64Coins, { db_session: db_session });
+
+        args.db_session = db_session;
+        await _redeemCoins_inner_(redeemRequest, args, accountId);
+        await db_session.commitTransaction();
+        db_session.endSession();
+
+        return Promise.resolve();
+    }
+    catch(err) {
+        await db_session.abortTransaction();
+        db_session.endSession();
         return Promise.reject(err);
-      });
-    });
+    }
   };
 
   if (args.beginResponse) {
@@ -1307,7 +1305,8 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
     };
     return issuer.post("begin", params).then(startRedeem);
   }
-}
+};
+
 
 function _redeemCoins_inner_(request, args, accountId) {
   let req = JSON.parse(JSON.stringify(request));
