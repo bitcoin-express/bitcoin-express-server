@@ -36,7 +36,7 @@ exports.getClient = function() {
 };
 
 
-exports.insert = function(name, obj, args={ db_session: undefined }) {
+exports.insert = function(name, obj, options={ db_session: undefined }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
@@ -44,7 +44,7 @@ exports.insert = function(name, obj, args={ db_session: undefined }) {
   let objects = Array.isArray(obj) ? obj : [ obj ];
 
   return new Promise ((resolve, reject) => {
-    db_handler.collection(name).insertMany(objects, { session: args.db_session }, (err, records) => {
+    db_handler.collection(name).insertMany(objects, { session: options.db_session }, (err, records) => {
       if (err) {
         console.log(err);
         return reject(err);
@@ -56,13 +56,13 @@ exports.insert = function(name, obj, args={ db_session: undefined }) {
 };
 
 
-exports.remove = function(name, query, args={ db_session: undefined }) {
+exports.remove = function(name, query, options={ db_session: undefined }) {
   if (!db_handler) {
       return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    db_handler.collection(name).deleteMany(query, { session: args.db_session }, function(err, resp) {
+    db_handler.collection(name).deleteMany(query, { session: options.db_session }, function(err, resp) {
       if (err) {
         return reject(err);
       }
@@ -73,13 +73,13 @@ exports.remove = function(name, query, args={ db_session: undefined }) {
 };
 
 
-exports.findOne = function(name, query, args={ db_session: undefined }) {
+exports.findOne = function(name, query, options={ db_session: undefined }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    db_handler.collection(name).findOne(query, { session: args.db_session }, (err, resp) => {
+    db_handler.collection(name).findOne(query, { session: options.db_session }, (err, resp) => {
       if (err) {
         return reject(err);
       }
@@ -95,16 +95,16 @@ exports.findOne = function(name, query, args={ db_session: undefined }) {
 };
 
 
-exports.getCoinList = function (currency, account_id, args={ db_session: undefined }) {
+exports.getCoinList = function (currency, account_id, options={ db_session: undefined }) {
   let query = {
     account_id: account_id
   };
 
   if (currency) {
-    query["currency"] = currency;
+    query.currency = currency;
   }
 
-  return this.find("coins", query, args).then((resp) => {
+  return this.find("coins", query, options).then((resp) => {
     let coins = {};
 
     if (!resp) {
@@ -133,9 +133,9 @@ exports.getCoinList = function (currency, account_id, args={ db_session: undefin
 };
 
 
-exports.extractCoins = function (coins, args={ db_session: undefined }) {
+exports.extractCoins = function (coins, options={ db_session: undefined }) {
   var promises = coins.map((c) => {
-    return this.findOne("coins", { coins: [c] }, { db_session: args.db_session });
+    return this.findOne("coins", { coins: [c] }, { db_session: options.db_session });
   });
 
   return Promise.all(promises).then((responses) => {
@@ -143,23 +143,32 @@ exports.extractCoins = function (coins, args={ db_session: undefined }) {
       return ObjectId(resp._id);
     });
 
-    return this.remove('coins', { _id : { $in: ids } }, { db_session: args.db_session });
+    return this.remove('coins', { _id : { $in: ids } }, { db_session: options.db_session });
   });
 };
 
 
-exports.find = function(name, query, args={ offset: null, limit: null, db_session: undefined, projection: {}, }) {
+exports.find = function(name, query, options={ offset: null, limit: null, db_session: undefined, projection: {}, order: 'descending', order_by: undefined, sort: undefined }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
+  let find_options = {
+      projection: options.projection,
+      session: options.db_session,
+      skip: options.offset,
+      limit: options.limit,
+  };
+
+  if (Array.isArray(options.sort)) {
+    find_options.sort = options.sort;
+  }
+  else if (options.order_by) {
+    find_options.sort = [ [ options.order_by, options.order, ], ];
+  }
+
   return new Promise((resolve, reject) => {
-    var cursor = db_handler.collection(name).find(query, {
-      projection: args.projection,
-      session: args.db_session,
-      skip: args.offset,
-      limit: args.limit,
-    });
+    var cursor = db_handler.collection(name).find(query, find_options);
     
     cursor.toArray((err, resp) => {
       if (err) {
@@ -182,7 +191,7 @@ exports.find = function(name, query, args={ offset: null, limit: null, db_sessio
   });
 };
 
-exports.findAndModify = function(name, query, modification, args={ returnOriginal: false, db_session: undefined }) {
+exports.findAndModify = function(name, query, modification, options={ returnOriginal: false, db_session: undefined }) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
@@ -191,7 +200,7 @@ exports.findAndModify = function(name, query, modification, args={ returnOrigina
     db_handler.collection(name).findOneAndUpdate(
       query,
       { $set: modification },
-      { returnOriginal: args.returnOriginal, session: args.db_session },
+      { returnOriginal: options.returnOriginal, session: options.db_session },
       (err, doc) => {
         if (err) {
           return reject(err);
