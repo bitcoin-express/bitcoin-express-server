@@ -1,57 +1,72 @@
 const db = require('./db');
 const authReqs = [ '/register', '/payment', '/panel', ];
 
+function sanitiseRequest(req) {
 
-exports.authMiddleware = function (req, res, next) {
-  var url = req.originalUrl;
-
-  if (url == "/" || authReqs.some(str => url.startsWith(str))) {
-    return next();
-  }
-
-  // TODO: new API: add other methods
-  var auth;
-  if (req.method == "GET") {
-    auth = req.query.auth;
-  }
-  else if (req.method == "POST") {
-    auth = req.body.auth;
-    delete req.body.auth;
-  }
-
-  if (!auth) {
-    res.status(401).send("No auth token provided");
-    return;
-  }
-
-  db.findOne("accounts", { authToken: auth }).then((resp) => { 
-    if (!resp) {
-      res.status(400).send("No account with this auth token");
-      return;
+    if (req.body) {
+        delete req.body._id;
+        delete req.body.account_id;
+        delete req.body.account;
+        delete req.body.auth;
     }
 
-    var id = resp._id;
-    delete resp.privateKey;
-    delete resp.authToken;
-    delete resp.account_id;
-    delete resp._id;
-
-    if (req.method == "GET") {
-      req.query.account_id = id;
-      req.query.account = resp;
+    if (req.query) {
+        delete req.query._id;
+        delete req.query.account_id;
+        delete req.query.account;
     }
 
-    if (req.method == "POST") {
-      req.body.account_id = id;
-      req.body.account = resp;
+    return req;
+}
+
+
+// Authentication is required, check auth token
+exports.requireAuthentication = async function (req, res, next) {
+    // If authentication header is not passed - quit
+    if (!req.headers["be-mg-auth-token"]) {
+        return res.sendStatus(401);
     }
-    
-    next();
-  });
-} 
+
+    // Make sure that request is clear from tampering and/or mistakenly passed keys that are not allowed to be set via API
+    req = sanitiseRequest(req);
+
+    try {
+        // Try to find account authenticated by the passed token
+        let account = await db.findOne('accounts', {auth_token: req.headers["be-mg-auth-token"]});
+
+        // If it's there move forward
+        let id = account._id;
+
+        delete account.private_key;
+        delete account.auth_token;
+        delete account.account_id;
+        delete account._id;
+
+        if (req.method === "GET") {
+            req.query.account_id = id;
+            req.query.account = account;
+        }
+        else {
+            req.body.account_id = id;
+            req.body.account = account;
+        }
+
+        return next();
+    }
+    catch {
+        // In case the account is ni=ot found or somehing will go wrong - quit
+        return res.status(401).send("No account with this auth token");
+    }
+};
+
+// No authentication needed - just move forward
+exports.noAuthentication = function (req, res, next) {
+  return next();
+};
 
 exports.corsMiddleware = function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, BE-MG-Auth-Token");
+
   next();
 }

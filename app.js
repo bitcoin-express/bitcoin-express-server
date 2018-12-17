@@ -46,21 +46,16 @@ var { register } = require("./requests/register");
 var { setConfig } = require("./requests/setConfig");
 
 
-var db = require('./db');
-
-var {
-  authMiddleware,
-  corsMiddleware,
-} = require('./middlewares');
+const db = require(config.get('system.root_dir') + '/db');
+const middleware = require(config.get('system.root_dir') + '/middlewares');
+const app = express();
 
 var { panelRoute } = require('./routes');
-
-var app = express();
 
 Date.prototype.addSeconds = function (s) {
   this.setSeconds(this.getSeconds() + parseInt(s));
   return this;
-}
+};
 
 
 // Prepare templating for Control Panel
@@ -78,8 +73,7 @@ app.use(express.static(__dirname + '/assets'));
 // Middelwares and config for REST API
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(corsMiddleware);
-app.use(authMiddleware);
+app.use(middleware.corsMiddleware);
 app.use(session({
   secret: config.get('server.session.secret'),
   resave: true,
@@ -92,35 +86,36 @@ app.use(session({
 db.connect(config.get('server.db.uri'), function (err) {
   if (err) {
     console.log('Unable to connect to MongoDB.', err);
-    process.exit(1)
+    process.exit(1);
     return;
   }
 
   app.get('/', (req, res) => {
     res.render('index');
   });
-  app.all('/panel/*', panelRoute);
+  app.all('/panel/*', middleware.noAuthentication, panelRoute);
 
-  app.post('/createPaymentRequest', createPaymentRequest);
-  app.get('/getBalance', getBalance);
-  app.post('/getCoins', getCoins);
-  app.get('/getPaymentStatus', getPaymentStatus);
-  app.get('/getTransactions', getTransactions);
-  app.post('/payment', payment);
-  app.post('/redeem', redeem);
-  app.post('/register', register);
-  app.post('/setConfig', setConfig);
+  app.post('/createPaymentRequest', middleware.requireAuthentication, createPaymentRequest);
+  app.get('/getBalance', middleware.requireAuthentication, getBalance);
+  app.post('/getCoins', middleware.requireAuthentication, getCoins);
+  app.get('/getPaymentStatus', middleware.requireAuthentication, getPaymentStatus);
+  app.get('/getTransactions', middleware.requireAuthentication, getTransactions);
+  app.post('/payment', middleware.noAuthentication, payment);
+  app.post('/redeem', middleware.requireAuthentication, redeem);
+  app.post('/register', middleware.noAuthentication, register);
+  app.post('/setConfig', middleware.requireAuthentication, setConfig);
 
   web_server.handler.createServer(web_server.options, app).listen(config.get('server.port'), function() {
     console.log(`Listening on port ${config.get('server.port')}...`);
   });
 
   setInterval(() => {
-    var now = new Date().addSeconds(30); // 30 sec
-    var query = {
+    const now = new Date().addSeconds(30); // 30 sec
+    const query = {
       expires: { $lt: now },
       status: { $in: ["initial", "timeout"] },
     };
+
     db.remove("payments", query).then((resp) => {
       console.log('SCHEDULER - Removing expired requests before ' + now.toUTCString(), 'Items removed: '+resp.n);
     }).catch((err) => {
