@@ -154,10 +154,12 @@ module.exports = {
     // Issuers that the Merchant accepts Coins from
     acceptable_issuers: [ 'eu.carrotpay.com', 'be.ap.rmp.net', ],
 
-    // Keys that can be configured on the account level but not require default values. These are used for checking by
+    // Keys that can be configured on the account level but do not require default values. These are used for checking by
     // setConfig fail-safe mechanisms
     domain: undefined,
     name: undefined,
+    return_url: undefined,
+    callback_url: undefined,
   },
 
   // Keys that are required to be provided during registration of a new account
