@@ -36,6 +36,7 @@ exports.createPaymentRequest = function (req, res) {
   var exp = new Date().addSeconds(default_payment_timeout);
 
   var paymentRequest = Object.assign({}, req.body);
+
   paymentRequest.expires = paymentRequest.expires || exp;
   paymentRequest.time = now;
 
@@ -113,6 +114,7 @@ exports.createPaymentRequest = function (req, res) {
   }
 
   var defIssuers = acceptable_issuers || [home_issuer];
+
   var defEmail = {
     contact: account.email_customer_contact,
     receipt: account.provide_receipt_via_email || config.get('account.provide_receipt_via_email'),
@@ -128,6 +130,9 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
+
+
+  // TODO: we are not checking if this payment id already exists and if it's assigned to this specific user
   paymentRequest.payment_id = paymentRequest.payment_id || uuidv1();
   console.log("new payment_id saved - ", paymentRequest.payment_id);
   paymentRequest.issuers = paymentRequest.issuers || defIssuers;
