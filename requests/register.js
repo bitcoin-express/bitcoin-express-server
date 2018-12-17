@@ -41,8 +41,9 @@ function registerAccount(req) {
   diffHell.generateKeys();
 
   var data = {
-    "authToken": diffHell.getPublicKey('hex'),
-    "privateKey": diffHell.getPrivateKey('hex'),
+    "auth_token": diffHell.getPublicKey('hex'),
+    // TODO: to be removed after testing phase
+    "private_key": diffHell.getPrivateKey('hex'),
     "domain": domain,
     "home_issuer": config.get('account.home_issuer'),
     "acceptable_issuers": config.get('account.acceptable_issuers'),
