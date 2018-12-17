@@ -129,7 +129,7 @@ exports.payment = function (req, res) {
       );
     }
 
-    var modifyOptions = { new: false }; // returns payment document before being modified
+    var modifyOptions = { returnOriginal: true }; // returns payment document before being modified
     var modification = { status: "processing" };
     var promiseModifyPayment = db.findAndModify(
       "payments", query, modification, modifyOptions
@@ -183,11 +183,12 @@ exports.payment = function (req, res) {
       throw new Error("After verify coins, the amount is not enough");
     }
 
+    // TODO: this sctructure is used many times in different places - it should be a class. Usages: db.insert - maybe more
     var coinData = {
       account_id: accountId,
       coins: verifiedCoins,
       currency: currency,
-      date: new Date().toISOString(),
+      date: new Date(),
       value: value,
     }
     if (memo) coinData["memo"] = memo;
@@ -200,7 +201,7 @@ exports.payment = function (req, res) {
     var payData = {
       status: "resolved",
       verifyInfo: verifyInfo,
-      paid: new Date().toISOString(),
+      paid: new Date(),
     };
     if (memo) payData["memo"] = memo;
     if (client) payData["client"] = client;

@@ -36,8 +36,9 @@ exports.createPaymentRequest = function (req, res) {
   var exp = new Date().addSeconds(default_payment_timeout);
 
   var paymentRequest = Object.assign({}, req.body);
-  paymentRequest.expires = paymentRequest.expires || exp.toISOString();
-  paymentRequest.time = now.toISOString();
+
+  paymentRequest.expires = paymentRequest.expires || exp;
+  paymentRequest.time = now;
 
   const { return_url } = paymentRequest;
   if (return_url) {
@@ -76,11 +77,16 @@ exports.createPaymentRequest = function (req, res) {
       merchant_data: merchant_data,
     };
 
-    promise = db.findOne('payments', query, true).then((resp) => {
+    promise = db.findOne('payments', query).then((resp) => {
       if (!resp) {
         return false;
       }
       console.log("Found payment with merchant_data " + merchant_data);
+
+      delete resp.privateKey;
+      delete resp.authToken;
+      delete resp.account_id;
+      delete resp._id;
 
       if (resp.status == "resolved") {
         // The payment is inmutable
@@ -108,6 +114,7 @@ exports.createPaymentRequest = function (req, res) {
   }
 
   var defIssuers = acceptable_issuers || [home_issuer];
+
   var defEmail = {
     contact: account.email_customer_contact,
     receipt: account.provide_receipt_via_email || config.get('account.provide_receipt_via_email'),
@@ -123,6 +130,9 @@ exports.createPaymentRequest = function (req, res) {
     return;
   }
 
+
+
+  // TODO: we are not checking if this payment id already exists and if it's assigned to this specific user
   paymentRequest.payment_id = paymentRequest.payment_id || uuidv1();
   console.log("new payment_id saved - ", paymentRequest.payment_id);
   paymentRequest.issuers = paymentRequest.issuers || defIssuers;
@@ -146,7 +156,8 @@ exports.createPaymentRequest = function (req, res) {
         var query = {
           payment_id: paymentRequest.payment_id,
           status: { $in: ["initial"] },
-        }
+        };
+
         console.log("Payment expired - " + query.payment_id);
         db.findAndModify("payments", query, { status: "timeout" });
       }, secs);

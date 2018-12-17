@@ -744,7 +744,7 @@ console.log(faceValue+"|"+verificationFee.totalFee+"|"+verifiedValue+"|"+realTar
  */
 function _archiveCoinSelection(description, target, startTime, cycles, numberOfCoins, coinSelectionResponse) {
   let arch = new Object();
-  arch.date = new Date().toISOString();
+  arch.date = new Date();
   arch.description = description;
   arch.target = target;
   arch.elapsedTime_ms = (new Date().getTime() - startTime);
@@ -1180,7 +1180,7 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
     return Promise.reject(Error("Bitcoin address was not a String"));
   }
 
-  if (!Array.isArray(coins) || coins.length==0) {
+  if (!Array.isArray(coins) || coins.length===0) {
     return Promise.reject(Error("No Coins provided"));
   }
 
@@ -1228,7 +1228,7 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
     }
   }
 
-  let startRedeem = (beginResponse) => {
+  let startRedeem = async (beginResponse) => {
     args.beginResponse = args.beginResponse || beginResponse;
 
     const tid = beginResponse.headerInfo.tid;
@@ -1239,7 +1239,7 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
     let redeemRequest = {
       issuerRequest: {
         tid: tid,
-        expiry: new Date(newExpiry).toISOString(),
+        expiry: new Date(newExpiry),
         fn: "redeem",
         bitcoinAddress: address,
         coin: base64Coins,
@@ -1275,26 +1275,24 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
       }
     }
 
-    let redeemResponse;
-    return db.extractCoins(base64Coins).then(() => {
-      return _redeemCoins_inner_(redeemRequest, args, accountId);
-    }).catch((err) => {
-      console.log(err);
-      base64Coins = base64Coins.map((c) => {
-        var coin = Coin(c);
-        return {
-          account_id: accountId,
-          coins: [c],
-          currency: coin.c,
-          date: new Date().toISOString(),
-          value: coin.v,
-        };
-      });
+    let db_session = db.getClient().startSession();
+    await db_session.startTransaction();
 
-      return db.insert("coins", base64Coins).then(() => {
+    try {
+        let extraction_result = await db.extractCoins(base64Coins, { db_session: db_session });
+
+        args.db_session = db_session;
+        await _redeemCoins_inner_(redeemRequest, args, accountId);
+        await db_session.commitTransaction();
+        db_session.endSession();
+
+        return Promise.resolve();
+    }
+    catch(err) {
+        await db_session.abortTransaction();
+        db_session.endSession();
         return Promise.reject(err);
-      });
-    });
+    }
   };
 
   if (args.beginResponse) {
@@ -1307,7 +1305,8 @@ exports.redeemCoins =  function (coins, address, args, accountId) {
     };
     return issuer.post("begin", params).then(startRedeem);
   }
-}
+};
+
 
 function _redeemCoins_inner_(request, args, accountId) {
   let req = JSON.parse(JSON.stringify(request));
@@ -1347,12 +1346,12 @@ function _redeemCoins_inner_(request, args, accountId) {
             account_id: accountId,
             coins: [c],
             currency: coin.c,
-            date: new Date().toISOString(),
+            date: new Date(),
             value: coin.v,
           };
         });
 
-        return db.insert("coins", coinsData).then(() => {
+        return db.insert("coins", coinsData, { db_session: args.db_session }).then(() => {
           return resp.coin.length;
         });
       }

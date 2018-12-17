@@ -6,3 +6,4 @@ package-lock.json
 /sslcert/bitcoinexpress.crt
 /config/local.js
 /config/local-*
+.DS_Store

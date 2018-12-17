@@ -1,191 +1,212 @@
 const config = require('config');
 
-var MongoClient = require('mongodb').MongoClient;
-var ObjectId = require('mongodb').ObjectId;
+const MongoClient = require('mongodb').MongoClient;
+const ObjectId = require('mongodb').ObjectId;
+let db_handler = null;
+let db_client = null;
 
-var state = {
-  db: null,
-}
+exports.connect = async function(args, done) {
+  if (db_handler) {
+    return done();
+  }
 
-exports.connect = function(url, done) {
-  if (state.db) return done();
+  try {
+      let db = await MongoClient.connect((args.uri || config.get('server.db.uri')), {
+          useNewUrlParser: true,
+          replicaSet: (args.replica_set || config.get('server.db.mongodb.replica_set')),
+      });
 
-  MongoClient.connect(url, { useNewUrlParser: true }, function (err, db) {
-    if (err) return done(err);
-    state.db = db.db(config.get('server.db.name'));
-    done();
-  })
-}
+      db_handler = db.db((args.name || config.get('server.db.name')));
+      db_client = db;
 
-exports.get = function() {
-  return state.db;
-}
+      return done();
+  }
+  catch (err) {
+      return done(err);
+  }
+};
 
-exports.insert = function(name, obj, done) {
-  if (!state.db) return done(new Error("No DB"), []);
+
+exports.getHandler = function() {
+  return db_handler;
+};
+
+exports.getClient = function() {
+  return db_client;
+};
+
+
+exports.insert = function(name, obj, options={ db_session: undefined }) {
+  if (!db_handler) {
+    return Promise.reject(new Error("No DB"));
+  }
+
+  let objects = Array.isArray(obj) ? obj : [ obj ];
 
   return new Promise ((resolve, reject) => {
-    state.db.collection(name).insert(obj, (err, records) => {
+    db_handler.collection(name).insertMany(objects, { session: options.db_session }, (err, records) => {
       if (err) {
         console.log(err);
         return reject(err);
       }
+
       return resolve(records);
     });
   });
-}
+};
 
 
-exports.remove = function(name, query) {
+exports.remove = function(name, query, options={ db_session: undefined }) {
+  if (!db_handler) {
+      return Promise.reject(new Error("No DB"));
+  }
+
   return new Promise((resolve, reject) => {
-    state.db.collection(name).deleteMany(query, function(err, resp) {
+    db_handler.collection(name).deleteMany(query, { session: options.db_session }, function(err, resp) {
       if (err) {
         return reject(err);
       }
+
       return resolve(resp.result);
     });
   });
-}
+};
 
-exports.removeMultipleIds = function(name, ids) {
-  var listIds = ids.map((id) => {
-    return ObjectId(id);
-  });
 
-  return new Promise((resolve, reject) => {
-    state.db.collection(name).remove({ _id : { $in: listIds } }, function(err, resp) {
-      if (err) {
-        return reject(err);
-      }
-      return resolve(resp);
-    });
-  });
-}
-
-exports.findOne = function(name, query, clean=false) {
-  if (!state.db) {
+exports.findOne = function(name, query, options={ db_session: undefined }) {
+  if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
   return new Promise((resolve, reject) => {
-    state.db.collection(name).findOne(query, (err, resp) => {
+    db_handler.collection(name).findOne(query, { session: options.db_session }, (err, resp) => {
       if (err) {
         return reject(err);
       }
 
       if (!resp) {
         delete query.account_id;
-        var err = new Error("Can not find '" + name +
-          "' from query '" + JSON.stringify(query) + "'" );
-        return reject(err);
-      }
-
-      if (clean) {
-        delete resp._id;
-        delete resp.account_id;
-        delete resp.authToken;
-        delete resp.privateKey;
+        return reject(new Error(`Can not find "${name}" from query "${JSON.stringify(query)}"`));
       }
 
       return resolve(resp);
     });
   });
-}
+};
 
-exports.getCoinList = function (currency, account_id) {
-  var query = {
+
+exports.getCoinList = function (currency, account_id, options={ db_session: undefined }) {
+  let query = {
     account_id: account_id
   };
+
   if (currency) {
-    query["currency"] = currency;
+    query.currency = currency;
   }
-  return this.find("coins", query).then((resp) => {
-    var coins = {};
+
+  return this.find("coins", query, options).then((resp) => {
+    let coins = {};
+
     if (!resp) {
       return coins;
     }
+
     resp.forEach((row) => {
-      var c = row["currency"];
+      let c = row["currency"];
+
+      // TODO: what does it mean?
       // Because of SINGLE policy
       if (Array.isArray(row["coins"]) && row["coins"].length > 0) {
-        var coin = row["coins"][0];
+        let coin = row["coins"][0];
+
         if (coins[c]) {
           coins[c].push(coin);
-        } else {
+        }
+        else {
           coins[c] = [coin];
         }
       }
     });
+
     return coins;
   });
-}
+};
 
-exports.extractCoins = function (coins) {
+
+exports.extractCoins = function (coins, options={ db_session: undefined }) {
   var promises = coins.map((c) => {
-    return this.findOne("coins", { coins: [c] });
+    return this.findOne("coins", { coins: [c] }, { db_session: options.db_session });
   });
 
   return Promise.all(promises).then((responses) => {
     var ids = responses.map((resp) => {
-      return resp._id;
+      return ObjectId(resp._id);
     });
-    return this.removeMultipleIds("coins", ids);
-  });
-}
 
-exports.find = function(name, query, special={}, skip=null, limit=null) {
-  if (!state.db) {
+    return this.remove('coins', { _id : { $in: ids } }, { db_session: options.db_session });
+  });
+};
+
+
+exports.find = function(name, query, options={ offset: null, limit: null, db_session: undefined, projection: {}, order: 'descending', order_by: undefined, sort: undefined }) {
+  if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
 
+  let find_options = {
+      projection: options.projection,
+      session: options.db_session,
+      skip: options.offset,
+      limit: options.limit,
+  };
+
+  if (Array.isArray(options.sort)) {
+    find_options.sort = options.sort;
+  }
+  else if (options.order_by) {
+    find_options.sort = [ [ options.order_by, options.order, ], ];
+  }
+
   return new Promise((resolve, reject) => {
-    var cursor = state.db.collection(name).find(query, special);
-
-    if (skip) {
-      cursor = cursor.skip(parseInt(skip));
-    }
-
-    if (limit) {
-      cursor = cursor.limit(parseInt(limit));
-    }
-
+    var cursor = db_handler.collection(name).find(query, find_options);
+    
     cursor.toArray((err, resp) => {
       if (err) {
         return reject(err);
       }
 
-      if (Array.isArray(resp)) {
-        resp = resp.map((item) => {
-          delete item._id;
-          delete item.account_id;
-          delete item.authToken;
-          delete item.privateKey;
-          return item;
-        });
-      }
+      let response_objects = Array.isArray(resp) ? resp : [ resp ];
 
-      return resolve(resp);
+      response_objects = response_objects.map((item) => {
+        delete item._id;
+        delete item.account_id;
+        delete item.authToken;
+        delete item.privateKey;
+
+        return item;
+      });
+
+      return resolve(response_objects);
     });
   });
-}
+};
 
-exports.findAndModify = function(name, query, modification, options = { new: true }) {
-  if (!state.db) {
+exports.findAndModify = function(name, query, modification, options={ returnOriginal: false, db_session: undefined }) {
+  if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
-  
+
   return new Promise((resolve, reject) => {
-    state.db.collection(name).findAndModify(
+    db_handler.collection(name).findOneAndUpdate(
       query,
-      [], // represents a sort order if multiple matches
       { $set: modification },
-      options, // options - new to return the modified document
+      { returnOriginal: options.returnOriginal, session: options.db_session },
       (err, doc) => {
         if (err) {
           return reject(err);
         }
 
-        var result = doc.value;
+        let result = doc.value;
         delete result._id;
         delete result.account_id;
         delete result.authToken;
@@ -195,13 +216,13 @@ exports.findAndModify = function(name, query, modification, options = { new: tru
       }
     );
   });
-}
+};
+
 
 exports.close = function(done) {
-  if (state.db) {
-    state.db.close(function(err, result) {
-      state.db = null
-      state.mode = null
+  if (db_handler) {
+    db_handler.close(function(err, result) {
+      db_handler = null;
       done(err)
     });
   }

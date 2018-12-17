@@ -13,7 +13,7 @@ function getSettings(account_id) {
   }
   var query = { "_id": account_id };
 
-  return db.findOne("accounts", query, true).then((resp) => {
+  return db.findOne("accounts", query).then((resp) => {
     // Before returning config values remove all keys that are configured as hidden
     let hidden_settings = config.get('_account_hidden_keys');
     if (hidden_settings.length > 0) {
@@ -28,6 +28,7 @@ function getSettings(account_id) {
   });
 };
 
+// TODO: getSettings shouldn't be exported in this form - it probably should be used via standard API call, when it's added
 exports.getSettings = getSettings;
 exports.setConfig = function (req, res) {
   var data = Object.assign({}, req.body);
