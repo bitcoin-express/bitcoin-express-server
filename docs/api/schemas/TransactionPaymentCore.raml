@@ -1,0 +1,49 @@
+#%RAML 1.0 DataType
+
+type: !include TransactionCore.raml
+properties:
+  order_id?: !include primitives/OrderId.raml
+  value: !include primitives/Value.raml
+  currency:
+    type: !include primitives/Currency.raml
+    required: false
+    description: |
+      Currency used in this transaction.
+      If not set then the default value from account's config will be taken.
+  description: !include primitives/Description.raml
+  notification?: !include primitives/Notification.raml
+  return_url?: !include primitives/ReturnURL.raml
+  callback_url?: !include primitives/CallbackURL.raml
+  acceptable_issuers?: !include primitives/AcceptableIssuers.raml
+  email_customer_contact:
+    type: !include primitives/EmailCustomerContact.raml
+    required: false
+    description: |
+      An email address that can be used to contact the Merchant about the order.
+
+      If not provided then 'email_customer_contact' value is taken from the account's settings - if set.
+  policies:
+    type: object
+    required: false
+    description: |
+      Possible modifications of transatcion's flow or additional options to be set.
+    example: |
+      {
+        "receipt_via_email": true,
+        "refund_via_email": false
+      }
+    properties:
+      receipt_via_email:
+        type: !include primitives/ProvideReceiptViaEmail.raml
+        required: false
+        description: |
+          Information if the Merchant is providing an option to send a receipt via email after successfull transaction.
+
+          If not provided then 'provide_receipt_via_email' value is taken from the account's settings - if set.
+      refund_via_email:
+        type: !include primitives/ProvideRefundViaEmail.raml
+        required: false
+        description: |
+          Information if the Merchant is providing a refund option via email. The actual refund mechanism is to be implemented on the Merchant's end.
+
+          If not provided then 'provide_refund_via_email' value is taken from the account's settings - if set.

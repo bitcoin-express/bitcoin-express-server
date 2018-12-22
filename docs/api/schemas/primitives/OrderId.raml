@@ -1,0 +1,13 @@
+#%RAML 1.0 DataType
+
+type: string
+description: |
+  Old: merchant_data
+
+  Typically a reference that is meaningful to the Merchant – for example a sales invoice number.
+  It's being recorded in the history of the Buyer's Wallet so it may be quoted by the Buyer as a reference in subsequent communications.
+
+  Must be unique for the Merchant.
+minLength: 1
+maxLength: 64
+example: IN20181212345

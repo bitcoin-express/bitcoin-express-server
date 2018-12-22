@@ -1,0 +1,6 @@
+{
+  "status": "ok",
+  "wallet_id": "123456789",
+  "return_url": "https://my.site.url/download?prod=123&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6&order_id=IN12345",
+  "notification": "Thank you for your purchase!"
+}

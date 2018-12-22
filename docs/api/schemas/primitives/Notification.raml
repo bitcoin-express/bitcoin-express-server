@@ -1,0 +1,12 @@
+#%RAML 1.0 DataType
+
+type: string
+minLength: 1
+maxLength: 128
+description: |
+  A short information from the Merchant to be presentened to the Buyer e.g. a thank you note, confirmation of purchase.
+  This may be usefull especially if there is no need for extra steps after payment is done i.e. by passing 'return_url'.
+  On ocasions such as payment for a subscription, the Merchant may simply wish to confirm that a payment has been received without providing a separate confirmation or download page. Notification may be used in such situation.
+
+  Notification should be recorded in the history of the Buyer's Wallet.
+example: Thank you for your payment. Your subscription is now active.

@@ -1,0 +1,8 @@
+#%RAML 1.0 DataType
+
+type: object
+properties:
+  email:
+    type: !include Email.raml
+    required: true
+    description: An email address where a receipt should be sent if the Merchant is able to provide one. If present the Merchant should consider this as a request by the buyer to be sent a receipt.

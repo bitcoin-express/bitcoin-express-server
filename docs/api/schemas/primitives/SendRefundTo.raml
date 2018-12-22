@@ -1,0 +1,16 @@
+#%RAML 1.0 DataType
+
+type: object
+properties:
+  email:
+    type: !include Email.raml
+    required: true
+    description: An email address where a payment refund should be sent.
+  password:
+    type: !include Password.raml
+    required: false
+    description: A string the Merchant MUST use to encrypt Coins before sending through email.
+  reference:
+    type: !include Reference.raml
+    required: false
+    description: If the 'reference' element is present it should be echoed in the 'reference' element of the refund file.

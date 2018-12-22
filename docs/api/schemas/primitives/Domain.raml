@@ -1,0 +1,10 @@
+#%RAML 1.0 DataType
+
+type: string
+description: |
+  The domain name of the Merchant's service.
+  It is also used as a fallback mechanism in situation where 'return_url' is not defined.
+  If 'domain' will be different than the 'return_url''s domain then Merchant's account will be displayed as not verified in the Wallet.
+minLength: 4
+maxLength: 128
+example: my.site.url

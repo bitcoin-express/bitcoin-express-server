@@ -1,0 +1,30 @@
+#%RAML 1.0 DataType
+
+type: !include TransactionPaymentRequestResponse.raml
+properties:
+  confirmation_details:
+    type: !include TransactionPaymentConfirmationCore.raml
+    required: false
+    description: |
+      Payment confirmation details send from the Buyer's Wallet to finalise the transaction.
+    properties:
+      wallet_id?: !include primitives/WalletId.raml
+      client_type?: !include primitives/ClientType.raml
+      memo?: !include primitives/Memo.raml
+      options:
+        type: object
+        required: false
+        description: |
+          Additional information and flags for the payment.
+        properties:
+          language_preference?: !include primitives/LanguagePreference.raml
+          send_receipt_to?: !include primitives/SendReceiptTo.raml
+          send_refund_to?: !include primitives/SendRefundTo.raml
+    example: !include ../examples/TranscationPaymentConfirmation.json
+  verification_details:
+    type: object
+    required: false
+    description: |
+      The data returned by the Issuer that verified the payment Coins.
+example: !include ../examples/TransactionPaymentDetails.json
+

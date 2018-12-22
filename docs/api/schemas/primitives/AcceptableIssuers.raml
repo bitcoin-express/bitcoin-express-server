@@ -1,0 +1,14 @@
+#%RAML 1.0 DataType
+
+type: array
+items:
+  type: !include Domain.raml
+  description: An issuer's domain.
+default: [ 'eu.carrotpay.com', 'be.ap.rmp.net' ]
+minItems: 1
+maxItems: 10
+description: |
+  List of Issuers (domains) that the Merchant accepts Coins from.
+  If the Merchant will explicitly set 'home_issuer' then automatically 'acceptable_issuers' are set to "(<home_issuer>)" (home issuer put into brackets), meaning all issuers that the home issuer accepts will be accepted by the Merchant as well.
+  If 'home_issuer' is not explicitly set then 'acceptable_issuers' are set to the default Gateway value.
+example: ["(eu.carrotpay.com)"]

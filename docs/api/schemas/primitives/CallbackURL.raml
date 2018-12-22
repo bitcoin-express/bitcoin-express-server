@@ -1,0 +1,12 @@
+#%RAML 1.0 DataType
+
+type: string
+minLength: 0
+maxLength: 256
+description: |
+  An URL where notification about successfull transaction will be send.
+  'transaction_id' and 'order_id' (if given) will be appended to this URL, e.g. 'callback_url' such as "https://my.site.url/complete?in=12345" will became "https://my.site.url/complete?in=12345&transaction_id=98765&order_id=98765" .
+
+  If 'callback_url' is not set then default value from the account's settings is taken - if set.
+example: https://my.site.url/complete?in=12345
+

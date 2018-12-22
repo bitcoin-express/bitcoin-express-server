@@ -1,0 +1,8 @@
+#%RAML 1.0 DataType
+
+type: !include TransactionPaymentConfirmationCore.raml
+properties:
+  coins: !include primitives/Base64Coins.raml
+example: !include ../examples/TransactionPaymentBuyerConfirmation.json
+
+

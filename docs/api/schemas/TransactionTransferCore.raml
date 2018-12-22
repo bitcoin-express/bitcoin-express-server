@@ -1,0 +1,22 @@
+#%RAML 1.0 DataType
+
+uses:
+  types: primitives/ValueTypesLib.raml
+
+type: !include TransactionCore.raml
+properties:
+  currency:
+    type: !include primitives/Currency.raml
+    required: true
+    description: Currency of coins to be transfered.
+  value:
+    type: types.ValueMulti
+    required: true
+    description: |
+      Value of coins to be transfered.
+
+      If 'value' will be set to "all" all funds will be transfered.
+  description:
+    type: !include primitives/Description.raml
+    required: false
+    description: A short description that is meaningful to the Merchant. This description will be recorded in the transaction history.

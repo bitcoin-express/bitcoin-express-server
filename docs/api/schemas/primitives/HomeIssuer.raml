@@ -1,0 +1,9 @@
+#%RAML 1.0 DataType
+
+type: string
+default: "eu.carrotpay.com"
+description: |
+  A default issuer to use for all transactions.
+  If it's not explicitly set by the Merchant then the default Gateway issuer is used.
+  If 'home_issuer' is set by the Merchant then automatically 'acceptable_issuers' are set to "(<home_isser>)", meaning all issuers that the home issuer accepts will be accepted by the merchant as well.
+example: "eu.carrotpay.com"

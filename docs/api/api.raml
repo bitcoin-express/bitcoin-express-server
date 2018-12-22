@@ -6,11 +6,8 @@ description: |
   This is an initial draft of a draft of documentation for Bitcoin-Express Merchant Gateway API.
 protocols: [HTTPS]
 mediaType: application/json
-annotationTypes:
-  deprecated: nil
-  experimental: nil | string
 securitySchemes:
-  passthrough:
+  AuthToken:
     type: Pass Through
     description: |
       By default each request - unless stated otherwise - requires authentication header passed together with the request.
@@ -18,139 +15,294 @@ securitySchemes:
       headers:
         BE-MG-Auth-Token: string
       responses:
+annotationTypes:
+  deprecated: nil
+  experimental: nil | string
+traits: !include traits/traits.raml
 resourceTypes:
 types:
-traits:
-securedBy: passthrough
-
+  TBD:
+    type: object
+    displayName: Other types - to be implemented
+  JSONResponse: !include schemas/JSONResponse.raml
+  Message: !include schemas/primitives/Message.raml
+  TransactionPaymentRequest:
+    type: !include schemas/TransactionPaymentRequest.raml
+    displayName: PaymentRequest
+  TransactionTransferBlockchainRequest:
+    type: !include schemas/TransactionTransferBlockchainRequest.raml
+    displayName: TransferBlockchainRequest
+  TransactionTransferCoinFileRequest:
+    type: !include schemas/TransactionTransferCoinFileRequest.raml
+    displayName: TransferCoinFileRequest
+  TransactionPaymentDetails:
+    type: !include schemas/TransactionPaymentDetails.raml
+    displayName: PaymentDetails
+  TransactionPaymentRequestResponse:
+    type: !include schemas/TransactionPaymentRequestResponse.raml
+    displayName: PaymentRequestResponse
+  TransactionPaymentConfirmation: !include schemas/TransactionPaymentConfirmation.raml
+  TransactionPaymentConfirmationResponse:
+    type: !include schemas/TransactionPaymentConfirmationResponse.raml
+    displayName: PaymentConfirmationResponse
+  TransactionDetailsTypes:
+    type: array
+    items:
+      type: TransactionPaymentDetails | TBD
+  TransactionRequestTypes:
+    type: array
+    items:
+      type: TransactionPaymentRequest | TransactionTransferBlockchainRequest | TransactionTransferCoinFileRequest
+  TransactionRequestResponseTypes:
+    type: array
+    items:
+      type: TransactionPaymentRequestResponse | TBD
+  AccountDetails: !include schemas/AccountDetails.raml
+  AccountSettings: !include schemas/AccountSettings.raml
+  AccountBalance: !include schemas/AccountBalance.raml
+  AccountRegisterRequest: !include schemas/AccountRegisterRequest.raml
+  //Primitives
+  Currency: !include schemas/primitives/Currency.raml
+securedBy: AuthToken
 /transactions:
-  securedBy: passthrough
   description: |
-    All operations on different types of transactions, uncluding payments
+    All operations on different types of transactions, uncluding payments for the account authenticated by the token
   get:
+    is: [JSON200Envelope]
     description: |
         Old: /getTransactions
         Return all transactions according to given parameters
-  post:
-    description: |
-      Old: /createPaymentRequest and /payment
-
-      A transations' factory - can create any type of transaction according to type parameter
-    body:
-      application/json:
-  /{transation_id}:
-    description: |
-      Operations that work on specific transation.
-    get:
-      description: Returns information about specified transaction
-    /status:
-      get:
-        description: |
-          Old: /getPaymentStatus
-
-          Returns only a status of specified transaction
-        queryParameters:
-          field:
-            type: string
-            enum: [ id, merchant_data ]
-          value:
-            type: string
-  /payment-requests:
-    post:
-      description: |
-        Old: /createPaymentRequest
-
-        I am still thinking if there should be an endpoint like this - normaly we should use POST /transactions with specified type. This would be only an alias.
-
-        Creates a new payment request
-      body:
-        application/json:
-  /payments:
-    post:
-      description: |
-        Old: payment
-
-        I am still thinking if there should be an endpoint like this - normaly we should use POST /transactions with specified type. This would be only an alias.
-
-        Creates a new payment
-/coins:
-  securedBy: passthrough
-  get:
-    description: |
-      Old: getBalance
-
-      Get a list of currency balances
     queryParameters:
-      currency:
-        type: string
+      offset:
+        description: Initial element's position in the whole dataset
+        default: 0
         required: false
-        description: For which currency should the balance be returned for
-  delete:
-    description: |
-      Old: /getCoins
-
-      Extract coins from the wallet.
-  /transfers:
-    post:
-      description: |
-        Old: /redeem
-
-        I am still thinking if this should be here or maybe rather in /transactions sections.
-/settings:
-  securedBy: passthrough
-  get:
-    description: Get all current settings for the account
+        type: integer
+        example: 100
+      limit:
+        description: Maximum number of items in the returned dataset.
+        default: 100
+        required: false
+        type: integer
+        example: 100
+      order_by:
+        description: Field to sort the returned dataset on.
+        default: paid
+        required: false
+        type: string
+        example: paid
+        enum:
+          - paid
+          - created
+      order:
+        description: Direction to sort the returned dataset on - either as ascending (asc) or descending (desc).
+        default: desc
+        required: false
+        type: string
+        example: asc
+        enum:
+          - asc
+          - desc
+      before:
+        description: Shows only records created before this date/time. Uses ISO 8601 as a date/time format. Can be used in conjunction with 'after' parameter.
+        required: false
+        type: datetime
+        example: 2018-12-24T12:00:00Z
+      after:
+        description: Shows only records created after this date/time. Uses ISO 8601 as a date/time format. Can be used in conjunction with 'before' parameter.
+        required: false
+        type: datetime
+        example: 2018-12-24T12:00:00Z
+      type: !include schemas/primitives/TransactionType.raml
+      include_expired:
+        type: boolean
+        description: By default only valid, non-expired transactions are returned. In order to get all transaction set this option to true.
+        required: false
+        default: false
     responses:
       200:
-  patch:
+        description: Method always returns enveloped JSON with the returned dataset placed under the key 'body'. If no results were found either because there were no transaction registered under the account or due to excluding parameters an empty array is returned.
+        body:
+          application/json:
+            properties:
+              body:
+                description: Actual data returned by the method.
+                minItems: 0
+                required: true
+                type: array
+                items:
+                  type: TransactionDetailsTypes
+              metrics:
+                type: object
+                properties:
+                  offset:
+                    type: string
+                  limit:
+                    type: string
+                  total:
+                    type: string
+                example: |
+                   {
+                    "offset":"0",
+                    "limit":"20",
+                    "total":"100"
+                   }
+            example: |
+              {
+                "success": true,
+                "messages": [],
+                "body":[
+                  {
+                    "value": "0.0000095",
+                    "currency": "XBT",
+                    "issuers": ["eu.carrotpay.com"],
+                    "description": "The art of asking",
+                    "email_customer_contact": "sales@my.site.url",
+                    "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+                    "policies": {
+                      "receipt_via_email": true,
+                      "refund_via_email": false
+                    },
+                    "payment_url": "https://my.site.url/payment",
+                    "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
+                    "order_id": "IN1234",
+                    "expires": "2018-08-28T06:25:26Z",
+                    "type": "payment",
+                    "status": "initial",
+                    "created": "2018-08-28T05:25:26Z",
+                    "confirmation_details": {
+                      "wallet_id": "12344321",
+                      "options": {
+                        "send_receipt_to": {
+                          "email":"buyer@mail.url"
+                        },
+                        "send_refund_to": {
+                          "email":"buyer@mail.url",
+                          "password":"hX,LsQ9z",
+                          "reference":"12344321"
+                        },
+                        "language_preference": "en-GB"
+                      },
+                      "note": "Please send it to 123 Street, Town, City, Country"
+                    },
+                    "verification_details": {}
+                  }
+                ],
+                "metrics": {
+                  "offset":"0",
+                  "limit":"20",
+                  "total":"100"
+                }
+              }
+  post:
+    is: [JSON201Envelope]
     description: |
-      Old: /setConfig
+      Old: /createPaymentRequest
 
-      Modifies chosen account's settings
+      Creates a new transaction of a given type. Currently three types of transactions are available:
+      - Payment (payment) - creates a payment request to be processed by the Merchant/Buyer in order to pay for an order created on Merchant's end,
+      - Blockchain Transfer (blockchain-transfer) - transfers a requested currency (defined value) to a blockchain,
+      - Coin File Transfer (coin-file-transfer) - exports a requested currency (defined value) to the Wallet-ready file.
+
+      Each type of transaction's request has a diffent parameters and responses. In order to define which type of transaction should be created 'type' parameter has to be set to the correct value.
     body:
       application/json:
-        minProperties: 1
-        properties:
-          default_payment_currency:
-            type: string
-            enum: [ XBT ]
-            required: false
-            description: Default currency for transactions. It will be used by default if there is no explicit xurrency set for a transaction.
-          default_payment_timeout:
-            type: string
-            default: "3600"
-            required: false
-            description: Time in seconds after which a not-finished transaction will be marked as expired.
-          email_customer_contact:
-            type: string
-            required: false
-            description: Merchant's contact email for customer related queries
-          email_account_contact:
-            type: string
-            required: false
-            description: Merchant's contact email for account related queries
-          provide_receipt_via_email:
-            type: boolean
-            default: false
-            required: false
-            description: Is a merchant providing an option to send a receipt via email
-          provide_refund_via_email:
-            type: boolean
-            default: false
-            required: false
-            description: Is a merchant providing an option to send a refund via email
-          home_issuer:
-            type: string
-            default: "be.ap.rmp.net"
-            required: false
-            description: A default issuer to work with
-          acceptable_issuers:
-            type: string[]
-            default: [ 'eu.carrotpay.com', 'be.ap.rmp.net' ]
-            required: false
-            description: Issuers that the Merchant accepts Coins from
+        type: TransactionRequestTypes
+    responses:
+      201:
+        body:
+          application/json:
+            properties:
+              body:
+                description: Actual data returned by the method.
+                minItems: 0
+                required: true
+                type: array
+                items:
+                  type: TransactionRequestResponseTypes
+/transaction:
+  /{transaction_id}:
+    description: |
+      Operations that work on a single, specified transation.
+    get:
+      is: [JSON200Envelope]
+      description: Returns information about transaction. Depending on the type of transaction returned dataset can differ.
+      responses:
+        200:
+         body:
+          application/json:
+            properties:
+              body:
+                description: Actual data returned by the method.
+                minItems: 0
+                required: true
+                type: TransactionDetailsTypes
+            example: |
+              {
+                "success": true,
+                "messages": [],
+                "body":[{
+                  "value": "0.0000095",
+                  "currency": "XBT",
+                  "issuers": ["eu.carrotpay.com"],
+                  "description": "The art of asking",
+                  "email_customer_contact": "sales@my.site.url",
+                  "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+                  "policies": {
+                    "receipt_via_email": true,
+                    "refund_via_email": false
+                  },
+                  "payment_url": "https://my.site.url/payment",
+                  "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
+                  "order_id": "IN1234",
+                  "expires": "2018-08-28T06:25:26Z",
+                  "type": "payment",
+                  "status": "initial",
+                  "created": "2018-08-28T05:25:26Z"
+                }]
+              }
+        403:
+          body:
+            application/json:
+              type: JSONResponse
+              example: |
+                {
+                  "success": false,
+                  "body": [],
+                  "messages": [
+                    {
+                      "type": "error",
+                      "body": "You are not authorised to view this transaction."
+                    }
+                  ]
+                }
+
+    /payment:
+      post:
+        securedBy:
+        is: [JSON202Envelope]
+        description: |
+          Old: /payment
+
+          Accepts object with information needed to complete the transaction, including Coins. Information procided in this request are send to an issuer and included in the original payment request object.
+        body:
+          application/json:
+            type: TransactionPaymentConfirmation
+        responses:
+          202:
+            body:
+              application/json:
+                properties:
+                  body:
+                    description: Actual data returned by the method.
+                    minItems: 0
+                    required: true
+                    type: array
+                    items:
+                      type: TransactionPaymentConfirmationResponse
 /accounts:
   post:
+    is: [JSON201Envelope]
     securedBy:
     body:
       application/json:
@@ -158,30 +310,140 @@ securedBy: passthrough
           Old: /register
 
           Creates a new merchant's account in the system
-        properties:
-          domain:
-            type: string
-            description: The domain name of the Merchant's service
-          email_account_contact:
-            type: string
-            required: false
-            description: Email address for account related queries
-          email_customer_contact:
-            type: string
-            required: false
-            description: Email address for customer related queries
-          name:
-            type: string
-            required: false
-            description: Name of the account's holder
-        example: |
-          {
-            "domain": "mysite.url",
-            "email_account_contact": "account@mysite.url",
-            "email_customer_contact": "sales@mysite.url",
-            "name": "John Smith"
-          }
+        type: AccountRegisterRequest
     responses:
       201:
+        body:
+          application/json:
+            properties:
+              body:
+                description: Actual data returned by the method.
+                minItems: 0
+                required: true
+                type: array
+                items:
+                  type: AccountDetails
+            example: |
+              "success":true,
+              "body":[{
+                "auth_token": "123456789",
+                "domain":"my.site.url",
+                "email_account_contact": "account@my.site.url",
+                "email_customer_contact": "sales@my.site.url",
+                "name":"John Smith"
+                "default_payment_currency":"XBT",
+                "default_payment_timeout":"3600"
+                "provide_receipt_via_email":false
+                "provide_refund_via_email":false,
+                "home_issuer":"be.ap.rmp.net",
+                "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
+              }],
+              "messages":[
+                {
+                  "type":"info",
+                  "body":"Success! Your account is now active!"
+                }
+              ]
+/account:
+  /settings:
+    get:
+      is: [JSON200Envelope]
+      description: Get all current settings for the account
+      responses:
+        200:
+          body:
+            application/json:
+              properties:
+                body:
+                  description: Actual data returned by the method.
+                  minItems: 0
+                  required: true
+                  type: array
+                  items:
+                    type: AccountSettings
+              example: |
+                "success":true,
+                "body":[{
+                  "domain":"my.site.url",
+                  "email_account_contact": "account@my.site.url",
+                  "email_customer_contact": "sales@my.site.url",
+                  "name":"John Smith"
+                  "default_payment_currency":"XBT",
+                  "default_payment_timeout":"3600"
+                  "provide_receipt_via_email":false
+                  "provide_refund_via_email":false,
+                  "home_issuer":"be.ap.rmp.net",
+                  "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
+                }],
+                "messages":[]
 
+    patch:
+      is: [JSON202Envelope]
+      description: |
+        Old: /setConfig
 
+        Modifies chosen account's settings
+      body:
+        application/json:
+          type: AccountSettings
+          minProperties: 1
+      responses:
+        202:
+          body:
+            application/json:
+              properties:
+                body:
+                  description: Actual data returned by the method.
+                  minItems: 0
+                  required: true
+                  type: array
+                  items:
+                    type: AccountSettings
+              example: |
+                "success":true,
+                "body":[{
+                  "domain":"my.site.url",
+                  "email_account_contact": "account@my.site.url",
+                  "email_customer_contact": "sales@my.site.url",
+                  "name":"John Smith"
+                  "default_payment_currency":"XBT",
+                  "default_payment_timeout":"3600"
+                  "provide_receipt_via_email":false
+                  "provide_refund_via_email":false,
+                  "home_issuer":"be.ap.rmp.net",
+                  "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
+                }],
+                "messages":[
+                  {
+                    "type": "info",
+                    "body": "Your settings were updated!"
+                  }
+                ]
+
+  /balance:
+    get:
+      is: [JSON200Envelope]
+      description: |
+        Old: getBalance
+
+        Get a list of currency balances
+      queryParameters:
+        currency:
+          type: Currency
+          required: false
+          description: For which currency should the balance be returned for.
+      responses:
+        200:
+          body:
+            application/json:
+              properties:
+                body:
+                  description: Actual data returned by the method.
+                  minItems: 0
+                  required: true
+                  type: array
+                  items:
+                    type: AccountBalance
+              examples:
+                set-currency: !include examples/AccountBalanceResponseSingleCurrency.json
+                all-currencies: !include examples/AccountBalanceResponceAllCurrencies.json

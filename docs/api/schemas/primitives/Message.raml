@@ -1,0 +1,53 @@
+#%RAML 1.0 DataType
+
+type: object
+description: Information bearer with indicator of information type
+properties:
+  body:
+    type: string
+    required: true
+    description: Body of a message.
+    example: Your payment successfully proceeded.
+  type:
+    type: string
+    required: true
+    enum:
+      - info
+      - warning
+      - notice
+      - error
+      - prompt
+    description: |
+      Type of a message.
+      - info - information related to confirmation of successfully proceeded operation,
+      - warning - non-fatal information. Operation succeeded but something happened in the progress,
+      - notice - information not related to proceeded information,
+      - error - fatal information. Operation did not proceed as expected,
+      - prompt - action is needed to be taken by the message consumer. Actions are passed in 'actions' parameter.
+    example: info
+  actions:
+    type: array
+    required: false
+    description: Possible actions for 'prompt' type of message.
+    items:
+      type: object
+      properties:
+        body:
+          type: string
+          description: Display value or anything that can identify action to be taken.
+          required: true
+        action:
+          type: string
+          description: In most cases URL to be called if this specific action is to be performed.
+          required: true
+    example: |
+      [
+        {
+          "body": "Yes, I want to redeem",
+          "action": "https://my.gateway.url/api/v1/redeem/confirm"
+        },
+        {
+          "body": "Never mind",
+          "action": "https://my.gateway.url/api/v1/redeem/cancel"
+        }
+      ]
