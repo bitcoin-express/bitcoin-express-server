@@ -1,7 +1,7 @@
 const express = require('express');
 const session = require('express-session');
 const config = require('config');
-
+const api = require(config.get('system.root_dir') + '/core/api.js');
 
 // Check if all keys, essential for application running, are set in config files.
 // If not - prevent application from running.
@@ -67,6 +67,7 @@ app.engine('handlebars', exphbs({
   }
 }));
 app.set('view engine', 'handlebars');
+app.set('x-powered-by', false);
 app.use(express.static(__dirname + '/assets'));
 
 
@@ -105,9 +106,56 @@ db.connect(config.get('server.db.uri'), function (err) {
   app.post('/register', middleware.noAuthentication, register);
   app.post('/setConfig', middleware.requireAuthentication, setConfig);
 
-  web_server.handler.createServer(web_server.options, app).listen(config.get('server.port'), function() {
-    console.log(`Listening on port ${config.get('server.port')}...`);
-  });
+    const asyncWrapper = fn =>
+        function asyncWrap(...args) {
+            const result = fn(...args);
+            const next = args[args.length-1];
+            const res = args[args.length-2];
+            return Promise.resolve(result).catch(error => {
+                //TODO: log
+                console.log('API router async wrapper - uncaught error', error);
+
+                const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponseEnvelope');
+                const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
+
+                return res.type('application/json').status(500).send(new JSONResponseEnvelope({
+                        success: false,
+                        body: [],
+                        messages: [ new Message({
+                                type: Message.TYPE_ERROR,
+                                body: "Something went wrong on a server side and we couldn't handle that properly. Try again and in case of failing - contact us.",
+                            }),
+                        ],
+                    }).prepareResponse(res));
+            });
+        };
+
+
+    app.route('/v1.0a/transactions')
+     .get(middleware.requireAuthentication, asyncWrapper(api.getTransactions))
+     .post(middleware.requireAuthentication, asyncWrapper(api.postTransactions));
+
+    app.route('/v1.0a/transaction/:transaction_id')
+     .get(middleware.requireAuthentication, asyncWrapper(api.getTransactionById));
+
+    app.route('/v1.0a/transaction/:transaction_id/payment')
+     .get(middleware.noAuthentication);
+
+    app.route('/v1.0a/accounts')
+     .post(middleware.noAuthentication, asyncWrapper(api.postAccounts));
+
+    app.route('/v1.0a/account/settings')
+     .get(middleware.requireAuthentication, asyncWrapper(api.getAccountSettings))
+     .patch(middleware.requireAuthentication, asyncWrapper(api.patchAccountSettings));
+
+    app.route('/v1.0a/account/balance')
+     .get(middleware.requireAuthentication, asyncWrapper(api.getAccountBalance));
+
+
+    web_server.handler.createServer(web_server.options, app)
+              .listen(config.get('server.port'), function() {
+                console.log(`Listening on port ${config.get('server.port')}...`);
+    });
 
   setInterval(() => {
     const now = new Date().addSeconds(30); // 30 sec
@@ -116,7 +164,7 @@ db.connect(config.get('server.db.uri'), function (err) {
       status: { $in: ["initial", "timeout"] },
     };
 
-    db.remove("payments", query).then((resp) => {
+    db.remove('transactions', query).then((resp) => {
       console.log('SCHEDULER - Removing expired requests before ' + now.toUTCString(), 'Items removed: '+resp.n);
     }).catch((err) => {
       console.log('SCHEDULER ERROR - Removing expired requests before ' + now.toUTCString(), err);
