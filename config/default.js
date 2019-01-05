@@ -1,33 +1,33 @@
 /*
-  This file contains all allowed config keys to be used within the application.
-  Application is using node config module (https://github.com/lorenwest/node-config) to handle config files.
+    This file contains all allowed config keys to be used within the application.
+    Application is using node config module (https://github.com/lorenwest/node-config) to handle config files.
 
-  By default application will read config/default.js file and use configuration keys stored in it.
+    By default application will read config/default.js file and use configuration keys stored in it.
 
-  In order to provide a mechanism to support environment's specific configuration the application will look for files
-  extending the main configuration file where name of this file is stored in an environment variable: NODE_ENV
+    In order to provide a mechanism to support environment's specific configuration the application will look for files
+    extending the main configuration file where name of this file is stored in an environment variable: NODE_ENV
 
-  In order to store sensitive information the application will look for a file called local.js and use configuration
-  stored in it. This file may include credentials, database name and host etc.
+    In order to store sensitive information the application will look for a file called local.js and use configuration
+    stored in it. This file may include credentials, database name and host etc.
 
-  An example - assuming that NODE_ENV is set to "production" load order will be as follows:
-  default.json5
-  production.js
-  local.js
+    An example - assuming that NODE_ENV is set to "production" load order will be as follows:
+    default.json5
+    production.js
+    local.js
 
-  !!!   Please bear in mind that local.js should never be added into repository
-  !!!   and is excluded on main .gitignore level.
+    !!!   Please bear in mind that local.js should never be added into repository
+    !!!   and is excluded on main .gitignore level.
 
-  Files lower in the overriding chain should only include elements that need be overwritten.
+    Files lower in the overriding chain should only include elements that need be overwritten.
 
-  Special keys:
+    Special keys:
     * _system_required_keys:
       app.js before server initialisation will check if all essential settings, mentioned in this key, are set and throw
       an error if configuration is not full,
-    * _account_readonly_keys:
+    * _account_readonly_settings:
       Account settings that are accessible/visible by users but can't be overwritten. These keys can't be modified via
       setConfig method although they will be returned in getSettings set,
-    * _account_hidden_keys:
+    * _account_hidden_settings:
       Account settings that are hidden and not visible by users in any way. These keys won't be returned in
       getSettings set.
     * _register_required_keys:
@@ -127,39 +127,48 @@ module.exports = {
 
   // Default account-specific configuration
   account: {
-    //TODO: change all names and add description, move to right section
     //TODO: remove config.js
 
-    // If there is no currency set on user's account or in payment request use this as a default
-    default_payment_currency: 'XBT',
-
-    // Time in seconds after which a payment requested will be invalidated and no longer possible to proceed
-    default_payment_timeout: 3600,
-
     // Merchant's contact email for customer related queries
-    email_customer_contact: '',
+    email_customer_contact: undefined,
 
     // Merchant's contact email for account related queries
-    email_account_contact: '',
+    email_account_contact: undefined,
 
-    // Is a merchant providing an option to send a receipt via email
-    provide_receipt_via_email: false,
-
-    // Is a merchant providing an option to send a refund via email
-    provide_refund_via_email: false,
-
-    // A default issuer to work with
-    home_issuer: 'be.ap.rmp.net',
-
-    // Issuers that the Merchant accepts Coins from
-    acceptable_issuers: [ 'eu.carrotpay.com', 'be.ap.rmp.net', ],
-
-    // Keys that can be configured on the account level but do not require default values. These are used for checking by
-    // setConfig fail-safe mechanisms
+    // Merchant's domain that will be displayed to the user
     domain: undefined,
+
+    // Merchant's name given to the account
     name: undefined,
-    return_url: undefined,
-    callback_url: undefined,
+
+    settings: {
+        // If there is no currency set on user's account or in payment request use this as a default
+        default_payment_currency: 'XBT',
+
+        // Time in seconds after which a payment requested will be invalidated and no longer possible to proceed
+        default_payment_timeout: 3600,
+
+        // Is a merchant providing an option to send a receipt via email
+        provide_receipt_via_email: false,
+
+        // Is a merchant providing an option to send a refund via email
+        provide_refund_via_email: false,
+
+        // A default issuer to work with
+        home_issuer: 'be.ap.rmp.net',
+
+        // Issuers that the Merchant accepts Coins from
+        acceptable_issuers: [ 'eu.carrotpay.com', 'be.ap.rmp.net', ],
+
+        // Settings that can be configured on the account level but do not require default values.
+        // These are used for checking by set Settings fail-safe mechanisms
+        // TODO: create default values in Settings
+        // A valid url where the purchased product may be obtained and/or transaction may be finalised
+        return_url: '',
+
+        // A valid url where the notification about purchase will be send
+        callback_url: '',
+    },
   },
 
   // Keys that are required to be provided during registration of a new account
@@ -172,13 +181,11 @@ module.exports = {
   _system_required_keys: [ 'server.db.mongodb.replica_set', 'server.db.user', 'server.db.password', 'server.db.scheme', 'server.db.address', 'server.db.name', 'server.api.endpoint_url', 'server.api.endpoint_path',
       'server.ssl.key_file_passphrase', 'server.session.secret', ],
 
-  // TODO: remove auth key from here when auth moved to header
   // Account settings that are accessible/visible by users but can't be overwritten
-  _account_readonly_keys: [ 'auth', ],
+  _account_readonly_settings: [ ],
 
   // Account settings that are hidden and not visible by users in any way
-  // TODO: remove authToken and privateKey after refactorisation
-  _account_hidden_keys: [ '_id', 'account_id', 'auth_token', 'private_key', 'authToken', 'privateKey' ],
+  _account_hidden_settings: [ ],
 
   // !!!! SYSTEM SETTINGS !!!!
   // DO NOT MODIFY ANYTHING BELOW THIS LINE UNLESS YOU REALLY KNOW WHAT YOU ARE DOING!
@@ -190,6 +197,7 @@ module.exports = {
   system: {
     decimal_point_precision: 8,
     root_dir: require('path').resolve(`${__dirname}/..`),
+    supported_payment_currencies: [ 'XBT', ],
   },
 };
 
