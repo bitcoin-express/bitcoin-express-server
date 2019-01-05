@@ -56,7 +56,7 @@ From the terminal, open mongodb shell:
 
 > mongo bitcoin-express
 
-After you are connected, you can display the list of payments and retrieve the coins in the shell ('payments' table must be in the list):
+After you are connected, you can display the list of payments and retrieve the coins in the shell ('transactions' table must be in the list):
 
 > show collections
 

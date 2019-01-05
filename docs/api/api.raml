@@ -3,7 +3,7 @@ title: Bitcoin-Express Merchant Gateway
 version: v1.0a
 baseUri: https://api.gateway.url/{version}
 description: |
-  This is an initial draft of a draft of documentation for Bitcoin-Express Merchant Gateway API.
+  This is an initial draft of documentation for Bitcoin-Express Merchant Gateway API.
 protocols: [HTTPS]
 mediaType: application/json
 securitySchemes:
@@ -66,19 +66,15 @@ types:
 securedBy: AuthToken
 /transactions:
   description: |
-    All operations on different types of transactions, uncluding payments for the account authenticated by the token
+    All operations on different types of transactions (including payments) for the account authenticated by the token.
   get:
     is: [JSON200Envelope]
     description: |
         Old: /getTransactions
-        Return all transactions according to given parameters
+
+        Return all transactions that matches given parameters and belongs to the authenticated account.
     queryParameters:
-      offset:
-        description: Initial element's position in the whole dataset
-        default: 0
-        required: false
-        type: integer
-        example: 100
+      offset?: !include schemas/primitives/Offset.raml
       limit:
         description: Maximum number of items in the returned dataset.
         default: 100
@@ -95,14 +91,14 @@ securedBy: AuthToken
           - paid
           - created
       order:
-        description: Direction to sort the returned dataset on - either as ascending (asc) or descending (desc).
-        default: desc
+        description: Direction to sort the returned dataset on - either as ascending or descending.
+        default: descending
         required: false
         type: string
-        example: asc
+        example: ascending
         enum:
-          - asc
-          - desc
+          - ascending
+          - descending
       before:
         description: Shows only records created before this date/time. Uses ISO 8601 as a date/time format. Can be used in conjunction with 'after' parameter.
         required: false
@@ -114,14 +110,25 @@ securedBy: AuthToken
         type: datetime
         example: 2018-12-24T12:00:00Z
       type: !include schemas/primitives/TransactionType.raml
-      include_expired:
-        type: boolean
-        description: By default only valid, non-expired transactions are returned. In order to get all transaction set this option to true.
+      status:
+        description: Shows only records in a given status. If this parameter is given 'only_valid' is ignored.
         required: false
-        default: false
+        type: string
+        enum:
+          - initial
+          - resolved
+          - expired
+          - aborted
+          - processing
+        example: initial
+      only_valid:
+        type: boolean
+        description: By default only valid, non-expired transactions are returned. In order to get all transaction set this option to false.
+        required: false
+        default: true
     responses:
       200:
-        description: Method always returns enveloped JSON with the returned dataset placed under the key 'body'. If no results were found either because there were no transaction registered under the account or due to excluding parameters an empty array is returned.
+        description: Method always returns enveloped JSON with the returned dataset placed under the key 'body'. If no results were found either because there were no transactions registered under the account or due to excluding parameters an empty array is returned.
         body:
           application/json:
             properties:
@@ -132,68 +139,7 @@ securedBy: AuthToken
                 type: array
                 items:
                   type: TransactionDetailsTypes
-              metrics:
-                type: object
-                properties:
-                  offset:
-                    type: string
-                  limit:
-                    type: string
-                  total:
-                    type: string
-                example: |
-                   {
-                    "offset":"0",
-                    "limit":"20",
-                    "total":"100"
-                   }
-            example: |
-              {
-                "success": true,
-                "messages": [],
-                "body":[
-                  {
-                    "value": "0.0000095",
-                    "currency": "XBT",
-                    "issuers": ["eu.carrotpay.com"],
-                    "description": "The art of asking",
-                    "email_customer_contact": "sales@my.site.url",
-                    "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
-                    "policies": {
-                      "receipt_via_email": true,
-                      "refund_via_email": false
-                    },
-                    "payment_url": "https://my.site.url/payment",
-                    "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
-                    "order_id": "IN1234",
-                    "expires": "2018-08-28T06:25:26Z",
-                    "type": "payment",
-                    "status": "initial",
-                    "created": "2018-08-28T05:25:26Z",
-                    "confirmation_details": {
-                      "wallet_id": "12344321",
-                      "options": {
-                        "send_receipt_to": {
-                          "email":"buyer@mail.url"
-                        },
-                        "send_refund_to": {
-                          "email":"buyer@mail.url",
-                          "password":"hX,LsQ9z",
-                          "reference":"12344321"
-                        },
-                        "language_preference": "en-GB"
-                      },
-                      "note": "Please send it to 123 Street, Town, City, Country"
-                    },
-                    "verification_details": {}
-                  }
-                ],
-                "metrics": {
-                  "offset":"0",
-                  "limit":"20",
-                  "total":"100"
-                }
-              }
+            example: !include examples/TransactionsGetResponse.json
   post:
     is: [JSON201Envelope]
     description: |
@@ -237,30 +183,7 @@ securedBy: AuthToken
                 minItems: 0
                 required: true
                 type: TransactionDetailsTypes
-            example: |
-              {
-                "success": true,
-                "messages": [],
-                "body":[{
-                  "value": "0.0000095",
-                  "currency": "XBT",
-                  "issuers": ["eu.carrotpay.com"],
-                  "description": "The art of asking",
-                  "email_customer_contact": "sales@my.site.url",
-                  "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
-                  "policies": {
-                    "receipt_via_email": true,
-                    "refund_via_email": false
-                  },
-                  "payment_url": "https://my.site.url/payment",
-                  "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
-                  "order_id": "IN1234",
-                  "expires": "2018-08-28T06:25:26Z",
-                  "type": "payment",
-                  "status": "initial",
-                  "created": "2018-08-28T05:25:26Z"
-                }]
-              }
+            example: !include examples/TransactionGetResponse.json
         403:
           body:
             application/json:
@@ -323,27 +246,7 @@ securedBy: AuthToken
                 type: array
                 items:
                   type: AccountDetails
-            example: |
-              "success":true,
-              "body":[{
-                "auth_token": "123456789",
-                "domain":"my.site.url",
-                "email_account_contact": "account@my.site.url",
-                "email_customer_contact": "sales@my.site.url",
-                "name":"John Smith"
-                "default_payment_currency":"XBT",
-                "default_payment_timeout":"3600"
-                "provide_receipt_via_email":false
-                "provide_refund_via_email":false,
-                "home_issuer":"be.ap.rmp.net",
-                "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
-              }],
-              "messages":[
-                {
-                  "type":"info",
-                  "body":"Success! Your account is now active!"
-                }
-              ]
+            example: !include examples/AccountsPostResponse.json
 /account:
   /settings:
     get:
@@ -361,22 +264,7 @@ securedBy: AuthToken
                   type: array
                   items:
                     type: AccountSettings
-              example: |
-                "success":true,
-                "body":[{
-                  "domain":"my.site.url",
-                  "email_account_contact": "account@my.site.url",
-                  "email_customer_contact": "sales@my.site.url",
-                  "name":"John Smith"
-                  "default_payment_currency":"XBT",
-                  "default_payment_timeout":"3600"
-                  "provide_receipt_via_email":false
-                  "provide_refund_via_email":false,
-                  "home_issuer":"be.ap.rmp.net",
-                  "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
-                }],
-                "messages":[]
-
+              example: !include examples/AccountSettingsGetResponse.json
     patch:
       is: [JSON202Envelope]
       description: |
@@ -399,27 +287,7 @@ securedBy: AuthToken
                   type: array
                   items:
                     type: AccountSettings
-              example: |
-                "success":true,
-                "body":[{
-                  "domain":"my.site.url",
-                  "email_account_contact": "account@my.site.url",
-                  "email_customer_contact": "sales@my.site.url",
-                  "name":"John Smith"
-                  "default_payment_currency":"XBT",
-                  "default_payment_timeout":"3600"
-                  "provide_receipt_via_email":false
-                  "provide_refund_via_email":false,
-                  "home_issuer":"be.ap.rmp.net",
-                  "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
-                }],
-                "messages":[
-                  {
-                    "type": "info",
-                    "body": "Your settings were updated!"
-                  }
-                ]
-
+              example: !include examples/AccountSettingsPatchResponse.json
   /balance:
     get:
       is: [JSON200Envelope]
