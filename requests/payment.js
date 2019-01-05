@@ -36,7 +36,7 @@ exports.payment = function (req, res) {
     merchant_data: merchant_data
   };
 
-  db.findOne('payments', query).then((resp) => {
+  db.findOne('transactions', query).then((resp) => {
     if (!resp) {
       // throw new Error("Can not find payment with payment_id " + payment_id);
       var response = {
@@ -132,7 +132,7 @@ exports.payment = function (req, res) {
     var modifyOptions = { returnOriginal: true }; // returns payment document before being modified
     var modification = { status: "processing" };
     var promiseModifyPayment = db.findAndModify(
-      "payments", query, modification, modifyOptions
+      'transactions', query, modification, modifyOptions
     );
 
     var promiseBeginIssuer = issuer.post('begin', {
@@ -208,7 +208,7 @@ exports.payment = function (req, res) {
     if (receipt_to) payData["receipt_to"] = receipt_to;
     if (refund_to) payData["refund_to"] = refund_to;
 
-    var prom1 = db.findAndModify("payments", query, payData);
+    var prom1 = db.findAndModify('transactions', query, payData);
     var prom2 = issuer.post('end', {
       issuerRequest: {
         tid: tid

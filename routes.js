@@ -82,21 +82,21 @@ exports.panelRoute = function(req, res, next) {
         return;
       }
 
-      if (!req.body.authToken) {
-        res.render('index', { error: 'no authToken provided' });
+      if (!req.params.auth_token) {
+        res.render('index', { error: 'no auth_token provided' });
         return;
       }
 
-      var query = { authToken: req.body.authToken };
+      var query = { auth_token: req.params.auth_token };
       db.findOne("accounts", query).then((resp) => { 
         if (!resp) {
-          res.render('index', { error: 'incorrect authToken' });
+          res.render('index', { error: 'incorrect auth_token' });
           return;
         }
 
         var id = resp._id;
-        delete resp.privateKey;
-        delete resp.authToken;
+        delete resp.private_key;
+        delete resp.auth_token;
         delete resp.account_id;
         delete resp._id;
         req.session.account_id = id;
@@ -105,7 +105,7 @@ exports.panelRoute = function(req, res, next) {
         displayHome(res, id, resp);
       }).catch((err) => {
         console.log("Error on login ", err.message);
-        res.render('index', { error: "incorrect authToken" });
+        res.render('index', { error: "incorrect auth_token" });
       });
       break;
 

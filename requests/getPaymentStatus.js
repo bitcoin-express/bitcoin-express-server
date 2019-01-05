@@ -14,7 +14,7 @@ exports.getPaymentStatus = function (req, res) {
     [field]: data,
   };
 
-  db.findOne('payments', query).then((resp) => {
+  db.findOne('transactions', query).then((resp) => {
     if (!resp) {
       res.status(400).send("Payment not found by " + field + " query parameter");
     }

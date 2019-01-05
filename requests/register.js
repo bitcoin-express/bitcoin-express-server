@@ -68,7 +68,7 @@ function registerAccount(req) {
 
   console.log(data);
   return db.insert("accounts", data).then((records) => {
-    delete data.privateKey;
+    delete data.private_key;
     delete data._id;
     return data;
   });
