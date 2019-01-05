@@ -85,7 +85,6 @@ exports.findOne = function(name, query, options={ db_session: undefined }) {
       }
 
       if (!resp) {
-        delete query.account_id;
         return reject(new Error(`Can not find "${name}" from query "${JSON.stringify(query)}"`));
       }
 
@@ -178,10 +177,6 @@ exports.find = function(name, query, options={ offset: null, limit: null, db_ses
       let response_objects = Array.isArray(resp) ? resp : [ resp ];
 
       response_objects = response_objects.map((item) => {
-        delete item._id;
-        delete item.account_id;
-        delete item.authToken;
-        delete item.privateKey;
 
         return item;
       });
@@ -207,10 +202,6 @@ exports.findAndModify = function(name, query, modification, options={ returnOrig
         }
 
         let result = doc.value;
-        delete result._id;
-        delete result.account_id;
-        delete result.authToken;
-        delete result.privateKey;
 
         return resolve(result);
       }
@@ -226,5 +217,5 @@ exports.close = function(done) {
       done(err)
     });
   }
-}
+};
 
