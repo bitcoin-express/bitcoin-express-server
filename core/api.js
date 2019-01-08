@@ -126,6 +126,7 @@ const postTransactionByIdPayment = async (req, res, next) => {
         // Transaction id passed in url
         transaction_id: req.params.transaction_id,
         status: Transaction.STATUSES.get('initial'),
+        type: Transaction.TYPES.get('payment'),
 
         limit: 1,
 
