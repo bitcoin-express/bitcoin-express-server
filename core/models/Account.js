@@ -18,6 +18,7 @@ const _account_properties_validators = {
     name: (name) => { if (name && (name.length < 1 || name.length > 128)) { throw new Error('Invalid name format'); }},
     settings: (settings) => { if (!(settings instanceof Settings)) { throw new Error('Must be instance of Settings'); }},
 };
+exports.validators = _account_properties_validators;
 
 exports.Account = class Account {
     static get ALLOWED_PROPERTIES () {
@@ -107,7 +108,7 @@ exports.Account = class Account {
     /*      Methods     */
 
     // Create new account using data provided in a constructor
-    async register() {
+    async create() {
         // Generate account's auth token
         // TODO: make sense to it
         const diffHell = crypto.createDiffieHellman(60);
