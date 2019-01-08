@@ -119,6 +119,7 @@ module.exports = {
       certificate_file_encoding: 'utf8',
     },
 
+
     // Session related settings
     session: {
       secret: undefined,
@@ -194,10 +195,11 @@ module.exports = {
   //
   // YOU HAVE BEEN WARNED!
   //
-  system: {
-    decimal_point_precision: 8,
-    root_dir: require('path').resolve(`${__dirname}/..`),
-    supported_payment_currencies: [ 'XBT', ],
-  },
+    system: {
+        decimal_point_precision: 8,
+        root_dir: require('path').resolve(`${__dirname}/..`),
+        supported_payment_currencies: [ 'XBT', ],
+        remove_expired_transactions: false,
+    },
 };
 
