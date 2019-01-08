@@ -3,18 +3,21 @@
 const config = require('config');
 const db = require(config.get('system.root_dir') + '/db');
 const issuer_utils = require(config.get('system.root_dir') + '/issuer/utils');
-
+const middleware = require(config.get('system.root_dir') + '/core/middlewares');
+const helpers = require(config.get('system.root_dir') + '/core/helpers');
+const errors_model = require(config.get('system.root_dir') + '/core/models/Errors');
 
 const { ObjectId } = require('mongodb');
 const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
 const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponseEnvelope');
 const { Transaction } = require(config.get('system.root_dir') + '/core/models/Transaction');
+const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
 const { Settings } = require(config.get('system.root_dir') + '/core/models/Settings');
 
 class APIError extends Error {}
 
-exports.getTransactions = async (req, res, next) => {
+const getTransactions = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
     let query = {
         account_id: req.params._account_id,
@@ -27,6 +30,10 @@ exports.getTransactions = async (req, res, next) => {
     }
 
     try {
+        if (!query.account_id) {
+            throw new Error('Missing account_id');
+        }
+
         response.body = await Transaction.find(query);
         response.success = true;
         res.status(200);
@@ -41,18 +48,45 @@ exports.getTransactions = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-exports.postTransactions = async (req, res, next) => {
+const postTransactions = async (req, res, next) => {
+    let response = new JSONResponseEnvelope({});
 
+    try {
+        let transaction = undefined;
+
+        try {
+            transaction = await new Transaction({ ...req.body, account: req.params._account, }).create();
+        }
+        catch (e) {
+            if (!(e instanceof errors_model.Warning)) {
+                throw e;
+            }
+            console.log('api postTransactions warning', e);
+        }
+
+        response.body.push(transaction);
+        response.success = true;
+        response.messages.push(new Message({ body: "Transaction created", type: Message.TYPE_INFO, }));
+        res.status(200);
+    }
+    catch (e) {
+        console.log('api postTransactions', e);
+
+        response.messages.push(new Message({ body: "Unable to create transaction", type: Message.TYPE_ERROR, }));
+        res.status(400);
+    }
+
+    return res.send(response.prepareResponse(res));
 };
 
-exports.getTransactionById = async (req, res, next) => {
+const getTransactionById = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
     let query = {
         // Authenticated account
         account_id: req.params._account_id,
 
         // Transaction id passed in url
-        transaction_id: ObjectId(req.params.transaction_id),
+        transaction_id: req.params.transaction_id,
 
         limit: 1,
 
@@ -61,6 +95,10 @@ exports.getTransactionById = async (req, res, next) => {
     };
 
     try {
+        if (!query.account_id) {
+            throw new Error('Missing account_id');
+        }
+
         response.body = await Transaction.find(query);
 
         // If we can't find a transaction with a given id under authenticated account we should treat it as an error.
@@ -111,7 +149,7 @@ exports.postAccounts = async (req, res, next) => {
             }
         }
 
-        let account = await new Account(account_data).register();
+        let account = await new Account(account_data).create();
         response.body.push(account);
         response.success = true;
         response.messages.push(new Message({ body: "Account created", type: Message.TYPE_INFO, }));
@@ -129,7 +167,7 @@ exports.postAccounts = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-exports.getAccountSettings = async (req, res, next) => {
+const getAccountSettings = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
@@ -149,7 +187,7 @@ exports.getAccountSettings = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-exports.patchAccountSettings = async (req, res, next) => {
+const patchAccountSettings = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
@@ -184,7 +222,7 @@ exports.patchAccountSettings = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-exports.getAccountBalance = async (req, res, next) => {
+const getAccountBalance = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
     let currency = req.query.currency ? req.query.currency :  undefined;
 
@@ -215,3 +253,65 @@ exports.getAccountBalance = async (req, res, next) => {
 
     return res.send(response.prepareResponse(res));
 };
+
+
+const _returnOriginalPath = function (id) { return this.path; };
+
+exports.routes = new Map([
+    [ 'getTransactions', {
+            path: '/v1.0a/transactions',
+            method: 'get',
+            actions: [ middleware.requireAuthentication, helpers.asyncWrapper(getTransactions), ],
+            getPathForId: _returnOriginalPath,
+        },
+    ],
+    [ 'postTransactions', {
+            path: '/v1.0a/transactions',
+            method: 'post',
+            actions: [ middleware.requireAuthentication, helpers.asyncWrapper(postTransactions), ],
+            getPathForId: _returnOriginalPath,
+        },
+    ],
+    [ 'getTransactionById', {
+            path: '/v1.0a/transaction/:transaction_id',
+            method: 'get',
+            actions: [ middleware.requireAuthentication, helpers.asyncWrapper(getTransactionById), ],
+            getPathForId: function (id) { return `/v1.0a/transaction/${id}`; },
+        },
+    ],
+    [ 'postTransactionPayment', {
+            path: '/v1.0a/transaction/:transaction_id/payment',
+            method: 'post',
+            actions: [ middleware.noAuthentication, helpers.asyncWrapper(postTransactionByIdPayment), ],
+            getPathForId: function (id) { return `/v1.0a/transaction/${id}/payment`; },
+        },
+    ],
+    [ 'postAccounts', {
+            path: '/v1.0a/accounts',
+            method: 'post',
+            actions: [ middleware.noAuthentication, helpers.asyncWrapper(postAccounts), ],
+            getPathForId: _returnOriginalPath,
+        },
+    ],
+    [ 'getAccountSettings', {
+            path: '/v1.0a/account/settings',
+            method: 'get',
+            actions: [ middleware.requireAuthentication, helpers.asyncWrapper(getAccountSettings), ],
+            getPathForId: _returnOriginalPath,
+        },
+    ],
+    [ 'patchAccountSettings', {
+            path: '/v1.0a/account/settings',
+            method: 'patch',
+            actions: [ middleware.requireAuthentication, helpers.asyncWrapper(patchAccountSettings), ],
+            getPathForId: _returnOriginalPath,
+        },
+    ],
+    [ 'patchAccountSettings', {
+            path: '/v1.0a/account/balance',
+            method: 'get',
+            actions: [ middleware.requireAuthentication, helpers.asyncWrapper(getAccountBalance), ],
+            getPathForId: _returnOriginalPath,
+        },
+    ],
+]);
