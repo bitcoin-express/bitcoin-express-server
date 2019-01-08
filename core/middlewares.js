@@ -1,6 +1,12 @@
-const db = require('./db');
+"use strict";
+
 const config = require('config');
+const db = require('./db');
+
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
+
+
+/*  Local Helpers   */
 
 function sanitiseRequest(req) {
     if (req.body) {
@@ -14,11 +20,14 @@ function sanitiseRequest(req) {
         delete req.query._id;
         delete req.query.account_id;
         delete req.query.account;
+        delete req.query.auth;
     }
 
     return req;
 }
 
+
+/*  Authentication related methods  */
 
 // Authentication is required, check auth token
 exports.requireAuthentication = async function (req, res, next) {
@@ -32,9 +41,9 @@ exports.requireAuthentication = async function (req, res, next) {
 
     try {
         // Try to find account authenticated by the passed token
-        // let account = await db.findOne('accounts', { auth_token: req.headers["be-mg-auth-token"], });
         let account = await Account.find(req.headers["be-mg-auth-token"]);
 
+        // Save both account object and account_id for the API usage
         req.params._account_id = account.account_id;
         req.params._account = account;
 
@@ -46,10 +55,14 @@ exports.requireAuthentication = async function (req, res, next) {
     }
 };
 
+
 // No authentication needed - just move forward
 exports.noAuthentication = function (req, res, next) {
   return next();
 };
+
+
+/*  Middlewares */
 
 exports.corsMiddleware = function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
