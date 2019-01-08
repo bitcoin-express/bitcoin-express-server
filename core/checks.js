@@ -7,6 +7,10 @@ exports.isInteger = number => {
     return !isNaN(parseInt(number));
 };
 
+exports.isFloat = number => {
+    return !isNaN(parseFloat(number));
+};
+
 exports.isDate = date => {
     return ((new Date(date).toString() !== "Invalid Date") && !isNaN(new Date(date)));
 };
@@ -25,8 +29,8 @@ exports.isDomain = domain => {
 
 exports.isURL = url => {
     try {
-        let url = new URL(url);
-        if (!url) { throw new Error('Invalid URL format'); }
+        let parsed_url = new URL(url);
+        if (!parsed_url) { throw new Error('Invalid URL format'); }
     }
     catch (e) {
         return false;
