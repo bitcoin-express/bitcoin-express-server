@@ -31,6 +31,7 @@ const _settings_properties_validators = {
             throw new Error('Invalid domain format');
         }
     },
+    // TODO: add issuer with *
     acceptable_issuers: (issuers) => {
         if (!Array.isArray(issuers)) {
             throw new Error('Invalid format');
@@ -58,6 +59,21 @@ const _settings_properties_validators = {
         }
     },
 };
+exports.validators = _settings_properties_validators;
+
+const _settings_properties_custom_getters = {
+    acceptable_issuers: (issuers) => {
+        let configured_acceptable_issuers = config.get('account.settings.acceptable_issuers');
+        let acceptable_issuers = configured_acceptable_issuers && Array.isArray(configured_acceptable_issuers) && configured_acceptable_issuers.length > 0 ?
+               configured_acceptable_issuers :
+               config.get('account.settings.home_issuer') ?
+                [ `(${config.get('account.settings.acceptable_issuers')})`, ] :
+                undefined;
+
+        if (!acceptable_issuers) { throw new Error('Can not determine value of acceptable_issuers'); }
+        return acceptable_issuers;
+    },
+};
 
 exports.Settings = class Settings {
     static get ALLOWED_PROPERTIES () {
@@ -79,7 +95,10 @@ exports.Settings = class Settings {
                 enumerable: true,
                 get: () => { return this[_settings][setting] !== undefined ?
                                     this[_settings][setting] :
-                                    config.get(`account.settings.${setting}`); },
+                                    _settings_properties_custom_getters.hasOwnProperty(setting) ?
+                                        _settings_properties_custom_getters[setting]() :
+                                        config.get(`account.settings.${setting}`);
+                },
             };
 
             if (!config.get('_account_readonly_settings').includes(setting)) {
