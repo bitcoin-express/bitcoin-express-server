@@ -1,7 +1,7 @@
 "use strict";
 
 const config = require('config');
-const db = require('./db');
+const db = require(config.get('system.root_dir') + '/db');
 
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
 
