@@ -117,17 +117,37 @@ db.connect(config.get('server.db.uri'), function (err) {
                 console.log(`Listening on port ${config.get('server.port')}...`);
     });
 
-  setInterval(() => {
-    const now = new Date().addSeconds(30); // 30 sec
-    const query = {
-      expires: { $lt: now },
-      status: { $in: ["initial", "timeout"] },
-    };
+    setTimeout(() => {
+        let query = {
+            type: { $eq: Transaction.TYPES.get('payment'), },
+            status: { $eq: Transaction.STATUSES.get('initial'), },
+            expire: { $lte: new Date(), }
+        };
 
-    db.remove('transactions', query).then((resp) => {
-      console.log('SCHEDULER - Removing expired requests before ' + now.toUTCString(), 'Items removed: '+resp.n);
-    }).catch((err) => {
-      console.log('SCHEDULER ERROR - Removing expired requests before ' + now.toUTCString(), err);
-    });
-  }, 5 * 60 * 1000); // interval of 5 min
+        db.findAndModify('transactions', query, { status: Transaction.STATUSES.get('expired'), }).
+        then((result) => {
+            console.log('Expired payment transactions', result);
+        }).
+        catch((error) => {
+            console.log('Error during expiring transactions', error);
+        });
+    }, 5 * 60 * 1000);
+
+    if (config.get('system.remove_expired_transactions')) {
+        setInterval(() => {
+            const now = new Date().addSeconds(30); // 30 sec
+            const query = {
+                expires: { $lt: now },
+                status: { $in: ["initial", "timeout"] },
+            };
+
+            db.remove('transactions', query).then((resp) => {
+                console.log('SCHEDULER - Removing expired requests before ' + now.toUTCString(), 'Items removed: ' + resp.n);
+            }).catch((err) => {
+                console.log('SCHEDULER ERROR - Removing expired requests before ' + now.toUTCString(), err);
+            });
+        }, 5 * 60 * 1000); // interval of 5 min
+    }
+
+
 })
