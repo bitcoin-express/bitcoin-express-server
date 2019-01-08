@@ -118,7 +118,62 @@ const getTransactionById = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-exports.postAccounts = async (req, res, next) => {
+
+const postTransactionByIdPayment = async (req, res, next) => {
+    let response = new JSONResponseEnvelope({});
+
+    let query = {
+        // Transaction id passed in url
+        transaction_id: req.params.transaction_id,
+        status: Transaction.STATUSES.get('initial'),
+
+        limit: 1,
+
+        // In order to also return transactions that are not "valid" we need to disable this check
+        only_valid: false,
+    };
+
+    let transaction, payment_details, payment_ack;
+
+    try {
+        transaction = await Transaction.find(query);
+        transaction = transaction[0];
+
+        if (!transaction) {
+            throw new Error ('Failed to find transaction');
+        }
+
+        try {
+            payment_details = new PaymentConfirmation(req.body);
+
+            console.log(transaction);
+            payment_ack = await transaction.pay(payment_details);
+
+            response.body.push(payment_ack);
+            response.success = true;
+            res.status(200);
+        }
+        catch (e) {
+            console.log('api postTransactionByIdPayment', e);
+
+            response.messages.push(new Message({ body: "Unable to pay for transaction", type: Message.TYPE_ERROR, }));
+            res.status(400);
+        }
+    }
+    catch (e) {
+        console.log('api postTransactionByIdPayment', e);
+        // TODO: should it be like this?
+        // response.body.push({ status: 'transaction_unknown', });
+
+        response.messages.push(new Message({ body: "Invalid transaction", type: Message.TYPE_ERROR, }));
+        res.status(400);
+    }
+
+    return res.send(response.prepareResponse(res));
+};
+
+
+const postAccounts = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
     let account_data = {};
 
