@@ -4,9 +4,14 @@ type: string
 minLength: 0
 maxLength: 256
 description: |
-  An URL where notification about successfull transaction will be send.
-  'transaction_id' and 'order_id' (if given) will be appended to this URL, e.g. 'callback_url' such as "https://my.site.url/complete?in=12345" will became "https://my.site.url/complete?in=12345&transaction_id=98765&order_id=98765" .
+  An URL where the notification about successful transaction will be sent.
+  The Gateway will additionaly include two parameters in the ***callback_url*** query string:
+  - ***transaction_id***
+  - ***order_id*** - if it was provided by the Merchant.
+  Example: ***callback_url*** set to ``https://my.site.url/complete?in=12345`` will became ``https://my.site.url/complete?in=12345&transaction_id=98765`` or ``https://my.site.url/complete?in=12345&transaction_id=98765&order_id=98765`` if ***order_id*** was provided as well.
 
-  If 'callback_url' is not set then default value from the account's settings is taken - if set.
+  Please bear in mind that if the original URL already has any of these keys they will be overwritten.
+
+  If it is not explicitly set then the ***callback_url*** setting from the Merchant account's config will be taken.
 example: https://my.site.url/complete?in=12345
 

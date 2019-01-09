@@ -8,15 +8,15 @@ properties:
   currency:
     type: !include primitives/Currency.raml
     required: true
-    description: Currency of coins to be transfered.
+    description: Currency of _Coins_ to be transfered.
   value:
     type: types.ValueMulti
     required: true
     description: |
-      Value of coins to be transfered.
+      Value of _Coins_ to be transfered.
 
-      If 'value' will be set to "all" all funds will be transfered.
+      If ***value*** is explicitly set to ***all*** then all funds of a given currency will be transfered.
   description:
     type: !include primitives/Description.raml
     required: false
-    description: A short description that is meaningful to the Merchant. This description will be recorded in the transaction history.
+    description: A short description that is meaningful to the Merchant. This description will be recorded in the transactions' history.

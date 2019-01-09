@@ -8,12 +8,12 @@ properties:
     type: object
     required: false
     description: |
-      Additional information and flags for the payment.
+        Additional information and flags for the transaction.
+        These options may influence the transaction's process but are not required for the transaction to be processed.
     properties:
       language_preference?: !include primitives/LanguagePreference.raml
       send_receipt_to?: !include primitives/SendReceiptTo.raml
       send_refund_to?: !include primitives/SendRefundTo.raml
-  transaction_id: !include primitives/TransactionId.raml
   order_id?: !include primitives/OrderId.raml
 example: !include ../examples/TransactionPaymentBuyerConfirmationCore.json
 

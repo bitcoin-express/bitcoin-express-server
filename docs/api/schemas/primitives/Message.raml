@@ -1,13 +1,15 @@
 #%RAML 1.0 DataType
 
 type: object
-description: Information bearer with indicator of information type
+description: |
+  Information container with an indicator of information type.
+  It is used by the Gateway to wrap information returned to the API consumer to a format allowing to properly recognize information severity and actions that should be taken in response.
 properties:
   body:
     type: string
     required: true
     description: Body of a message.
-    example: Your payment successfully proceeded.
+    example: Your payment was successfully proceeded.
   type:
     type: string
     required: true
@@ -19,26 +21,31 @@ properties:
       - prompt
     description: |
       Type of a message.
-      - info - information related to confirmation of successfully proceeded operation,
-      - warning - non-fatal information. Operation succeeded but something happened in the progress,
-      - notice - information not related to proceeded information,
-      - error - fatal information. Operation did not proceed as expected,
-      - prompt - action is needed to be taken by the message consumer. Actions are passed in 'actions' parameter.
+      - **info** - information related to confirmation of successfully proceeded operation,
+      - **warning** - non-fatal information. Operation succeeded but something happened in the progress. It is up to the API consumer to either react or ignore this message,
+      - **notice** - information not directly related to the proceeded operation, but important from the Gateway's perspective,
+      - **error** - operation did not proceed as expected. This information is fatal, meaning that replying the operation in an unaltered form will probably fail again,
+      - **prompt** - action is needed to be taken by the message consumer. Actions are passed under ***actions*** key.
     example: info
   actions:
     type: array
     required: false
-    description: Possible actions for 'prompt' type of message.
+    description: |
+      Possible actions for **prompt** message type.
+
+      Actions may be used to enforce a specific behavior on API consumer.
+      Possible usage scenario: the Gateway's operator requires new terms of service acceptance.
+      The Gateway may detect that the Merchant did not yet accept the change and may return this message either instead of or additionally to processed operations' results, with links to either accept or decline new terms.
     items:
       type: object
       properties:
         body:
           type: string
-          description: Display value or anything that can identify action to be taken.
+          description: Display value or anything describing action to be taken.
           required: true
         action:
           type: string
-          description: In most cases URL to be called if this specific action is to be performed.
+          description: In most cases an URL to be called if this specific action is to be performed.
           required: true
     example: |
       [

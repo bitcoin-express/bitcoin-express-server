@@ -4,6 +4,28 @@ version: v1.0a
 baseUri: https://api.gateway.url/{version}
 description: |
   This is an initial draft of documentation for Bitcoin-Express Merchant Gateway API.
+
+  Bitcoin-Express Merchant Gateway API provides means to communicate with the Gateway and supports all operations described in
+  Bitcoin-Express Payment Integration Guide.
+
+  Detailed information about supported operations can be found under its' descriptions.
+
+  Most operations require authentication with a valid *authentication token*.
+  All operations' responses are in a form of **enveloped JSON**:
+  ```
+  {
+      "body": [ <object 1>, <object 2>, ... ],
+      "success": true,
+      "messages": [ <Message 1>, <Message 2>, ...]
+  }
+  ```
+  where:
+  - **body** - will always contain the result of an operation or an empty array in case of lack of results. Even if an operation is supposed to return one result, for consistency it will be wrapped in an array,
+  - **success** - success indicator. Tells if the whole operation succeeded or not. It's very helpful especially when an operation is not returning any results to indicate what's the reason behind it and if it's expected,
+  - **messages** - a list of messages of various types, that can be consumed by the caller. It provides information about encountered errors and the operations' results. The format is described in details under operations' output section.
+
+  In a case where an operation requires authentication and there is no authentication token provided or it's invalid an empty 401 response will be returned.
+
 protocols: [HTTPS]
 mediaType: application/json
 securitySchemes:
@@ -37,14 +59,14 @@ types:
     displayName: TransferCoinFileRequest
   TransactionPaymentDetails:
     type: !include schemas/TransactionPaymentDetails.raml
-    displayName: PaymentDetails
+    displayName: Payment
   TransactionPaymentRequestResponse:
     type: !include schemas/TransactionPaymentRequestResponse.raml
     displayName: PaymentRequestResponse
   TransactionPaymentConfirmation: !include schemas/TransactionPaymentConfirmation.raml
   TransactionPaymentConfirmationResponse:
     type: !include schemas/TransactionPaymentConfirmationResponse.raml
-    displayName: PaymentConfirmationResponse
+    displayName: PaymentAck
   TransactionDetailsTypes:
     type: array
     items:
@@ -52,7 +74,7 @@ types:
   TransactionRequestTypes:
     type: array
     items:
-      type: TransactionPaymentRequest | TransactionTransferBlockchainRequest | TransactionTransferCoinFileRequest
+      type: TransactionPaymentRequest | TransactionTransferBlockchainRequest
   TransactionRequestResponseTypes:
     type: array
     items:
@@ -66,27 +88,31 @@ types:
 securedBy: AuthToken
 /transactions:
   description: |
-    All operations on different types of transactions (including payments) for the account authenticated by the token.
+    This endpoint provides an option to work on a collection of transactions' objects. This includes retrieving a collection
+    or creating a new object in the collection.
+
+    All operations on this endpoint require authentication and work on authenticated account only.
   get:
-    is: [JSON200Envelope]
+    is: [ JSON200Envelope, JSON400Envelope, 401Response, ]
     description: |
         Old: /getTransactions
 
-        Return all transactions that matches given parameters and belongs to the authenticated account.
+        Returns all transactions that match given parameters and belong to the authenticated account.
+        It is possible that an empty set will be returned if there are no transactions matching the search criteria. In that case **success** key
+        from the *JSON envelope* will indicate if the operation succeeded.
+
+        All parameters are optional.
     queryParameters:
       offset?: !include schemas/primitives/Offset.raml
-      limit:
-        description: Maximum number of items in the returned dataset.
-        default: 100
-        required: false
-        type: integer
-        example: 100
+      limit: !include schemas/primitives/Limit.raml
       order_by:
-        description: Field to sort the returned dataset on.
-        default: paid
+        description: |
+          Field to sort the returned dataset on. Not all transaction types will support all order fields.
+          ***paid*** order by value is to be used with **Payment** type of transaction.
+        default: created
         required: false
         type: string
-        example: paid
+        example: created
         enum:
           - paid
           - created
@@ -100,18 +126,22 @@ securedBy: AuthToken
           - ascending
           - descending
       before:
-        description: Shows only records created before this date/time. Uses ISO 8601 as a date/time format. Can be used in conjunction with 'after' parameter.
+        description: |
+          Shows only records created before this date/time.
+          Uses ISO 8601 as a date/time format. Can be used in conjunction with ***after*** parameter.
         required: false
         type: datetime
         example: 2018-12-24T12:00:00Z
       after:
-        description: Shows only records created after this date/time. Uses ISO 8601 as a date/time format. Can be used in conjunction with 'before' parameter.
+        description: |
+          Shows only records created after this date/time.
+          Uses ISO 8601 as a date/time format. Can be used in conjunction with ***before*** parameter.
         required: false
         type: datetime
         example: 2018-12-24T12:00:00Z
-      type: !include schemas/primitives/TransactionType.raml
+      type?: !include schemas/primitives/TransactionType.raml
       status:
-        description: Shows only records in a given status. If this parameter is given 'only_valid' is ignored.
+        description: Shows only records in a given status. If this parameter is set then ***only_valid*** parameter is ignored, even if explicitly defined.
         required: false
         type: string
         enum:
@@ -123,12 +153,16 @@ securedBy: AuthToken
         example: initial
       only_valid:
         type: boolean
-        description: By default only valid, non-expired transactions are returned. In order to get all transaction set this option to false.
+        description: |
+          By default only valid, non-expired transactions are returned. This includes ***initial***, ***resolved*** and ***processing*** statuses.
+          In order to get transactions in all statuses set this option to ***false***.
         required: false
         default: true
     responses:
       200:
-        description: Method always returns enveloped JSON with the returned dataset placed under the key 'body'. If no results were found either because there were no transactions registered under the account or due to excluding parameters an empty array is returned.
+        description: |
+          This method always returns enveloped JSON with the returned dataset placed under the ***body*** key.
+          If no results were found either because there were no transactions registered under the authenticated account or due to search parameters an empty array will be returned.
         body:
           application/json:
             properties:
@@ -140,17 +174,24 @@ securedBy: AuthToken
                 items:
                   type: TransactionDetailsTypes
             example: !include examples/TransactionsGetResponse.json
+      400:
+        description: |
+          This status code will be returned in case of any error encountered during retrieving transactions.
+          Check ***messages*** to get more information about the reason behind this error and/or review your search parameters.
+        body:
+          application/json:
+            example: !include examples/ErrorResponse.json
   post:
-    is: [JSON201Envelope]
+    is: [JSON201Envelope, JSON400Envelope, 401Response]
     description: |
       Old: /createPaymentRequest
 
-      Creates a new transaction of a given type. Currently three types of transactions are available:
+      Creates a new transaction of a requested type. Currently, three types of transactions are available:
       - Payment (payment) - creates a payment request to be processed by the Merchant/Buyer in order to pay for an order created on Merchant's end,
       - Blockchain Transfer (blockchain-transfer) - transfers a requested currency (defined value) to a blockchain,
       - Coin File Transfer (coin-file-transfer) - exports a requested currency (defined value) to the Wallet-ready file.
 
-      Each type of transaction's request has a diffent parameters and responses. In order to define which type of transaction should be created 'type' parameter has to be set to the correct value.
+      Each type of transaction's request has a different parameters and responses. In order to define which type of transaction should be created ***type*** parameter has to be set to the required value.
     body:
       application/json:
         type: TransactionRequestTypes
@@ -160,54 +201,59 @@ securedBy: AuthToken
           application/json:
             properties:
               body:
-                description: Actual data returned by the method.
                 minItems: 0
                 required: true
                 type: array
                 items:
                   type: TransactionRequestResponseTypes
+      400:
+        description: |
+          This status code will be returned in case of any error encountered during transaction creation.
+          Check ***messages*** to get more information about the reason behind this error and/or review your input data.
+        body:
+          application/json:
+            example: !include examples/ErrorResponse.json
+
 /transaction:
+  description: |
+    This endpoint operates on a single transaction's object specified by the ***transaction_id*** passed in the URL.
   /{transaction_id}:
-    description: |
-      Operations that work on a single, specified transation.
     get:
-      is: [JSON200Envelope]
-      description: Returns information about transaction. Depending on the type of transaction returned dataset can differ.
+      is: [ JSON200Envelope, JSON400Envelope, 401Response ]
+      description: |
+        Returns information about transaction specified by the ***transaction_id***.
+        Depending on the type of the requested transaction returned dataset may differ.
+        Only transactions belonging to the authenticated account can be retrieved.
       responses:
         200:
          body:
           application/json:
             properties:
               body:
-                description: Actual data returned by the method.
                 minItems: 0
                 required: true
                 type: TransactionDetailsTypes
             example: !include examples/TransactionGetResponse.json
-        403:
+        400:
+          description: |
+            This status code will be returned in case of any error encountered during retrieving transactions.
+            Check ***messages*** to get more information about the reason behind this error and/or review your search parameters.
           body:
             application/json:
-              type: JSONResponse
-              example: |
-                {
-                  "success": false,
-                  "body": [],
-                  "messages": [
-                    {
-                      "type": "error",
-                      "body": "You are not authorised to view this transaction."
-                    }
-                  ]
-                }
-
+              example: !include examples/ErrorResponse.json
     /payment:
       post:
         securedBy:
-        is: [JSON202Envelope]
+        is: [JSON202Envelope, JSON400Envelope]
         description: |
           Old: /payment
 
-          Accepts object with information needed to complete the transaction, including Coins. Information procided in this request are send to an issuer and included in the original payment request object.
+          This endpoint works only on **payment** transaction's type.
+          As this endpoint is supposed to be called by the Buyer it is not requiring authentication of any sort.
+
+          It accepts payment confirmation object with data needed to complete the transaction, including _Coins_. Data provided in this request is sent to the Issuer and saved in the original payment transaction object for reference.
+
+          In case of an error, apart from standard success indicators in ***success*** and ***messages*** keys it will return PaymentAck object under index 0 of the ***body*** key with the ***status*** key as described in Bitcoin-Express' Payment specification.
         body:
           application/json:
             type: TransactionPaymentConfirmation
@@ -217,22 +263,40 @@ securedBy: AuthToken
               application/json:
                 properties:
                   body:
-                    description: Actual data returned by the method.
                     minItems: 0
                     required: true
                     type: array
                     items:
                       type: TransactionPaymentConfirmationResponse
+          400:
+            description: |
+              This status code will be returned in case of any error encountered during retrieving transactions.
+              Check ***messages*** to get more information about the reason behind this error and/or review your search parameters.
+            body:
+              application/json:
+                example: !include examples/PaymentAckErrorResponse.json
 /accounts:
+  description: |
+    This endpoint provides an option to work on a collection of accounts' objects.
   post:
-    is: [JSON201Envelope]
+    is: [JSON201Envelope, JSON400Envelope]
     securedBy:
     body:
       application/json:
         description: |
           Old: /register
 
-          Creates a new merchant's account in the system
+          Provides a way to create a new Merchant's account on the Gateway.
+          The account will be created with the default configuration inherited from the Gateway. It's advisable to set required settings after the account is created using _/account/settings_ endpoint.
+
+          By default, these settings will be copied over to the account from the Gateway and any changes in the Gateway's default configuration won't affect them.
+          It's up to the Merchant to make sure that these setting are valid and up to date as the Gateway operator will not be able to update them:
+          - ***home_issuer***
+          - ***acceptable_issuers***
+          - ***default_payment_timeout***
+          - ***default_payment_currency***
+
+          In case ***email_customer_contact*** is being set then values of ***provide_receipt_via_email*** and ***provide_refund_via_email*** from Gateway's configuration are also copied over.
         type: AccountRegisterRequest
     responses:
       201:
@@ -240,37 +304,50 @@ securedBy: AuthToken
           application/json:
             properties:
               body:
-                description: Actual data returned by the method.
                 minItems: 0
                 required: true
                 type: array
                 items:
                   type: AccountDetails
             example: !include examples/AccountsPostResponse.json
+      400:
+        description: |
+          This status code will be returned in case of any error encountered during account creation.
+          Check ***messages*** to get more information about the reason behind this error and/or review your request's parameters.
+
 /account:
+  description: |
+    This endpoint provides an option to work on authenticated account object hence it requires a valid authentication token to be provided for every operation.
   /settings:
     get:
-      is: [JSON200Envelope]
-      description: Get all current settings for the account
+      is: [JSON200Envelope, JSON400Envelope, 401Response]
+      description: |
+        Returns current settings for the account. Returned values are either directly set by the Merchant or retrieved from the default Gateway's configuration.
       responses:
         200:
           body:
             application/json:
               properties:
                 body:
-                  description: Actual data returned by the method.
                   minItems: 0
                   required: true
                   type: array
                   items:
                     type: AccountSettings
               example: !include examples/AccountSettingsGetResponse.json
+        400:
+          description: |
+            This status code will be returned in case of any error encountered during retrieving settings.
+            Check ***messages*** to get more information about the reason behind this error.
     patch:
-      is: [JSON202Envelope]
+      is: [JSON202Envelope, JSON400Envelope, 401Response]
       description: |
         Old: /setConfig
 
-        Modifies chosen account's settings
+        Set new values for the Merchant's account settings provided in the requests. Only modified values may be sent in the request.
+
+        The Gateway operator may decide to set some of the settings as read-only hence it will be impossible to modify them.
+        Settings are being saved in a transaction, meaning if even one key will be invalid - the whole operation will fail.
       body:
         application/json:
           type: AccountSettings
@@ -288,18 +365,22 @@ securedBy: AuthToken
                   items:
                     type: AccountSettings
               example: !include examples/AccountSettingsPatchResponse.json
+        400:
+          description: |
+            This status code will be returned in case of any error encountered during saving new settings.
+            Check ***messages*** to get more information about the reason behind this error and/or review your request's parameters.
   /balance:
     get:
-      is: [JSON200Envelope]
+      is: [JSON200Envelope, JSON400Envelope, 401Response]
       description: |
         Old: getBalance
 
-        Get a list of currency balances
+        Returns a list of currency balances either for all currencies stored on the Merchant's account or all if the currency is not defined.
       queryParameters:
         currency:
           type: Currency
           required: false
-          description: For which currency should the balance be returned for.
+          description: The currency identifier that the balance should be returned for.
       responses:
         200:
           body:
@@ -315,3 +396,7 @@ securedBy: AuthToken
               examples:
                 set-currency: !include examples/AccountBalanceResponseSingleCurrency.json
                 all-currencies: !include examples/AccountBalanceResponceAllCurrencies.json
+        400:
+          description: |
+            This status code will be returned in case of any error encountered during retrieving settings.
+            Check ***messages*** to get more information about the reason behind this error.

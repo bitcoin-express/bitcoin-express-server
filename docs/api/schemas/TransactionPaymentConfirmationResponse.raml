@@ -3,10 +3,6 @@
 properties:
   status: !include primitives/PaymentConfirmationStatus.raml
   wallet_id?: !include primitives/WalletId.raml
-  return_url:
-    type: !include primitives/ReturnURL.raml
-    required: false
-    description: |
-      A string under which the Buyer can find and/or finalise the transaction and receive bought items. It can be interchangeably used with 'notification' paramater if there is no need to further continue the process.
-  notification?: !include primitives/Notification.raml
+  return_url?: !include primitives/ReturnURL.raml
+  memo?: !include primitives/Notification.raml
 example: !include ../examples/TransactionPaymentConfirmationResponse.json

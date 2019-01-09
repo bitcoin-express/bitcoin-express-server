@@ -16,6 +16,7 @@
   "type": "payment",
   "status": "initial",
   "created": "2018-08-28T05:25:26Z",
+  "paid": "2018-08-28T05:27:32Z",
   "confirmation_details": {
     "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
     "wallet_id": "1234432112",

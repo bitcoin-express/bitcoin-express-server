@@ -3,5 +3,9 @@
 type: string
 enum:
   - ok
-  - not-found
-description: Information if payment was successfully proceeded.
+  - payment-unknown
+  - after-expires
+  - insufficient-amount
+  - bad-coins
+  - retry-expired
+description: Payment status indicator described in the Payment specification document.

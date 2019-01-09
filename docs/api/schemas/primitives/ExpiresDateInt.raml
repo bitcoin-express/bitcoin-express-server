@@ -3,9 +3,10 @@
 type: datetime | integer
 description: |
   Either:
-  - a date in ISO 6801 format (e.g. 2018-12-18T22:22:22Z) - tells till when this transaction is valid and can be proceeded
-  - an integer - represents the number of seconds from now till when this transaction is valid and can be proceeded
-  If not set then default value from the account's settings is taken. If this value is not set then Gateway's default value is taken.
+  - date in ISO 6801 format (e.g. 2018-12-18T22:22:22Z) - indicates till when this transaction is valid and can be proceeded
+  - an integer - represents the number of seconds from now utill when this transaction is valid and can be proceeded
+
+  If not explicitly set then the default value from the Marchant account's settings is taken.
 default: 3600
 examples:
   date: 2018-12-18T22:22:22Z

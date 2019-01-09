@@ -2,6 +2,6 @@
 
 type: !include Currency.raml
 description: |
-  Default currency for transactions. It will be used by default if there is no explicit currency set for a transaction.
-  If it's not defined neither in the transaction nor on the Merchant's account then default Gateway setting is used.
+  Default currency for transactions. It will be used by default if the currency is not explicitly set for a transaction.
+  If it's defined neither in the transaction nor on the Merchant's account then the default Gateway's setting is used.
 example: "XBT"

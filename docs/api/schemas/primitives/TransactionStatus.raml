@@ -9,9 +9,9 @@ enum:
   - processing
 default: initial
 description: |
-  A status of the transaction:
-  - initial - a payment was initialised but is not yet processed. It still can be modified and/or canceled,
-  - resolved - a payment was successfully resolved. No more changes is allowed in this state,
-  - aborted - a payment was aborted for some reason. No more changes is allowed in this state,
-  - expired - a payment was not proceeded in set time. No more changes is allowed in this state,
-  - processing - a payment is being processed at the moment. No more changes is allowed in this state.
+  Status of the transaction:
+  - **initial** - a transaction was initialized but is not yet processed. It still can be modified and/or canceled,
+  - **resolved** - a transaction was successfully resolved. No more changes are allowed in this state,
+  - **aborted** - a transaction was aborted for some reason. No more changes are allowed in this state,
+  - **expired** - a transaction did not proceed in the set time. No more changes are allowed in this state,
+  - **processing** - a transaction is being processed at the moment. No more changes are allowed in this state.

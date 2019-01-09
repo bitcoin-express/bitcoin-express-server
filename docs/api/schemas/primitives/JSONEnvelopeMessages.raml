@@ -4,4 +4,6 @@ type: array
 items:
   type: !include Message.raml
 minItems: 0
-description: Messages to be processed on API consumer's end.
+description: |
+  Messages to be processed on API consumer's end. These messages may include information about encountered errors, confirmations or other important information returned by the Gateway.
+  Type and severity of the returned information are defined by the ***type** key.

@@ -1,0 +1,19 @@
+{
+  "actualValue":"0.00088900",
+  "changeValue":"0.00000000",
+  "currency":"XBT",
+  "exchangedValue":"0.00000000",
+  "faceValue":"0.00088900",
+  "fees":[
+    {
+      "domain":"eu.carrotpay.com",
+      "totalFee":"0.00000454",
+      "valueFee":"0.00000454"
+    }
+  ],
+  "issuePolicy":"single",
+  "reference":"67972259-4d91-4a88-b0b0-f525a4c2ce29",
+  "targetValue":"0.00088900",
+  "totalFee":"0.00000454",
+  "verifiedValue":"0.00088446"
+}

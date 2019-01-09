@@ -1,0 +1,10 @@
+{
+    "success":false,
+    "body":[],
+    "messages":[
+        {
+            "type":"error",
+            "body":"An example of the error message"
+        }
+    ]
+}

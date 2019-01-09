@@ -6,25 +6,15 @@ properties:
     type: !include TransactionPaymentConfirmationCore.raml
     required: false
     description: |
-      Payment confirmation details send from the Buyer's Wallet to finalise the transaction.
-    properties:
-      wallet_id?: !include primitives/WalletId.raml
-      client_type?: !include primitives/ClientType.raml
-      memo?: !include primitives/Memo.raml
-      options:
-        type: object
-        required: false
-        description: |
-          Additional information and flags for the payment.
-        properties:
-          language_preference?: !include primitives/LanguagePreference.raml
-          send_receipt_to?: !include primitives/SendReceiptTo.raml
-          send_refund_to?: !include primitives/SendRefundTo.raml
+      Payment confirmation details send from the Buyer's Wallet to finalize the transaction.
     example: !include ../examples/TranscationPaymentConfirmation.json
   verification_details:
     type: object
     required: false
     description: |
-      The data returned by the Issuer that verified the payment Coins.
+      The data returned by the Issuer that verified _Coins_ used in the transaction. The Gateway is not modifying this data in any way.
+      Please refer to issuer specification for the detailed description of this structure.
+    example: !include ../examples/TransactionPaymentVerifyInfo.json
+  paid: !include primitives/PaidDate.raml
 example: !include ../examples/TransactionPaymentDetails.json
 
