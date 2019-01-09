@@ -613,7 +613,7 @@ exports.Transaction = class Transaction {
 
     static get STATUSES () { return TRANSACTION_STATUSES; }
 
-    static async find({transaction_id, account_id, type, status, offset=0, limit=100, before, after, order="descending", order_by="paid", only_valid=true }) {
+    static async find({transaction_id, account_id, type, status, offset=0, limit=100, before, after, order="descending", order_by="created", only_valid=true }) {
         try {
             // Check if all parameters are fine
             if (transaction_id) {
