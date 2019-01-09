@@ -4,13 +4,15 @@
     "domain":"my.site.url",
     "email_account_contact": "account@my.site.url",
     "email_customer_contact": "sales@my.site.url",
-    "name":"John Smith"
-    "default_payment_currency":"XBT",
-    "default_payment_timeout":"3600",
-    "provide_receipt_via_email":false,
-    "provide_refund_via_email":false,
-    "home_issuer":"be.ap.rmp.net",
-    "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
+    "name":"John Smith",
+    "settings": {
+      "default_payment_currency": "XBT",
+      "default_payment_timeout": "3600",
+      "provide_receipt_via_email": false,
+      "provide_refund_via_email": false,
+      "home_issuer": "be.ap.rmp.net",
+      "acceptable_issuers": [ "(be.ap.rmp.net)" ]
+    }
   }],
   "messages":[]
 }

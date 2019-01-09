@@ -4,7 +4,7 @@
   "body":[{
     "value": "0.0000095",
     "currency": "XBT",
-    "issuers": ["eu.carrotpay.com"],
+    "acceptable_issuers": ["eu.carrotpay.com"],
     "description": "The art of asking",
     "email_customer_contact": "sales@my.site.url",
     "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
@@ -12,7 +12,7 @@
       "receipt_via_email": true,
       "refund_via_email": false
     },
-    "payment_url": "https://my.site.url/payment",
+    "payment_url": "https://my.gateay.url/transaction/97e00590-aa8a-11e8-a18f-4d64691098e6/payment",
     "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
     "order_id": "IN1234",
     "expires": "2018-08-28T06:25:26Z",

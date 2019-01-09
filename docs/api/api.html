@@ -230,7 +230,7 @@ pre code {
     {
       "value": "0.0000095",
       "currency": "XBT",
-      "issuers": ["eu.carrotpay.com"],
+      "issuers": [ "(eu.carrotpay.com)" ],
       "description": "The art of asking",
       "email_customer_contact": "sales@my.site.url",
       "return_url": "https://my.site.url/pay?order=IN1234&amp;transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
@@ -238,7 +238,7 @@ pre code {
         "receipt_via_email": true,
         "refund_via_email": false
       },
-      "payment_url": "https://my.site.url/payment",
+      "payment_url": "https://my.gateway.url/transaction/97e00590-aa8a-11e8-a18f-4d64691098e6/payment",
       "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
       "order_id": "IN1234",
       "expires": "2018-08-28T06:25:26Z",
@@ -258,9 +258,27 @@ pre code {
           },
           "language_preference": "en-GB"
         },
-        "note": "Please send it to 123 Street, Town, City, Country"
+        "memo": "Please send it to 123 Street, Town, City, Country"
       },
-      "verification_details": {}
+      "verification_details": {
+        "actualValue":"0.00088900",
+        "changeValue":"0.00000000",
+        "currency":"XBT",
+        "exchangedValue":"0.00000000",
+        "faceValue":"0.00088900",
+        "fees":[
+          {
+            "domain":"eu.carrotpay.com",
+            "totalFee":"0.00000454",
+            "valueFee":"0.00000454"
+          }
+        ],
+        "issuePolicy":"single",
+        "reference":"67972259-4d91-4a88-b0b0-f525a4c2ce29",
+        "targetValue":"0.00088900",
+        "totalFee":"0.00000454",
+        "verifiedValue":"0.00088446"
+      }
     }
   ]
 }
@@ -383,7 +401,7 @@ pre code {
   "body":[{
     "value": "0.0000095",
     "currency": "XBT",
-    "issuers": ["eu.carrotpay.com"],
+    "acceptable_issuers": ["eu.carrotpay.com"],
     "description": "The art of asking",
     "email_customer_contact": "sales@my.site.url",
     "return_url": "https://my.site.url/pay?order=IN1234&amp;transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
@@ -391,7 +409,7 @@ pre code {
       "receipt_via_email": true,
       "refund_via_email": false
     },
-    "payment_url": "https://my.site.url/payment",
+    "payment_url": "https://my.gateay.url/transaction/97e00590-aa8a-11e8-a18f-4d64691098e6/payment",
     "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
     "order_id": "IN1234",
     "expires": "2018-08-28T06:25:26Z",
@@ -440,11 +458,11 @@ pre code {
   },
   "note": "Please send it to 123 Street, Town, City, Country"
 }
-</code></pre></div></div><div class="tab-pane" id="transaction__transaction_id__payment_post_response"><h2>HTTP status code <a href="http://httpstatus.es/202" target="_blank">202</a></h2><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: object</p><strong>Properties</strong><ul><li><strong>body</strong>: <em>required (array of object - minItems: 0)</em><p>Actual data returned by the method.</p><p><strong>Items</strong>: PaymentAck</p><div class="items"><ul><li><strong>status</strong>: <em>required (one of ok, payment-unknown, after-expires, insufficient-amount, bad-coins, retry-expired)</em><p>Payment status indicator described in the Payment specification document.</p></li><li><strong>wallet_id</strong>: <em>(string - minLength: 1 - maxLength: 36)</em><p>A string created by the Wallet and echoed back to the Wallet in the confirmation of payment.</p></li><li><strong>return_url</strong>: <em>(string - minLength: 0 - maxLength: 256)</em><p>An URL&#39;/ where the purchased product may be obtained and/or order finalized. The Gateway will additionaly include two parameters in the <strong><em>return_url</em></strong> query string:</p><ul><li><strong><em>transaction_id</em></strong></li><li><strong><em>order_id</em></strong> - if it was provided by the Merchant. Example: <strong><em>callback_url</em></strong> set to <code>https://my.site.url/order?in=12345</code> will became <code>https://my.site.url/order?in=12345&amp;transaction_id=98765</code> or <code>https://my.site.url/order?in=12345&amp;transaction_id=98765&amp;order_id=98765</code> if <strong><em>order_id</em></strong> was provided as well.</li></ul><p>Please bear in mind that if the original URL already has any of these keys they will be overwritten.</p><p>If it is not explicitly set then the <strong><em>return_url</em></strong> setting from the Merchant account&#39;s config will be taken.</p><p>In general, it is a good practice to provide a <strong><em>return_url</em></strong>.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>https://my.site.url/order?in=12345</code></pre></div></li><li><strong>notification</strong>: <em>(string - minLength: 1 - maxLength: 128)</em><p>Short information from the Merchant to be presented to the Buyer e.g. a thank you note, confirmation of purchase. This may be useful especially if there is no need for extra steps after payment is done i.e. by passing <strong><em>return_url</em></strong>. On occasions such as payment for a subscription, the Merchant may simply wish to confirm that a payment has been received without providing a separate confirmation or download page. A notification may be used in such a situation.</p><p>Notification should be recorded in the history of the Buyer&#39;s Wallet.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>Thank you for your payment. Your subscription is now active.</code></pre></div></li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>{
+</code></pre></div></div><div class="tab-pane" id="transaction__transaction_id__payment_post_response"><h2>HTTP status code <a href="http://httpstatus.es/202" target="_blank">202</a></h2><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: object</p><strong>Properties</strong><ul><li><strong>body</strong>: <em>required (array of object - minItems: 0)</em><p>Actual data returned by the method.</p><p><strong>Items</strong>: PaymentAck</p><div class="items"><ul><li><strong>status</strong>: <em>required (one of ok, payment-unknown, after-expires, insufficient-amount, bad-coins, retry-expired)</em><p>Payment status indicator described in the Payment specification document.</p></li><li><strong>wallet_id</strong>: <em>(string - minLength: 1 - maxLength: 36)</em><p>A string created by the Wallet and echoed back to the Wallet in the confirmation of payment.</p></li><li><strong>return_url</strong>: <em>(string - minLength: 0 - maxLength: 256)</em><p>An URL&#39;/ where the purchased product may be obtained and/or order finalized. The Gateway will additionaly include two parameters in the <strong><em>return_url</em></strong> query string:</p><ul><li><strong><em>transaction_id</em></strong></li><li><strong><em>order_id</em></strong> - if it was provided by the Merchant. Example: <strong><em>callback_url</em></strong> set to <code>https://my.site.url/order?in=12345</code> will became <code>https://my.site.url/order?in=12345&amp;transaction_id=98765</code> or <code>https://my.site.url/order?in=12345&amp;transaction_id=98765&amp;order_id=98765</code> if <strong><em>order_id</em></strong> was provided as well.</li></ul><p>Please bear in mind that if the original URL already has any of these keys they will be overwritten.</p><p>If it is not explicitly set then the <strong><em>return_url</em></strong> setting from the Merchant account&#39;s config will be taken.</p><p>In general, it is a good practice to provide a <strong><em>return_url</em></strong>.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>https://my.site.url/order?in=12345</code></pre></div></li><li><strong>memo</strong>: <em>(string - minLength: 1 - maxLength: 128)</em><p>Short information from the Merchant to be presented to the Buyer e.g. a thank you note, confirmation of purchase. This may be useful especially if there is no need for extra steps after payment is done i.e. by passing <strong><em>return_url</em></strong>. On occasions such as payment for a subscription, the Merchant may simply wish to confirm that a payment has been received without providing a separate confirmation or download page. A notification may be used in such a situation.</p><p>Notification should be recorded in the history of the Buyer&#39;s Wallet.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>Thank you for your payment. Your subscription is now active.</code></pre></div></li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>{
   "status": "ok",
   "wallet_id": "123456789",
   "return_url": "https://my.site.url/download?prod=123&amp;transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6&amp;order_id=IN12345",
-  "notification": "Thank you for your purchase!"
+  "memo": "Thank you for your purchase!"
 }
 </code></pre></div></div></li><li><strong>success</strong>: <em>required (boolean)</em><p>Indicator if command was successfully executed.</p></li><li><strong>messages</strong>: <em>required (array of object - minItems: 0)</em><p>Messages to be processed on API consumer&#39;s end.</p><p><strong>Items</strong>: Message</p><div class="items"><ul><li><strong>body</strong>: <em>required (string)</em><p>Body of a message.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>Your payment was successfully proceeded.</code></pre></div></li><li><strong>type</strong>: <em>required (one of info, warning, notice, error, prompt)</em><p>Type of a message.</p><ul><li><strong>info</strong> - information related to confirmation of successfully proceeded operation,</li><li><strong>warning</strong> - non-fatal information. Operation succeeded but something happened in the progress. It is up to the API consumer to either react or ignore this message,</li><li><strong>notice</strong> - information not directly related to the proceeded operation, but important from the Gateway&#39;s perspective,</li><li><strong>error</strong> - operation did not proceed as expected. This information is fatal, meaning that replying the operation in an unaltered form will probably fail again,</li><li><strong>prompt</strong> - action is needed to be taken by the message consumer. Actions are passed under <strong><em>actions</em></strong> key.</li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>info</code></pre></div></li><li><strong>actions</strong>: <em>(array of object)</em><p>Possible actions for <strong>prompt</strong> message type.</p><p>Actions may be used to enforce a specific behavior on API consumer. Possible usage scenario: the Gateway&#39;s operator requires new terms of service acceptance. The Gateway may detect that the Merchant did not yet accept the change and may return this message either instead of or additionally to processed operations&#39; results, with links to either accept or decline new terms.</p><p><strong>Items</strong>: items</p><div class="items"><ul><li><strong>body</strong>: <em>required (string)</em><p>Display value or anything describing action to be taken.</p></li><li><strong>action</strong>: <em>required (string)</em><p>In most cases an URL to be called if this specific action is to be performed.</p></li></ul></div><p><strong>Example</strong>:</p><div class="examples"><pre><code>[
   {
@@ -491,16 +509,18 @@ pre code {
   "(eu.carrotpay.com)"
 ]</code></pre></div></li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>{
   "auth_token": "1p2o3i4u5y6t7r8e9w0q",
-  "acceptable_issuers": ["(eu.carrotpay.com)"],
   "domain": "my.site.url",
   "email_account_contact": "account@my.site.url",
   "email_customer_contact": "sales@my.site.url",
   "name": "My Online Shop",
-  "default_payment_currency": "XBT",
-  "default_payment_timeout": "3600",
-  "provide_receipt_via_email": true,
-  "provide_refund_via_email": false,
-  "home_issuer": "eu.carrotpay.com"
+  "settings": {
+    "default_payment_currency": "XBT",
+    "default_payment_timeout": "3600",
+    "provide_receipt_via_email": true,
+    "provide_refund_via_email": false,
+    "home_issuer": "eu.carrotpay.com",
+    "acceptable_issuers": ["(eu.carrotpay.com)"]
+  }
 }
 </code></pre></div></div></li><li><strong>success</strong>: <em>required (boolean)</em><p>Indicator if command was successfully executed.</p></li><li><strong>messages</strong>: <em>required (array of object - minItems: 0)</em><p>Messages to be processed on API consumer&#39;s end.</p><p><strong>Items</strong>: Message</p><div class="items"><ul><li><strong>body</strong>: <em>required (string)</em><p>Body of a message.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>Your payment was successfully proceeded.</code></pre></div></li><li><strong>type</strong>: <em>required (one of info, warning, notice, error, prompt)</em><p>Type of a message.</p><ul><li><strong>info</strong> - information related to confirmation of successfully proceeded operation,</li><li><strong>warning</strong> - non-fatal information. Operation succeeded but something happened in the progress. It is up to the API consumer to either react or ignore this message,</li><li><strong>notice</strong> - information not directly related to the proceeded operation, but important from the Gateway&#39;s perspective,</li><li><strong>error</strong> - operation did not proceed as expected. This information is fatal, meaning that replying the operation in an unaltered form will probably fail again,</li><li><strong>prompt</strong> - action is needed to be taken by the message consumer. Actions are passed under <strong><em>actions</em></strong> key.</li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>info</code></pre></div></li><li><strong>actions</strong>: <em>(array of object)</em><p>Possible actions for <strong>prompt</strong> message type.</p><p>Actions may be used to enforce a specific behavior on API consumer. Possible usage scenario: the Gateway&#39;s operator requires new terms of service acceptance. The Gateway may detect that the Merchant did not yet accept the change and may return this message either instead of or additionally to processed operations&#39; results, with links to either accept or decline new terms.</p><p><strong>Items</strong>: items</p><div class="items"><ul><li><strong>body</strong>: <em>required (string)</em><p>Display value or anything describing action to be taken.</p></li><li><strong>action</strong>: <em>required (string)</em><p>In most cases an URL to be called if this specific action is to be performed.</p></li></ul></div><p><strong>Example</strong>:</p><div class="examples"><pre><code>[
   {
@@ -519,13 +539,15 @@ pre code {
     "domain":"my.site.url",
     "email_account_contact": "account@my.site.url",
     "email_customer_contact": "sales@my.site.url",
-    "name":"John Smith"
-    "default_payment_currency":"XBT",
-    "default_payment_timeout":"3600",
-    "provide_receipt_via_email":false,
-    "provide_refund_via_email":false,
-    "home_issuer":"be.ap.rmp.net",
-    "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
+    "name":"John Smith",
+    "settings": {
+      "default_payment_currency": "XBT",
+      "default_payment_timeout": "3600",
+      "provide_receipt_via_email": false,
+      "provide_refund_via_email": false,
+      "home_issuer": "be.ap.rmp.net",
+      "acceptable_issuers": [ "(be.ap.rmp.net)" ]
+    }
   }],
   "messages":[
     {
@@ -545,10 +567,6 @@ pre code {
   }
 ]
 </code></pre></div></li></ul></div></li><li><strong>body</strong>: <em>required (array of - minItems: 0)</em><p>Actual data returned by the method.</p></li></ul></div></div></div></div></div></div></div></div></div></div><div class="panel panel-default"><div class="panel-heading"><h3 id="account" class="panel-title">/account</h3></div><div class="panel-body"><div class="top-resource-description"><p>This endpoint provides an option to work on authenticated account object hence it requires a valid authentication token to be provided for every operation.</p></div><div class="panel-group"><div class="panel panel-white resource-modal"><div class="panel-heading"><h4 class="panel-title"><a class="collapsed" data-toggle="collapse" href="#panel_account_settings"><span class="parent">/account</span>/settings</a> <span class="methods"><a href="#account_settings_get"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a> <a href="#account_settings_patch"><span class="badge badge_patch">patch <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span></a></span></h4></div><div id="panel_account_settings" class="panel-collapse collapse"><div class="panel-body"><div class="list-group"><div onclick="window.location.href = '#account_settings_get'" class="list-group-item"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Returns current settings for the account. Returned values are either directly set by the Merchant or retrieved from the default Gateway&#39;s configuration.</p></div><div class="clearfix"></div></div><div onclick="window.location.href = '#account_settings_patch'" class="list-group-item"><span class="badge badge_patch">patch <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span><div class="method_description"><p>Old: /setConfig</p><p>Set new values for the Merchant&#39;s account settings provided in the requests. Only modified values may be sent in the request.</p><p>The Gateway operator may decide to set some of the settings as read-only hence it will be impossible to modify them. Settings are being saved in a transaction, meaning if even one key will be invalid - the whole operation will fail.</p></div><div class="clearfix"></div></div></div></div></div><div class="modal fade" tabindex="0" id="account_settings_get"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_get">get <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent">/account</span>/settings</h4></div><div class="modal-body"><div class="alert alert-info"><p>Returns current settings for the account. Returned values are either directly set by the Merchant or retrieved from the default Gateway&#39;s configuration.</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>AuthToken</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#account_settings_get_response" data-toggle="tab">Response</a></li><li><a href="#account_settings_get_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="account_settings_get_response"><h2>HTTP status code <a href="http://httpstatus.es/200" target="_blank">200</a></h2><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: object</p><strong>Properties</strong><ul><li><strong>body</strong>: <em>required (array of object - minItems: 0)</em><p>Actual data returned by the method.</p><p><strong>Items</strong>: AccountSettings</p><div class="items"><ul><li><strong>domain</strong>: <em>(string - minLength: 4 - maxLength: 128)</em><p>The domain name of the Merchant&#39;s service.</p><p>If <strong><em>domain</em></strong> will be different than the <strong><em>return_url</em></strong>&#39;s domain then Merchant&#39;s account should be displayed as not verified in the Wallet.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>my.site.url</code></pre></div></li><li><strong>email_account_contact</strong>: <em>(string - minLength: 3 - maxLength: 256)</em><p>An email address for the account related queries.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>contact@my.site.url</code></pre></div></li><li><strong>email_customer_contact</strong>: <em>(string - minLength: 3 - maxLength: 256)</em><p>An email address for the customer related queries.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>sales@my.site.url</code></pre></div></li><li><strong>name</strong>: <em>(string - minLength: 1 - maxLength: 128)</em><p>Name of the account. It&#39;s not an identifier of any kind, its role is purely descriptive.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>My Great Online Shop</code></pre></div></li><li><strong>default_payment_currency</strong>: <em>(XBT)</em><p>Default currency for transactions. It will be used by default if the currency is not explicitly set for a transaction. If it&#39;s defined neither in the transaction nor on the Merchant&#39;s account then the default Gateway&#39;s setting is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>XBT</code></pre></div></li><li><strong>default_payment_timeout</strong>: <em>(string - default: 3600)</em><p>Time in seconds after which the transaction in the <em>initial</em> status will be marked as <em>expired</em>. If it&#39;s defined neither in the transaction nor on the Merchant&#39;s account then the default Gateway&#39;s setting is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>3600</code></pre></div></li><li><strong>provide_receipt_via_email</strong>: <em>(boolean - default: false)</em><p>Indicates if the Merchant provides an option to send a receipt via email.</p></li><li><strong>provide_refund_via_email</strong>: <em>(boolean - default: false)</em><p>Indicates if the Merchant provides an option to send a refund via email.</p></li><li><strong>home_issuer</strong>: <em>(string - default: eu.carrotpay.com)</em><p>A default Issuer to use for all transactions. If it&#39;s not explicitly set by the Merchant then the default Gateway&#39;s Issuer is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>eu.carrotpay.com</code></pre></div></li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>{
-  "domain": "my.site.url",
-  "email_account_contact": "account@my.site.url",
-  "email_customer_contact": "sales@my.site.url",
-  "name": "My Online Shop",
   "default_payment_currency": "XBT",
   "default_payment_timeout": "3600",
   "provide_receipt_via_email": true,
@@ -571,13 +589,15 @@ pre code {
     "domain":"my.site.url",
     "email_account_contact": "account@my.site.url",
     "email_customer_contact": "sales@my.site.url",
-    "name":"John Smith"
-    "default_payment_currency":"XBT",
-    "default_payment_timeout":"3600",
-    "provide_receipt_via_email":false,
-    "provide_refund_via_email":false,
-    "home_issuer":"be.ap.rmp.net",
-    "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
+    "name":"John Smith",
+    "settings": {
+      "default_payment_currency": "XBT",
+      "default_payment_timeout": "3600",
+      "provide_receipt_via_email": false,
+      "provide_refund_via_email": false,
+      "home_issuer": "be.ap.rmp.net",
+      "acceptable_issuers": [ "(be.ap.rmp.net)" ]
+    }
   }],
   "messages":[]
 }
@@ -592,10 +612,6 @@ pre code {
   }
 ]
 </code></pre></div></li></ul></div></li><li><strong>body</strong>: <em>required (array of - minItems: 0)</em><p>Actual data returned by the method.</p></li></ul><h2>HTTP status code <a href="http://httpstatus.es/401" target="_blank">401</a></h2><p>Authentication token was not provided or it&#39;s invalid.</p></div><div class="tab-pane" id="account_settings_get_securedby"><h1>Secured by AuthToken</h1><h3>Headers</h3><ul><li><strong>BE-MG-Auth-Token</strong>: <em>required (string)</em></li></ul></div></div></div></div></div></div><div class="modal fade" tabindex="0" id="account_settings_patch"><div class="modal-dialog modal-lg"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button><h4 class="modal-title" id="myModalLabel"><span class="badge badge_patch">patch <span class="glyphicon glyphicon-lock" title="Authentication required"></span></span> <span class="parent">/account</span>/settings</h4></div><div class="modal-body"><div class="alert alert-info"><p>Old: /setConfig</p><p>Set new values for the Merchant&#39;s account settings provided in the requests. Only modified values may be sent in the request.</p><p>The Gateway operator may decide to set some of the settings as read-only hence it will be impossible to modify them. Settings are being saved in a transaction, meaning if even one key will be invalid - the whole operation will fail.</p></div><div class="alert alert-warning"><span class="glyphicon glyphicon-lock" title="Authentication required"></span> Secured by <b>AuthToken</b><p>By default each request - unless stated otherwise - requires authentication header passed together with the request.</p></div><ul class="nav nav-tabs"><li class="active"><a href="#account_settings_patch_request" data-toggle="tab">Request</a></li><li><a href="#account_settings_patch_response" data-toggle="tab">Response</a></li><li><a href="#account_settings_patch_securedby" data-toggle="tab">Security</a></li></ul><div class="tab-content"><div class="tab-pane active" id="account_settings_patch_request"><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: object</p><strong>Properties</strong><ul><li><strong>domain</strong>: <em>(string - minLength: 4 - maxLength: 128)</em><p>The domain name of the Merchant&#39;s service.</p><p>If <strong><em>domain</em></strong> will be different than the <strong><em>return_url</em></strong>&#39;s domain then Merchant&#39;s account should be displayed as not verified in the Wallet.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>my.site.url</code></pre></div></li><li><strong>email_account_contact</strong>: <em>(string - minLength: 3 - maxLength: 256)</em><p>An email address for the account related queries.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>contact@my.site.url</code></pre></div></li><li><strong>email_customer_contact</strong>: <em>(string - minLength: 3 - maxLength: 256)</em><p>An email address for the customer related queries.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>sales@my.site.url</code></pre></div></li><li><strong>name</strong>: <em>(string - minLength: 1 - maxLength: 128)</em><p>Name of the account. It&#39;s not an identifier of any kind, its role is purely descriptive.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>My Great Online Shop</code></pre></div></li><li><strong>default_payment_currency</strong>: <em>(XBT)</em><p>Default currency for transactions. It will be used by default if the currency is not explicitly set for a transaction. If it&#39;s defined neither in the transaction nor on the Merchant&#39;s account then the default Gateway&#39;s setting is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>XBT</code></pre></div></li><li><strong>default_payment_timeout</strong>: <em>(string - default: 3600)</em><p>Time in seconds after which the transaction in the <em>initial</em> status will be marked as <em>expired</em>. If it&#39;s defined neither in the transaction nor on the Merchant&#39;s account then the default Gateway&#39;s setting is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>3600</code></pre></div></li><li><strong>provide_receipt_via_email</strong>: <em>(boolean - default: false)</em><p>Indicates if the Merchant provides an option to send a receipt via email.</p></li><li><strong>provide_refund_via_email</strong>: <em>(boolean - default: false)</em><p>Indicates if the Merchant provides an option to send a refund via email.</p></li><li><strong>home_issuer</strong>: <em>(string - default: eu.carrotpay.com)</em><p>A default Issuer to use for all transactions. If it&#39;s not explicitly set by the Merchant then the default Gateway&#39;s Issuer is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>eu.carrotpay.com</code></pre></div></li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>{
-  "domain": "my.site.url",
-  "email_account_contact": "account@my.site.url",
-  "email_customer_contact": "sales@my.site.url",
-  "name": "My Online Shop",
   "default_payment_currency": "XBT",
   "default_payment_timeout": "3600",
   "provide_receipt_via_email": true,
@@ -603,10 +619,6 @@ pre code {
   "home_issuer": "eu.carrotpay.com"
 }
 </code></pre></div></div><div class="tab-pane" id="account_settings_patch_response"><h2>HTTP status code <a href="http://httpstatus.es/202" target="_blank">202</a></h2><h3>Body</h3><p><strong>Media type</strong>: application/json</p><p><strong>Type</strong>: object</p><strong>Properties</strong><ul><li><strong>body</strong>: <em>required (array of object - minItems: 0)</em><p>Actual data returned by the method.</p><p><strong>Items</strong>: AccountSettings</p><div class="items"><ul><li><strong>domain</strong>: <em>(string - minLength: 4 - maxLength: 128)</em><p>The domain name of the Merchant&#39;s service.</p><p>If <strong><em>domain</em></strong> will be different than the <strong><em>return_url</em></strong>&#39;s domain then Merchant&#39;s account should be displayed as not verified in the Wallet.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>my.site.url</code></pre></div></li><li><strong>email_account_contact</strong>: <em>(string - minLength: 3 - maxLength: 256)</em><p>An email address for the account related queries.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>contact@my.site.url</code></pre></div></li><li><strong>email_customer_contact</strong>: <em>(string - minLength: 3 - maxLength: 256)</em><p>An email address for the customer related queries.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>sales@my.site.url</code></pre></div></li><li><strong>name</strong>: <em>(string - minLength: 1 - maxLength: 128)</em><p>Name of the account. It&#39;s not an identifier of any kind, its role is purely descriptive.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>My Great Online Shop</code></pre></div></li><li><strong>default_payment_currency</strong>: <em>(XBT)</em><p>Default currency for transactions. It will be used by default if the currency is not explicitly set for a transaction. If it&#39;s defined neither in the transaction nor on the Merchant&#39;s account then the default Gateway&#39;s setting is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>XBT</code></pre></div></li><li><strong>default_payment_timeout</strong>: <em>(string - default: 3600)</em><p>Time in seconds after which the transaction in the <em>initial</em> status will be marked as <em>expired</em>. If it&#39;s defined neither in the transaction nor on the Merchant&#39;s account then the default Gateway&#39;s setting is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>3600</code></pre></div></li><li><strong>provide_receipt_via_email</strong>: <em>(boolean - default: false)</em><p>Indicates if the Merchant provides an option to send a receipt via email.</p></li><li><strong>provide_refund_via_email</strong>: <em>(boolean - default: false)</em><p>Indicates if the Merchant provides an option to send a refund via email.</p></li><li><strong>home_issuer</strong>: <em>(string - default: eu.carrotpay.com)</em><p>A default Issuer to use for all transactions. If it&#39;s not explicitly set by the Merchant then the default Gateway&#39;s Issuer is used.</p><p><strong>Example</strong>:</p><div class="examples"><pre><code>eu.carrotpay.com</code></pre></div></li></ul><p><strong>Example</strong>:</p><div class="examples"><pre><code>{
-  "domain": "my.site.url",
-  "email_account_contact": "account@my.site.url",
-  "email_customer_contact": "sales@my.site.url",
-  "name": "My Online Shop",
   "default_payment_currency": "XBT",
   "default_payment_timeout": "3600",
   "provide_receipt_via_email": true,
@@ -629,13 +641,15 @@ pre code {
     "domain":"my.site.url",
     "email_account_contact": "account@my.site.url",
     "email_customer_contact": "sales@my.site.url",
-    "name":"John Smith"
-    "default_payment_currency":"XBT",
-    "default_payment_timeout":"3600",
-    "provide_receipt_via_email":false,
-    "provide_refund_via_email":false,
-    "home_issuer":"be.ap.rmp.net",
-    "acceptable_issuers":[ "eu.carrotpay.com", "be.ap.rmp.net" ]
+    "name":"John Smith",
+    "settings": {
+      "default_payment_currency": "XBT",
+      "default_payment_timeout": "3600",
+      "provide_receipt_via_email": false,
+      "provide_refund_via_email": false,
+      "home_issuer": "be.ap.rmp.net",
+      "acceptable_issuers": [ "(be.ap.rmp.net)" ]
+    }
   }],
   "messages":[
     {
@@ -675,7 +689,7 @@ pre code {
     {
       "currency": "XBT",
       "value": "0.00120000",
-      "coins": 121
+      "number_of_coins": 121
     }
   ],
   "messages":[]

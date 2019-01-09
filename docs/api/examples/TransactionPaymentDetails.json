@@ -1,7 +1,7 @@
 {
   "value": "0.00000950",
   "currency": "XBT",
-  "acceptable_issuers": ["eu.carrotpay.com"],
+  "acceptable_issuers": [ "(eu.carrotpay.com)" ],
   "description": "The art of asking",
   "email_customer_contact": "sales@my.site.url",
   "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
@@ -18,7 +18,6 @@
   "created": "2018-08-28T05:25:26Z",
   "paid": "2018-08-28T05:27:32Z",
   "confirmation_details": {
-    "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
     "wallet_id": "1234432112",
     "options": {
       "send_receipt_to": {
@@ -33,5 +32,23 @@
     },
     "memo": "Please send it to 123 Street, Town, City, Country"
   },
-  "verification_details": {}
+  "verification_details": {
+    "actualValue":"0.00088900",
+    "changeValue":"0.00000000",
+    "currency":"XBT",
+    "exchangedValue":"0.00000000",
+    "faceValue":"0.00088900",
+    "fees":[
+      {
+        "domain":"eu.carrotpay.com",
+        "totalFee":"0.00000454",
+        "valueFee":"0.00000454"
+      }
+    ],
+    "issuePolicy":"single",
+    "reference":"67972259-4d91-4a88-b0b0-f525a4c2ce29",
+    "targetValue":"0.00088900",
+    "totalFee":"0.00000454",
+    "verifiedValue":"0.00088446"
+  }
 }
