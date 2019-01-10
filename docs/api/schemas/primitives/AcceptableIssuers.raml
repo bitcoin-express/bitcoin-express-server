@@ -9,7 +9,7 @@ minItems: 1
 maxItems: 10
 description: |
   List of Issuers' domains that the Merchant accepts Coins from.
-  If the Merchant will explicitly set ***home_issuer*** in the Merchant's account settings then by default ***acceptable_issuers*** value is set to _["(<home_issuer>)"]_ (home issuer put into brackets).
+  If the Merchant will explicitly set ***home_issuer*** in the Merchant's account settings then by default ***acceptable_issuers*** value is set to **["(<home_issuer>)"]** (home issuer put into brackets).
   This delegates the responsibility for providing a list of acceptable issuers to the _Home Issuer_, meaning all issuers that the _Home Issuer_ accepts will be accepted by the Merchant as well.
 
   If ***home_issuer*** is not explicitly set then ***acceptable_issuers*** will use the Gateway's default value set by the Gateway's operator.
