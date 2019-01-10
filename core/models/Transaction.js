@@ -30,6 +30,15 @@ const TRANSACTION_TYPES = new Map([
     [ 'coin-file-transfer', 'coin-file-transfer', ],
 ]);
 
+const BLOCKCHAIN_TRANSFER_SPEED__FASTEST = 'fastest';
+
+const BLOCKCHAIN_TRANSFER_SPEED = new Map([
+    [ BLOCKCHAIN_TRANSFER_SPEED__FASTEST, 'fastest', ],
+    [ 'soon', 'soon', ],
+    [ 'no-hurry', 'noHurry', ],
+    [ 'min-fee', 'minFee', ],
+]);
+
 
 const _initialise_empty_object = Symbol('_initialise_empty_object');
 const _db_session = Symbol('_db_session');
@@ -54,6 +63,10 @@ const _transaction_properties_validators = {
 
         if (!checks.isFloat(value) || value.length < config.get('system.decimal_point_precision') + 2 || value.length > config.get('system.decimal_point_precision') * 2 + 1) {
             throw new Error('Invalid format');
+        }
+
+        if (parseFloat(value) <= 0) {
+            throw new Error('Invalid value');
         }
     },
     description: (text) => {
@@ -96,10 +109,22 @@ const _transaction_properties_validators = {
     paid: (date) => {
         if (!(date instanceof Date)) { throw new Error ('Invalid format'); }
     },
+    speed: (speed) => {
+        if (!BLOCKCHAIN_TRANSFER_SPEED.has(speed)) { throw new Error ('Invalid value'); }
+    },
+    address: (address) => {
+        if (typeof address !== "string" || address.length < 26 || address.length > 35) { throw new Error ('Invalid format'); }
+    },
+    label: (label) => {
+        if (typeof label !== "string" || label.length < 1 || label.length > 64) { throw new Error ('Invalid format'); }
+    },
 };
 const _transaction_properties_custom_getters = {
     payment_url: function () {
         return `${config.get('server.api.endpoint_url')}${config.get('server.api.endpoint_path')}${api.routes.get('postTransactionPayment').getPathForId(this.transaction_id)}`
+    },
+    speed: function () {
+        return this[_transaction].speed ? this[_transaction].speed : BLOCKCHAIN_TRANSFER_SPEED__FASTEST;
     },
 };
 const _transaction_properties_custom_setters = {
@@ -249,9 +274,9 @@ class PaymentTransaction extends CoreTransaction{
     constructor(init_data) {
         super(PaymentTransaction.ALLOWED_PROPERTIES);
 
-        if (!init_data[_initialise_empty_object]) {
+        this[_transaction].type = TRANSACTION_TYPES.get('payment');
 
-            this[_transaction].type = TRANSACTION_TYPES.get('payment');
+        if (!init_data[_initialise_empty_object]) {
             this[_transaction].transaction_id = uuidv4();
             this[_transaction].status = TRANSACTION_STATUSES.get('initial');
             this[_transaction].account_id = init_data.account.account_id;
@@ -399,7 +424,7 @@ class PaymentTransaction extends CoreTransaction{
         return this;
     }
 
-    async pay (payment_confirmation_details) {
+    async resolve (payment_confirmation_details) {
         if (this.status === TRANSACTION_STATUSES.get('resolved')) {
             throw new Error("The transaction is already resolved");
         }
@@ -467,13 +492,6 @@ class PaymentTransaction extends CoreTransaction{
                     issuePolicy: "single",
                 }
             }, coins_domain);
-                // {
-                // issuerResponse: {
-                //     coin: 'eyJjIjoiWEJUIiwidiI6IjAuMDEiLCJkIjoiZXUuY2Fycm90cGF5LmNvbSJ9',
-                //     verifyInfo: {a:'b',
-                //         actualValue:"0.01"}
-                // }};
-
 
             let verified_coins = issuer_verify_response.issuerResponse.coin;
             let verify_info = issuer_verify_response.issuerResponse.verifyInfo;
@@ -580,6 +598,109 @@ class BlockchainTransferTransaction extends CoreTransaction {
 
     constructor(init_data) {
         super(init_data);
+
+        this[_transaction].type = TRANSACTION_TYPES.get('blockchain-transfer');
+
+        if (!init_data[_initialise_empty_object]) {
+            this[_transaction].transaction_id = uuidv4();
+            this[_transaction].status = TRANSACTION_STATUSES.get('initial');
+            this[_transaction].account_id = init_data.account.account_id;
+
+            for (let property of BlockchainTransferTransaction.ALLOWED_PROPERTIES) {
+                if (!this[property]) {
+                    this[property] = init_data[property];
+                }
+            }
+        }
+    }
+
+    // Add it to Core with proper class and all in save, create and resolve - maybe as super
+    checkRequiredProperties() {
+        for (let property of BlockchainTransferTransaction.REQUIRED_PROPERTIES) {
+            if (this[property] === undefined) {
+                throw new Error (`Transaction property not set: ${property}`);
+            }
+        }
+    }
+
+    async create() {
+        try {
+            this.checkRequiredProperties();
+
+            let data = {};
+
+            for (let property of BlockchainTransferTransaction.ALLOWED_PROPERTIES) {
+                data[property] = this[property];
+            }
+
+            await db.insert('transactions', data);
+        }
+        catch (e) {
+            console.log('BlockchainTransferTransaction create', e);
+            throw new Error('Unable to create transaction');
+        }
+
+        return this;
+    }
+
+    async resolve() {
+        this.checkRequiredProperties();
+
+        try {
+            this.status = TRANSACTION_STATUSES.get('processing');
+            await this.save();
+        }
+        catch (e) {
+            console.log('BlockchainTransferTransaction resolve init error', e);
+
+            this.status = TRANSACTION_STATUSES.get('initial');
+            throw e;
+        }
+
+        try {
+            let coins = await db.getCoinList(this.currency, this.account_id);
+            coins = coins[this.currency];
+
+            let total_value = utils.coinsValue(coins);
+
+            if (total_value < parseFloat(this.value)) {
+                throw new Error('Invalid value');
+            }
+
+            if (!coins.every(coin => this.currency === utils.Coin(c).c)) {
+                throw new Error('Invalid value');
+            }
+
+            let blockchain_uri = `bitcoin:${this.address}?amount=${this.value}`;
+
+            if (this.description) {
+                blockchain_uri += `&message=${encodeURIComponent(this.description)}}`;
+            }
+
+            if (this.label) {
+                blockchain_uri += `&label=${encodeURIComponent(this.label)}`;
+            }
+
+            console.log('BlockchainTransferTransaction resolve', blockchain_uri, coins, this.value, this.speed, this.account_id);
+
+            this.status = TRANSACTION_STATUSES.get('resolved');
+            await this.save();
+
+            return await utils.transferBitcoin(blockchain_uri, coins, this.value, BLOCKCHAIN_TRANSFER_SPEED.get(this.speed), this.account_id);
+        }
+        catch (e) {
+            console.log('BlockchainTransferTransaction resolve error', e);
+
+            try {
+                this.status = TRANSACTION_STATUSES.get('initial');
+                await this.save();
+            }
+            catch (e) {
+                console.log('BlockchainTransferTransaction resolve error - unable to revert transaction to initial', e);
+            }
+
+            throw e;
+        }
     }
 }
 

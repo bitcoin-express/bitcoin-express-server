@@ -76,7 +76,7 @@ exports.transferBitcoin = function (uri, coins, balance, speed, accountId) {
     }
 
     const recommendedFees = beginResponse.issuer[0].bitcoinFees;
-    const bitcoinFee = recommendedFees[speed] || 0;
+    const bitcoinFee = recommendedFees && recommendedFees.hasOwnProperty(speed) ? recommendedFees[speed] : 0;
 
     let txAmount = _round(parseFloat(amount) + bitcoinFee, config.get('system.decimal_point_precision'));
     if (txAmount > balance) {

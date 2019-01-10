@@ -148,7 +148,7 @@ const postTransactionByIdPayment = async (req, res, next) => {
             payment_details = new PaymentConfirmation(req.body);
 
             console.log(transaction);
-            payment_ack = await transaction.pay(payment_details);
+            payment_ack = await transaction.resolve(payment_details);
 
             response.body.push(payment_ack);
             response.success = true;
