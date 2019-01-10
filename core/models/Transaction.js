@@ -110,13 +110,14 @@ const _transaction_properties_validators = {
         if (!(date instanceof Date)) { throw new Error ('Invalid format'); }
     },
     speed: (speed) => {
-        if (!BLOCKCHAIN_TRANSFER_SPEED.has(speed)) { throw new Error ('Invalid value'); }
+        if (speed && !BLOCKCHAIN_TRANSFER_SPEED.has(speed)) { throw new Error ('Invalid value'); }
     },
     address: (address) => {
+        if (!address) { throw new Error ('Field required'); }
         if (typeof address !== "string" || address.length < 26 || address.length > 35) { throw new Error ('Invalid format'); }
     },
     label: (label) => {
-        if (typeof label !== "string" || label.length < 1 || label.length > 64) { throw new Error ('Invalid format'); }
+        if (label && (typeof label !== "string" || label.length < 1 || label.length > 64)) { throw new Error ('Invalid format'); }
     },
 };
 const _transaction_properties_custom_getters = {
@@ -584,8 +585,8 @@ class PaymentTransaction extends CoreTransaction{
     }
 }
 
-const BLOCKCHAIN_TRANSFER_TRANSACTION_ALLOWED_PROPERTIES = new Set([ 'type', 'currency', 'value', 'description', 'speed', 'address', 'label', ]);
-const BLOCKCHAIN_TRANSFER_TRANSACTION_REQUIRED_PROPERTIES = new Set([ 'type', 'currency', 'value', 'address', ]);
+const BLOCKCHAIN_TRANSFER_TRANSACTION_ALLOWED_PROPERTIES = new Set([ 'transaction_id', 'status', 'type', 'currency', 'value', 'description', 'speed', 'address', 'label', 'account_id', ]);
+const BLOCKCHAIN_TRANSFER_TRANSACTION_REQUIRED_PROPERTIES = new Set([ 'transaction_id', 'type', 'currency', 'value', 'address', ]);
 
 class BlockchainTransferTransaction extends CoreTransaction {
     static get ALLOWED_PROPERTIES () {
@@ -597,7 +598,7 @@ class BlockchainTransferTransaction extends CoreTransaction {
     }
 
     constructor(init_data) {
-        super(init_data);
+        super(BlockchainTransferTransaction.ALLOWED_PROPERTIES);
 
         this[_transaction].type = TRANSACTION_TYPES.get('blockchain-transfer');
 
@@ -640,6 +641,8 @@ class BlockchainTransferTransaction extends CoreTransaction {
             throw new Error('Unable to create transaction');
         }
 
+        await this.resolve();
+
         return this;
     }
 
@@ -661,6 +664,10 @@ class BlockchainTransferTransaction extends CoreTransaction {
             let coins = await db.getCoinList(this.currency, this.account_id);
             coins = coins[this.currency];
 
+            if (!coins || !coins.length) {
+                throw new Error ('Not coins in a given currency');
+            }
+            //
             let total_value = utils.coinsValue(coins);
 
             if (total_value < parseFloat(this.value)) {
@@ -684,9 +691,14 @@ class BlockchainTransferTransaction extends CoreTransaction {
             console.log('BlockchainTransferTransaction resolve', blockchain_uri, coins, this.value, this.speed, this.account_id);
 
             this.status = TRANSACTION_STATUSES.get('resolved');
+
             await this.save();
 
-            return await utils.transferBitcoin(blockchain_uri, coins, this.value, BLOCKCHAIN_TRANSFER_SPEED.get(this.speed), this.account_id);
+            this[_transaction].transfer_details = await utils.transferBitcoin(blockchain_uri, coins, this.value, BLOCKCHAIN_TRANSFER_SPEED.get(this.speed), this.account_id);
+
+            await this.save();
+
+            return this;
         }
         catch (e) {
             console.log('BlockchainTransferTransaction resolve error', e);
