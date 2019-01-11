@@ -7,3 +7,4 @@ package-lock.json
 /config/local.js
 /config/local-*
 .DS_Store
+*.log
