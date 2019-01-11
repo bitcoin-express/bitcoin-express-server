@@ -426,8 +426,16 @@ class PaymentTransaction extends CoreTransaction{
     }
 
     async resolve (payment_confirmation_details) {
+        let payment_ack = {
+            status: "ok",
+            return_url: this.return_url,
+            memo: this.notification,
+            seller: this.seller,
+        };
+
         if (this.status === TRANSACTION_STATUSES.get('resolved')) {
-            throw new Error("The transaction is already resolved");
+            payment_ack.wallet_id = this.confirmation_details.wallet_id;
+            return payment_ack;
         }
         else if (this.status === TRANSACTION_STATUSES.get('processing')) {
             throw new Error("A payment is already being processed for this transaction");
@@ -541,13 +549,9 @@ class PaymentTransaction extends CoreTransaction{
                 }, coins_domain),
             ]);
 
-            return {
-                status: "ok",
-                wallet_id: payment_confirmation_details.wallet_id,
-                return_url: this.return_url,
-                memo: this.notification,
-                seller: this.seller,
-            };
+
+            payment_ack.wallet_id = payment_confirmation_details.wallet_id;
+            return payment_ack;
         }
         catch (e) {
             console.log("Failed during finalising payment: " + e.toString());
