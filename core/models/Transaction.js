@@ -444,9 +444,12 @@ class PaymentTransaction extends CoreTransaction{
 
         let coins_domain = utils.Coin(payment_confirmation_details.coins[0]).d;
 
-        if (this.acceptable_issuers[0] !== "*" && !payment_confirmation_details.coins.every((coin) => {
+        if (!payment_confirmation_details.coins.every((coin) => {
             coin = utils.Coin(coin);
-            return this.acceptable_issuers.includes(coin.d) && coin.d === coins_domain;
+            return (
+                this.acceptable_issuers.includes(coin.d) ||
+                this.acceptable_issuers.includes(`(${coin.d})`)
+            ) && coin.d === coins_domain;
         })) {
             throw new Error(`Some coins are not from the list of acceptable issuers or selected coins are from different issuers.`);
         }
