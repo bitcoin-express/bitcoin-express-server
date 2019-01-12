@@ -12,7 +12,6 @@ for (let key of config.get('_system_required_keys')) {
   }
 }
 
-
 var fs = require('fs');
 var bodyParser = require('body-parser');
 
@@ -119,12 +118,12 @@ db.connect(config.get('server.db.uri'), function (err) {
 
     setTimeout(() => {
         let query = {
-            type: { $eq: Transaction.TYPES.get('payment'), },
-            status: { $eq: Transaction.STATUSES.get('initial'), },
+            type: { $eq: Transaction.TYPE__PAYMENT, },
+            status: { $eq: Transaction.STATUS__INITIAL, },
             expire: { $lte: new Date(), }
         };
 
-        db.findAndModify('transactions', query, { status: Transaction.STATUSES.get('expired'), }).
+        db.findAndModify('transactions', query, { status: Transaction.STATUS__EXPIRED, }).
         then((result) => {
             console.log('Expired payment transactions', result);
         }).
@@ -148,6 +147,4 @@ db.connect(config.get('server.db.uri'), function (err) {
             });
         }, 5 * 60 * 1000); // interval of 5 min
     }
-
-
-})
+});

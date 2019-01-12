@@ -1,6 +1,9 @@
 "use strict";
-const uuidv4 = require('uuid/v4');
 
+/*  Modules imports
+*/
+
+const uuidv4 = require('uuid/v4');
 const config = require('config');
 const db = require(config.get('system.root_dir') + '/db');
 const checks = require(config.get('system.root_dir') + '/core/checks');
@@ -8,42 +11,145 @@ const api = require(config.get('system.root_dir') + '/core/api');
 const utils = require(config.get('system.root_dir') + '/issuer/utils');
 const issuer = require(config.get('system.root_dir') + '/issuer');
 
-const { ObjectId } = require('mongodb');
-const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
+
+/*  Models imports
+*/
 
 const settings_model = require(config.get('system.root_dir') + '/core/models/Settings');
 const account_model = require(config.get('system.root_dir') + '/core/models/Account');
 const errors_model = require(config.get('system.root_dir') + '/core/models/Errors');
 
+const { ObjectId } = require('mongodb');
+const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
+const { BaseModel } = require(config.get('system.root_dir') + '/core/models/BaseModel');
 
-const TRANSACTION_STATUSES = new Map([
-    [ 'initial', 'initial', ],
-    [ 'resolved', 'resolved', ],
-    [ 'aborted', 'aborted', ],
-    [ 'expired', 'expired', ],
-    [ 'processing', 'processing', ],
+/*  Possible transaction statuses, shared among different types of transactions.
+    It is possible that specific types of transactions won't be supporting all statuses.
+    If it's needed to verify the validity of transaction's status it can be done by setting a transaction type's
+    specific validator (described under _transaction_properties_validators).
+*/
+
+const TRANSACTION_STATUS__INITIAL = 'initial';
+const TRANSACTION_STATUS__RESOLVED = 'resolved';
+const TRANSACTION_STATUS__ABORTED = 'aborted';
+const TRANSACTION_STATUS__EXPIRED = 'expired';
+const TRANSACTION_STATUS__PROCESSING = 'processing';
+
+const TRANSACTION_STATUSES = new Set([
+    TRANSACTION_STATUS__INITIAL,
+    TRANSACTION_STATUS__RESOLVED,
+    TRANSACTION_STATUS__ABORTED,
+    TRANSACTION_STATUS__EXPIRED,
+    TRANSACTION_STATUS__PROCESSING,
 ]);
 
-const TRANSACTION_TYPES = new Map([
-    [ 'payment', 'payment', ],
-    [ 'blockchain-transfer', 'blockchain-transfer', ],
-    [ 'coin-file-transfer', 'coin-file-transfer', ],
+
+/*  Possible transaction types. In order to create an object of specific type it is required to define and then declare
+    a corresponding class in TRANSACTION_CLASSES.
+    This structure is not exported and available on the outside of this file. Transaction's types are available through
+    static TYPES property of the Transaction class.
+*/
+const TRANSACTION_TYPE__PAYMENT = 'payment';
+const TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER = 'blockchain-transfer';
+const TRANSACTION_TYPE__COIN_FILE_TRANSFER = 'coin-file-transfer';
+
+const TRANSACTION_TYPES = new Set([
+    TRANSACTION_TYPE__PAYMENT,
+    TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER,
+    TRANSACTION_TYPE__COIN_FILE_TRANSFER,
 ]);
 
-const BLOCKCHAIN_TRANSFER_SPEED__FASTEST = 'fastest';
+
+/*  Possible blockchain transfer speeds to be used in blockchain transfer transactions mapped to corresponding values on
+    the issuer API side.
+*/
 
 const BLOCKCHAIN_TRANSFER_SPEED = new Map([
-    [ BLOCKCHAIN_TRANSFER_SPEED__FASTEST, 'fastest', ],
+    [ 'fastest', 'fastest', ],
     [ 'soon', 'soon', ],
     [ 'no-hurry', 'noHurry', ],
     [ 'min-fee', 'minFee', ],
 ]);
 
 
-const _initialise_empty_object = Symbol('_initialise_empty_object');
-const _db_session = Symbol('_db_session');
-const _transaction = Symbol('_transaction');
+const TRANSACTION_ALLOWED_PROPERTIES = new Map([
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'type', 'order_id', 'value', 'currency', 'description', 'notification',
+            'return_url', 'callback_url', 'acceptable_issuers', 'email_customer_contact', 'policies', 'expires',
+            'transaction_id', 'created', 'seller', 'payment_url', 'status', 'account_id', 'confirmation_details',
+            'verify_details', 'paid',
+        ]),
+    ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'status', 'type', 'currency', 'value',
+            'description', 'speed', 'address', 'label', 'account_id',
+        ]),
+    ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([]), ],
+]);
 
+const TRANSACTION_REQUIRED_PROPERTIES = new Map([
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'type', 'value', 'currency', 'description', 'acceptable_issuers',
+            'transaction_id', 'seller', 'payment_url', 'status', 'account_id',
+        ]),
+    ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'type', 'currency', 'value', 'address', ]), ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, [], ],
+]);
+
+const TRANSACTION_HIDDEN_PROPERTIES = new Map([
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'account_id', ]), ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'account_id', ]), ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'account_id', ]), ],
+]);
+
+/*  Default transfer speed to be used if it's not defined in the transaction
+*/
+
+const BLOCKCHAIN_TRANSFER_SPEED__DEFAULT = 'fastest';
+
+
+/*  Symbols for internal usage only to enable private properties functionality inside Transaction type classes
+*/
+
+/*  Symbol used to internally allow to initialise an empty object. It is being used to wrap object's data read from
+    the database without invoking setters methods for object's properties as this normally happens inside a constructor.
+*/
+
+const _initialise_empty_object = Symbol('_initialise_empty_object');
+
+
+/*  Symbol used to privately store a db session in order to use it for db transactions
+*/
+
+const _db_session = Symbol('_db_session');
+
+
+/*  Symbol used to privately store object's data. Objects needs to have two kinds of interfaces available - private and
+    public. Public is available through object's getters and setters and always works on validated and/or parsed data.
+    Private on the other hand needs to sometimes work on raw, unaltered data and this data are available through a
+    property identified by this symbol.
+*/
+
+const _transaction_data = Symbol('_transaction_data');
+const _transaction_interface = Symbol('_transaction_interface');
+
+
+/*  This structure defines all writable transactions' properties together with their validators.
+    Transaction's constructor checks if a property is defined in this structure and if it isn't, it is defining it as
+    read-only. It means that it still can be set using a private object's interface but can't be altered by the public
+    object's interface using setters.
+
+    Two types of validator are available:
+    - global: defined   under property name, i.e. description
+    - class-specific:   defined under key's name constructed using property name glued together using two underscores with
+                        an object's class name, eg. description__BlockchainTransferTransaction
+
+    Object's constructor will check for a class-specific validator and use it in the setter, then for a global validator
+    and if none of this is found - set a property as read-only.
+
+    If a situation where a property is only a container for an external value and we don't want to check it's content
+    but still make it available to be set via the public interface it should be defined by simply returning true
+    e.g. verify_details: details => true
+*/
 
 const _transaction_properties_validators = {
     order_id: (order_id) => {
@@ -79,13 +185,17 @@ const _transaction_properties_validators = {
         }
     },
     notification: (text) => {
-        if (text && (typeof text !== "string" || text.length < 1 || text.length > 128)) {
+        if (text !== undefined && (typeof text !== "string" || text.length < 1 || text.length > 128)) {
             throw new Error('Invalid format');
         }
     },
     email_customer_contact: account_model.validators.email_customer_contact,
     acceptable_issuers: settings_model.validators.acceptable_issuers,
     policies: (policies) => {
+        if (!policies) {
+            return true;
+        }
+
         if (typeof policies !== "object") {
             throw new Error('Invalid format');
         }
@@ -102,36 +212,77 @@ const _transaction_properties_validators = {
     },
     currency: settings_model.validators.default_payment_currency,
     status: status => {
-        if (!TRANSACTION_STATUSES.has(status)) { throw new Error('Unknown status'); }
+        if (!TRANSACTION_STATUSES.has(status)) {
+            throw new Error('Unknown status');
+        }
     },
     confirmation_details: details => true,
     verify_details: details => true,
     paid: (date) => {
-        if (!(date instanceof Date)) { throw new Error ('Invalid format'); }
+        if (!(date instanceof Date)) {
+            throw new Error ('Invalid format');
+        }
     },
     speed: (speed) => {
-        if (speed && !BLOCKCHAIN_TRANSFER_SPEED.has(speed)) { throw new Error ('Invalid value'); }
+        if (speed !== undefined && !BLOCKCHAIN_TRANSFER_SPEED.has(speed)) {
+            throw new Error ('Invalid value');
+        }
     },
     address: (address) => {
-        if (!address) { throw new Error ('Field required'); }
-        if (typeof address !== "string" || address.length < 26 || address.length > 35) { throw new Error ('Invalid format'); }
+        if (!address) {
+            throw new Error ('Field required');
+        }
+
+        if (typeof address !== "string" || address.length < 26 || address.length > 35) {
+            throw new Error ('Invalid format');
+        }
     },
     label: (label) => {
-        if (label && (typeof label !== "string" || label.length < 1 || label.length > 64)) { throw new Error ('Invalid format'); }
+        if (label !== undefined && (typeof label !== "string" || label.length < 1 || label.length > 64)) {
+            throw new Error ('Invalid format');
+        }
     },
 };
+
+
+/* As validators may be exposed by a public object's interface make sure that they won't be redefined in any way
+ */
+
+BaseModel.lockPropertiesOf(_transaction_properties_validators);
+
+/*  This structure defines custom getters for object's properties. It's main purpose is to deliver a public interface for
+    dynamic properties or properties that should return a default value when it was not explicitly set by the setter.
+*/
+
 const _transaction_properties_custom_getters = {
     payment_url: function () {
         return `${config.get('server.api.endpoint_url')}${config.get('server.api.endpoint_path')}${api.routes.get('postTransactionPayment').getPathForId(this.transaction_id)}`
     },
     speed: function () {
-        return this[_transaction].speed ? this[_transaction].speed : BLOCKCHAIN_TRANSFER_SPEED__FASTEST;
+        return this[_transaction_data].speed ? this[_transaction_data].speed : BLOCKCHAIN_TRANSFER_SPEED__DEFAULT;
     },
 };
+
+
+/* As getters may be exposed by a public object's interface make sure that they won't be redefined in any way
+ */
+
+BaseModel.lockPropertiesOf(_transaction_properties_custom_getters);
+
+
+/*  This structure define custom setters for object's properties. It should be used on occasions where it's necessary to
+    somehow transform the data before saving it via private interface.
+
+    Normally an object's constructor defines a property and it's setter by running a property validator and then setting
+    a property's value using the object's private interface. Before doing so, the constructor checks if there is a
+    custom setter definition defined in this structure and if it is, it's using it instead.
+
+    It is important to always run a property's validator on the beginning of the setter definition to make sure that the
+    value is valid and available through a public interface.
+*/
+
 const _transaction_properties_custom_setters = {
     return_url: function (value) {
-        _transaction_properties_validators['return_url'](value);
-
         if (value !== undefined) {
             let url = new URL(value);
             url.searchParams.set('transaction_id', this.transaction_id);
@@ -143,12 +294,9 @@ const _transaction_properties_custom_setters = {
             value = url.href;
         }
 
-        this[_transaction]['return_url'] = value;
+        this[_transaction_data]['return_url'] = value;
     },
-
     callback_url: function (value) {
-        _transaction_properties_validators['callback_url'](value);
-
         if (value !== undefined) {
             let url = new URL(value);
             url.searchParams.set('transaction_id', this.transaction_id);
@@ -160,136 +308,60 @@ const _transaction_properties_custom_setters = {
             value = url.href;
         }
 
-        this[_transaction]['callback_url'] = value;
+        this[_transaction_data]['callback_url'] = value;
     },
 };
 
 
-class CoreTransaction {
-    constructor (allowed_properties) {
-        // Create container for private object's data. This can't be done later as we are sealing object at the end.
-        this[_transaction] = {};
+/* As setters may be exposed by a public object's interface make sure that they won't be redefined in any way
+ */
 
-        // Make this container invisible for any methods working on properties
-        Object.defineProperty(this, _transaction, {
-            enumerable: false,
+BaseModel.lockPropertiesOf(_transaction_properties_custom_getters);
+
+
+/*  This an interface class for all transaction-like classes.
+    It defines common methods and properties used inside extending classes.
+
+    Objects of this class should never be created as a standalone constructs.
+*/
+class CoreTransaction extends BaseModel {
+    constructor({ allowed_properties, required_properties, }) {
+        super({
+            private_data_container_key: _transaction_data,
+            private_interface_key: _transaction_interface,
+            db_session_id: _db_session,
+            custom_getters: _transaction_properties_custom_getters,
+            custom_setters: _transaction_properties_custom_setters,
+            validators: _transaction_properties_validators,
+            allowed_properties: allowed_properties,
+            required_properties: required_properties,
+            db_table: 'transactions',
+            db_id_field: 'transaction_id',
         });
-
-        Object.defineProperty(this, _db_session, {
-            enumerable: false,
-            writable: true,
-        });
-
-        for (let property of allowed_properties) {
-            let descriptor = {
-                configurable: false,
-                enumerable: true,
-                get: _transaction_properties_custom_getters.hasOwnProperty(property) ?
-                    _transaction_properties_custom_getters[property] :
-                    () =>  { return this[_transaction][property]; },
-            };
-
-            // If there is no validator for a property then this property is readonly.
-            // Only validated options are allowed to be set.
-            if (_transaction_properties_validators.hasOwnProperty(property)) {
-                descriptor.set = _transaction_properties_custom_setters.hasOwnProperty(property) ?
-                                 _transaction_properties_custom_setters[property] :
-                                 (value) => {
-                                     _transaction_properties_validators[property](value);
-                                     this[_transaction][property] = value;
-                                 };
-            }
-            else {
-                descriptor.set = (value) => {
-                    throw new Error(`Key ${property} is readonly`);
-                };
-            }
-
-            Object.defineProperty(this, property, descriptor);
-        }
-
-        Object.seal(this);
-    }
-
-    prepareInputData(input_data) {
-        return input_data;
-    }
-
-    //TODO: move to interface class
-    initDBSession(session) {
-        this[_db_session] = session;
-    }
-
-    closeDBSession() {
-        this[_db_session] = undefined;
-    }
-
-    //TODO: move to interface class with throw if not implemented
-    async save () {
-        try {
-            await db.findAndModify('transactions',
-                {
-                    transaction_id: this.transaction_id,
-                },
-                {
-                    ...this[_transaction],
-                },
-                {
-                    db_session: this[_db_session],
-                }
-            );
-
-            return this;
-        }
-        catch (e) {
-            console.log('transaction save', e);
-
-            // If transient error, retry the whole transaction
-            if (e.errorLabels && e.errorLabels.indexOf('TransientTransactionError') >= 0) {
-                console.log('TransientTransactionError, retrying transaction ...');
-                await this.save();
-            } else {
-                throw error;
-            }
-
-            throw new Error("Unable to save transaction");
-        }
     }
 }
 
-const PAYMENT_TRANSACTION_ALLOWED_PROPERTIES = new Set([ 'type', 'order_id', 'value', 'currency', 'description', 'notification', 'return_url', 'callback_url', 'acceptable_issuers',
-                                                         'email_customer_contact', 'policies', 'expires', 'transaction_id', 'created', 'seller', 'payment_url', 'status', 'account_id',
-                                                         'confirmation_details', 'verify_details', 'paid', ]);
-const PAYMENT_TRANSACTION_REQUIRED_PROPERTIES = new Set(['type', 'value', 'currency', 'description', 'acceptable_issuers', 'transaction_id', 'seller', 'payment_url', 'status', 'account_id', ]);
 
-class PaymentTransaction extends CoreTransaction{
-    static get ALLOWED_PROPERTIES () {
-        return PAYMENT_TRANSACTION_ALLOWED_PROPERTIES;
-    }
-
-    static get REQUIRED_PROPERTIES () {
-        return PAYMENT_TRANSACTION_REQUIRED_PROPERTIES;
-    }
-
-
+class PaymentTransaction extends CoreTransaction {
     constructor(init_data) {
-        super(PaymentTransaction.ALLOWED_PROPERTIES);
+        super({
+            allowed_properties: TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
+            required_properties: TRANSACTION_REQUIRED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
+            hidden_properties: TRANSACTION_HIDDEN_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
+        });
 
-        this[_transaction].type = TRANSACTION_TYPES.get('payment');
+        this[_transaction_data].type = TRANSACTION_TYPE__PAYMENT;
 
         if (!init_data[_initialise_empty_object]) {
-            this[_transaction].transaction_id = uuidv4();
-            this[_transaction].status = TRANSACTION_STATUSES.get('initial');
-            this[_transaction].account_id = init_data.account.account_id;
-
-            this.order_id = init_data.order_id;
-            this.value = init_data.value;
+            this[_transaction_data].transaction_id = uuidv4();
+            this[_transaction_data].status = TRANSACTION_STATUS__INITIAL;
+            this[_transaction_data].account_id = init_data.account.account_id;
 
             this.return_url = init_data.return_url || init_data.account.settings.return_url || undefined;
-            this[_transaction].seller = this.return_url ? new URL(this.return_url).hostname : init_data.account.domain;
+            this[_transaction_data].seller = this.return_url ? new URL(this.return_url).hostname : init_data.account.domain;
             this.callback_url = init_data.callback_url || init_data.account.settings.callback_url || undefined;
 
-            this[_transaction].created = new Date();
+            this[_transaction_data].created = new Date();
             this.expires = init_data.expires ?
                            (
                                init_data.expires instanceof Date ?
@@ -298,8 +370,6 @@ class PaymentTransaction extends CoreTransaction{
                            ) :
                            new Date(this.created.getTime() + init_data.account.settings.default_payment_timeout * 1000);
 
-            this.description = init_data.description;
-            this.notification = init_data.notification;
             this.email_customer_contact = init_data.email_customer_contact || init_data.account.email_customer_contact;
             this.acceptable_issuers = init_data.acceptable_issuers || init_data.account.settings.acceptable_issuers;
 
@@ -314,69 +384,19 @@ class PaymentTransaction extends CoreTransaction{
 
             this.currency = init_data.currency || init_data.account.settings.default_payment_currency;
 
+            for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
+                if (!this[property]) {
+                    this[property] = init_data[property];
+                }
+            }
+
             if (!this.return_url && !this.notification) {
                 throw new Error('Either return_url or notification is required');
             }
         }
-/*
-        if (merchant_data) {
-            var query = {
-                account_id: account_id,
-                merchant_data: merchant_data,
-            };
-
-            promise = db.findOne('transactions', query).then((resp) => {
-                if (!resp) {
-                    return false;
-                }
-                console.log("Found payment with merchant_data " + merchant_data);
-
-                delete resp.private_key;
-                delete resp.auth_token;
-                delete resp.account_id;
-                delete resp._id;
-
-                if (resp.status == "resolved") {
-                    // The payment is inmutable
-                    res.send(JSON.stringify(cleanResponse(resp)));
-                    return true;
-                }
-
-                if (resp.status == "processing") {
-                    res.status(400).send("A payment is already in process for this request.");
-                    return true;
-                }
-
-                // Reset payment to initial status
-                paymentRequest.status = "initial";
-                return db.findAndModify('transactions', query, paymentRequest).then((response) => {
-                    if (!response) {
-                        return false;
-                    }
-                    res.send(JSON.stringify(cleanResponse(response)));
-                    return true;
-                });
-            }).catch((err) => {
-                return false;
-            });
-        }
-*/
     }
 
-    //TODO: move to core with common allowed properties
-    toJSON () {
-        let data = {};
-
-        for (let property of PaymentTransaction.ALLOWED_PROPERTIES) {
-            data[property] = this[property];
-        }
-
-        delete data.account_id;
-
-        return data;
-    }
-
-    prepareInputData(input_data) {
+    async prepareInputData(input_data) {
         if (!(input_data.confirmation_details instanceof PaymentConfirmation)) {
             input_data.confirmation_details = new PaymentConfirmation(input_data.confirmation_details);
         }
@@ -385,25 +405,7 @@ class PaymentTransaction extends CoreTransaction{
     }
 
     async create() {
-        try {
-            let data = {};
-
-            for (let property of PaymentTransaction.ALLOWED_PROPERTIES) {
-                data[property] = this[property];
-            }
-
-            for (let property of PaymentTransaction.REQUIRED_PROPERTIES) {
-                if (this[property] === undefined) {
-                    throw new Error (`Transaction property not set: ${property}`);
-                }
-            }
-
-            await db.insert('transactions', data);
-        }
-        catch (e) {
-            console.log('PaymentTransaction create', e);
-            throw new Error('Unable to create transaction');
-        }
+        await super.create();
 
         try {
             let timeout = this.expires - new Date();
@@ -411,15 +413,15 @@ class PaymentTransaction extends CoreTransaction{
             setTimeout(() => {
                 let query = {
                     transaction_id: { $eq: this.transaction_id, },
-                    status: { $eq: TRANSACTION_STATUSES.get('initial'), },
+                    status: { $eq: TRANSACTION_STATUS__INITIAL, },
                 };
 
                 console.log("Transaction expired - " + this.transaction_id);
-                db.findAndModify('transactions', query, { status: TRANSACTION_STATUSES.get('expired'), });
+                db.findAndModify('transactions', query, { status: TRANSACTION_STATUS__EXPIRED, });
             }, timeout);
         }
         catch (e) {
-            throw new errors_model.Warning ('Transaction created, but failed to set the expiration timeout');
+            throw new errors_model.Warning ({class_name: this.constructor.name, field: 'create', message: 'Transaction created, but failed to set the expiration timeout'});
         }
 
         return this;
@@ -433,14 +435,14 @@ class PaymentTransaction extends CoreTransaction{
             seller: this.seller,
         };
 
-        if (this.status === TRANSACTION_STATUSES.get('resolved')) {
+        if (this.status === TRANSACTION_STATUS__RESOLVED) {
             payment_ack.wallet_id = this.confirmation_details.wallet_id;
             return payment_ack;
         }
-        else if (this.status === TRANSACTION_STATUSES.get('processing')) {
+        else if (this.status === TRANSACTION_STATUS__PROCESSING) {
             throw new Error("A payment is already being processed for this transaction");
         }
-        else if (this.status === TRANSACTION_STATUSES.get('expired')) {
+        else if (this.status === TRANSACTION_STATUS__EXPIRED) {
             throw new Error("Transaction expired");
         }
         else if (!payment_confirmation_details.coins.every(coin => this.currency === utils.Coin(coin).c)) {
@@ -462,7 +464,7 @@ class PaymentTransaction extends CoreTransaction{
             throw new Error(`Some coins are not from the list of acceptable issuers or selected coins are from different issuers.`);
         }
 
-        this.status = TRANSACTION_STATUSES.get('processing');
+        this.status = TRANSACTION_STATUS__PROCESSING;
         this.confirmation_details = payment_confirmation_details;
 
         let db_session = db.getClient().startSession();
@@ -534,7 +536,7 @@ class PaymentTransaction extends CoreTransaction{
                 coin_data.order_id = this.order_id;
             }
 
-            this.status = TRANSACTION_STATUSES.get('resolved');
+            this.status = TRANSACTION_STATUS__RESOLVED;
             this.verify_details = verify_info;
             this.paid = new Date();
 
@@ -573,7 +575,7 @@ class PaymentTransaction extends CoreTransaction{
             await db_session.abortTransaction();
 
             try {
-                this.status = TRANSACTION_STATUSES.get('initial');
+                this.status = TRANSACTION_STATUS__INITIAL;
                 this.confirmation_details = undefined;
                 await db_session.startTransaction();
                 await this.save();
@@ -592,29 +594,23 @@ class PaymentTransaction extends CoreTransaction{
     }
 }
 
-const BLOCKCHAIN_TRANSFER_TRANSACTION_ALLOWED_PROPERTIES = new Set([ 'transaction_id', 'status', 'type', 'currency', 'value', 'description', 'speed', 'address', 'label', 'account_id', ]);
-const BLOCKCHAIN_TRANSFER_TRANSACTION_REQUIRED_PROPERTIES = new Set([ 'transaction_id', 'type', 'currency', 'value', 'address', ]);
 
 class BlockchainTransferTransaction extends CoreTransaction {
-    static get ALLOWED_PROPERTIES () {
-        return BLOCKCHAIN_TRANSFER_TRANSACTION_ALLOWED_PROPERTIES;
-    }
-
-    static get REQUIRED_PROPERTIES () {
-        return BLOCKCHAIN_TRANSFER_TRANSACTION_REQUIRED_PROPERTIES;
-    }
-
     constructor(init_data) {
-        super(BlockchainTransferTransaction.ALLOWED_PROPERTIES);
+        super({
+            allowed_properties: TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
+            required_properties: TRANSACTION_REQUIRED_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
+            hidden_properties: TRANSACTION_HIDDEN_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
+        });
 
-        this[_transaction].type = TRANSACTION_TYPES.get('blockchain-transfer');
+        this[_transaction_data].type = TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER;
 
         if (!init_data[_initialise_empty_object]) {
-            this[_transaction].transaction_id = uuidv4();
-            this[_transaction].status = TRANSACTION_STATUSES.get('initial');
-            this[_transaction].account_id = init_data.account.account_id;
+            this[_transaction_data].transaction_id = uuidv4();
+            this[_transaction_data].status = TRANSACTION_STATUS__INITIAL;
+            this[_transaction_data].account_id = init_data.account.account_id;
 
-            for (let property of BlockchainTransferTransaction.ALLOWED_PROPERTIES) {
+            for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER)) {
                 if (!this[property]) {
                     this[property] = init_data[property];
                 }
@@ -622,32 +618,8 @@ class BlockchainTransferTransaction extends CoreTransaction {
         }
     }
 
-    // Add it to Core with proper class and all in save, create and resolve - maybe as super
-    checkRequiredProperties() {
-        for (let property of BlockchainTransferTransaction.REQUIRED_PROPERTIES) {
-            if (this[property] === undefined) {
-                throw new Error (`Transaction property not set: ${property}`);
-            }
-        }
-    }
-
     async create() {
-        try {
-            this.checkRequiredProperties();
-
-            let data = {};
-
-            for (let property of BlockchainTransferTransaction.ALLOWED_PROPERTIES) {
-                data[property] = this[property];
-            }
-
-            await db.insert('transactions', data);
-        }
-        catch (e) {
-            console.log('BlockchainTransferTransaction create', e);
-            throw new Error('Unable to create transaction');
-        }
-
+        await super.create();
         await this.resolve();
 
         return this;
@@ -657,13 +629,13 @@ class BlockchainTransferTransaction extends CoreTransaction {
         this.checkRequiredProperties();
 
         try {
-            this.status = TRANSACTION_STATUSES.get('processing');
+            this.status = TRANSACTION_STATUS__PROCESSING;
             await this.save();
         }
         catch (e) {
             console.log('BlockchainTransferTransaction resolve init error', e);
 
-            this.status = TRANSACTION_STATUSES.get('initial');
+            this.status = TRANSACTION_STATUS__INITIAL;
             throw e;
         }
 
@@ -672,9 +644,9 @@ class BlockchainTransferTransaction extends CoreTransaction {
             coins = coins[this.currency];
 
             if (!coins || !coins.length) {
-                throw new Error ('Not coins in a given currency');
+                throw new Error ('No coins in a given currency');
             }
-            //
+
             let total_value = utils.coinsValue(coins);
 
             if (total_value < parseFloat(this.value)) {
@@ -697,11 +669,11 @@ class BlockchainTransferTransaction extends CoreTransaction {
 
             console.log('BlockchainTransferTransaction resolve', blockchain_uri, coins, this.value, this.speed, this.account_id);
 
-            this.status = TRANSACTION_STATUSES.get('resolved');
+            this.status = TRANSACTION_STATUS__RESOLVED;
 
             await this.save();
 
-            this[_transaction].transfer_details = await utils.transferBitcoin(blockchain_uri, coins, this.value, BLOCKCHAIN_TRANSFER_SPEED.get(this.speed), this.account_id);
+            this[_transaction_data].transfer_details = await utils.transferBitcoin(blockchain_uri, coins, this.value, BLOCKCHAIN_TRANSFER_SPEED.get(this.speed), this.account_id);
 
             await this.save();
 
@@ -711,7 +683,7 @@ class BlockchainTransferTransaction extends CoreTransaction {
             console.log('BlockchainTransferTransaction resolve error', e);
 
             try {
-                this.status = TRANSACTION_STATUSES.get('initial');
+                this.status = TRANSACTION_STATUS__INITIAL;
                 await this.save();
             }
             catch (e) {
@@ -721,18 +693,15 @@ class BlockchainTransferTransaction extends CoreTransaction {
             throw e;
         }
     }
+    async prepareInputData(input_data) { return input_data; }
 }
 
-class CoinFileTransferTransaction extends CoreTransaction {
-    constructor(init_data) {
-        super(init_data);
-    }
-}
+class CoinFileTransferTransaction extends CoreTransaction {}
 
 const TRANSACTION_CLASSES = new Map([
-    [ TRANSACTION_TYPES.get('payment'), PaymentTransaction, ],
-    [ TRANSACTION_TYPES.get('blockchain-transfer'), BlockchainTransferTransaction, ],
-    [ TRANSACTION_TYPES.get('coin-file-transfer'), CoinFileTransferTransaction, ],
+    [ TRANSACTION_TYPE__PAYMENT, PaymentTransaction, ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, BlockchainTransferTransaction, ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, CoinFileTransferTransaction, ],
 ]);
 
 
@@ -742,7 +711,7 @@ exports.Transaction = class Transaction {
             throw new Error('Invalid type');
         }
 
-        let transaction_class = TRANSACTION_CLASSES.get(TRANSACTION_TYPES.get(init_data.type));
+        let transaction_class = TRANSACTION_CLASSES.get(init_data.type);
 
         return new transaction_class(init_data);
     }
@@ -750,8 +719,16 @@ exports.Transaction = class Transaction {
     /*      Static methods      */
 
     static get TYPES () { return TRANSACTION_TYPES; }
+    static get TYPE__PAYMENT () {return TRANSACTION_TYPE__PAYMENT;}
+    static get TYPE__BLOCKCHAIN_TRANSFER () {return TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER;}
+    static get TYPE__COIN_FILE_TRANSFER () {return TRANSACTION_TYPE__COIN_FILE_TRANSFER;}
 
     static get STATUSES () { return TRANSACTION_STATUSES; }
+    static get STATUS__INITIAL () {return TRANSACTION_STATUS__INITIAL;}
+    static get STATUS__PROCESSING () {return TRANSACTION_STATUS__PROCESSING;}
+    static get STATUS__RESOLVED () {return TRANSACTION_STATUS__RESOLVED;}
+    static get STATUS__ABORTED () {return TRANSACTION_STATUS__ABORTED;}
+    static get STATUS__EXPIRED () {return TRANSACTION_STATUS__EXPIRED;}
 
     static async find({transaction_id, account_id, type, status, offset=0, limit=100, before, after, order="descending", order_by="created", only_valid=true }) {
         try {
@@ -839,9 +816,9 @@ exports.Transaction = class Transaction {
             // in all statuses will be returned.
             else if (only_valid) {
                 query.status = { $in: [
-                        TRANSACTION_STATUSES.get('initial'),
-                        TRANSACTION_STATUSES.get('resolved'),
-                        TRANSACTION_STATUSES.get('processing'), ]
+                        TRANSACTION_STATUS__INITIAL,
+                        TRANSACTION_STATUS__RESOLVED,
+                        TRANSACTION_STATUS__PROCESSING, ]
                 };
             }
 
@@ -849,14 +826,14 @@ exports.Transaction = class Transaction {
                 projection: { _id: 0, }, offset: parseInt(offset), limit: parseInt(limit), order: order, order_by: order_by,
             });
 
-            return found_transactions.map(found_transaction => {
+            return await Promise.all(found_transactions.map(async found_transaction => {
 
                 let transaction = new Transaction({ type: found_transaction.type, [_initialise_empty_object]: true, });
 
-                transaction[_transaction] = transaction.prepareInputData(found_transaction);
+                transaction[_transaction_data] = await transaction.prepareInputData(found_transaction);
 
                 return transaction;
-            });
+            }));
         }
         catch (e) {
             console.log('getTransactions', e);
@@ -864,4 +841,5 @@ exports.Transaction = class Transaction {
             throw (e instanceof Error ? e : new Error(String(e)));
         }
     }
+
 };
