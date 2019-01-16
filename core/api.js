@@ -9,13 +9,12 @@ const errors = require(config.get('system.root_dir') + '/core/models/Errors');
 
 const { ObjectId } = require('mongodb');
 const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
-const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponseEnvelope');
+const { JSONResponse, JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponseEnvelope');
 const { Transaction } = require(config.get('system.root_dir') + '/core/models/Transaction');
-const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
 const { PaymentAck } = require(config.get('system.root_dir') + '/core/models/PaymentAck');
+const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
 const { Settings } = require(config.get('system.root_dir') + '/core/models/Settings');
-
 class APIError extends Error {}
 
 const getTransactions = async (req, res, next) => {
@@ -121,11 +120,7 @@ const getTransactionById = async (req, res, next) => {
 
 
 const postTransactionByIdPayment = async (req, res, next) => {
-    let response = new JSONResponseEnvelope({
-        body: undefined
-    });
-    delete response.success;
-    delete response.messages;
+    let response = '';
 
     let query = {
         // Transaction id passed in url
@@ -153,8 +148,8 @@ const postTransactionByIdPayment = async (req, res, next) => {
         transaction = transaction[0];
 
         if (!transaction) {
-            response.body = new PaymentAck({
-                status: PaymentAck.STATUS__PAYMENT_UNKNOW,
+            response = new PaymentAck({
+                status: PaymentAck.STATUS__PAYMENT_UNKNOWN,
                 wallet_id: payment_details.wallet_id,
             });
 
@@ -162,7 +157,7 @@ const postTransactionByIdPayment = async (req, res, next) => {
         }
 
         payment_ack = await transaction.resolve(payment_details);
-        response.body = payment_ack;
+        response = payment_ack;
 
         if (payment_ack && payment_ack.status !== PaymentAck.STATUS__OK) {
             throw new Error ('Unable to resolve the transaction');
@@ -173,8 +168,8 @@ const postTransactionByIdPayment = async (req, res, next) => {
     catch (e) {
         console.log('api postTransactionByIdPayment', e);
 
-        if (!response.body) {
-            response.body = response.body = new PaymentAck({
+        if (!response) {
+            response = new PaymentAck({
                 status: PaymentAck.STATUS__GENERIC_ERROR,
             });
         }
@@ -182,7 +177,7 @@ const postTransactionByIdPayment = async (req, res, next) => {
         res.status(400);
     }
 
-    return res.send(response.prepareResponse(res));
+    return res.send(new JSONResponse(response).prepareResponse(res));
 };
 
 

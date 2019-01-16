@@ -1,7 +1,7 @@
 "use strict";
 
 exports.JSONResponseEnvelope = class JSONResponseEnvelope {
-    constructor ({ body=[], messages=[], success=false}) {
+    constructor ({ body=[], messages=[], success=false}={}) {
         // Initial checks
         if (!Array.isArray(body)) { throw new Error("JSONResponseEnvelope body should be an array."); }
         if (!Array.isArray(messages)) { throw new Error("JSONResponseEnvelope messages should be an array."); }
@@ -11,6 +11,20 @@ exports.JSONResponseEnvelope = class JSONResponseEnvelope {
         this.body = body;
         this.messages = messages;
         this.success = success;
+    }
+
+    /*      Methods     */
+
+    prepareResponse (res) {
+        res.type('application/json');
+
+        return JSON.stringify(this);
+    }
+};
+
+exports.JSONResponse = class JSONResponse {
+    constructor (init_data={}) {
+        Object.assign(this, init_data);
     }
 
     /*      Methods     */
