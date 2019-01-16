@@ -11,6 +11,7 @@ const request = require('request');
 // const { routes } = require(config.get('system.root_dir') + '/core/api');
 const utils = require(config.get('system.root_dir') + '/issuer/utils');
 const issuer = require(config.get('system.root_dir') + '/issuer');
+const endpoints = require(config.get('system.root_dir') + '/core/api/endpoints');
 const { Settings } = require(config.get('system.root_dir') + '/core/models/Settings');
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
 const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
@@ -250,7 +251,7 @@ BaseModel.lockPropertiesOf(_transaction_properties_validators);
 
 const _transaction_properties_custom_getters = {
     payment_url: function () {
-        return `${config.get('server.api.endpoint_url')}${config.get('server.api.endpoint_path')}/v1.0a/transaction/${this.transaction_id}/payment`
+        return `${config.get('server.api.endpoint_url')}${config.get('server.api.endpoint_path')}${endpoints.getEndpointPath(endpoints.getPathForId(endpoints.TRANSACTION_ID_PAYMENT, this.transaction_id))}/`;
     },
     speed: function () {
         return this[_transaction_data].speed ? this[_transaction_data].speed : BLOCKCHAIN_TRANSFER_SPEED__DEFAULT;
