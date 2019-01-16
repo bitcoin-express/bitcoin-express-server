@@ -92,7 +92,7 @@ const TRANSACTION_REQUIRED_PROPERTIES = new Map([
         ]),
     ],
     [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'type', 'currency', 'value', 'address', ]), ],
-    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, [], ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([]), ],
 ]);
 
 const TRANSACTION_HIDDEN_PROPERTIES = new Map([
@@ -101,7 +101,11 @@ const TRANSACTION_HIDDEN_PROPERTIES = new Map([
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'account_id', ]), ],
 ]);
 
-const TRANSACTION_READONLY_PROPERTIES = new Map([]);
+const TRANSACTION_READONLY_PROPERTIES = new Map([
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'type', ]), ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([]), ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([]), ],
+]);
 
 /*  Default transfer speed to be used if it's not defined in the transaction
 */
@@ -185,7 +189,6 @@ const _transaction_properties_validators = {
         }
     },
     email_customer_contact: Account.VALIDATORS.email_customer_contact,
-    acceptable_issuers: Settings.VALIDATORS.acceptable_issuers,
     policies: (policies) => {
         if (!policies) {
             return true;
@@ -348,12 +351,21 @@ class PaymentTransaction extends CoreTransaction {
             readonly_properties: TRANSACTION_READONLY_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
         });
 
+        delete init_data.type;
+
+        for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
+            if (init_data[property]) {
+                this[property] = init_data[property];
+            }
+        }
+
         this[_transaction_data].type = TRANSACTION_TYPE__PAYMENT;
 
         if (!init_data[_initialise_empty_object]) {
             this[_transaction_data].transaction_id = uuidv4();
             this[_transaction_data].status = TRANSACTION_STATUS__INITIAL;
             this[_transaction_data].account_id = init_data.account.account_id;
+            this[_transaction_data].acceptable_issuers = init_data.account.settings.acceptable_issuers;
 
             this.return_url = init_data.return_url || init_data.account.settings.return_url || undefined;
             this[_transaction_data].seller = this.return_url ? new URL(this.return_url).hostname : init_data.account.domain;
@@ -369,7 +381,6 @@ class PaymentTransaction extends CoreTransaction {
                            new Date(this.created.getTime() + init_data.account.settings.default_payment_timeout * 1000);
 
             this.email_customer_contact = init_data.email_customer_contact || init_data.account.email_customer_contact;
-            this.acceptable_issuers = init_data.acceptable_issuers || init_data.account.settings.acceptable_issuers;
 
             this.policies = {
                 receipt_via_email: init_data.policies && init_data.policies.hasOwnProperty('receipt_via_email') ?
@@ -382,11 +393,6 @@ class PaymentTransaction extends CoreTransaction {
 
             this.currency = init_data.currency || init_data.account.settings.default_payment_currency;
 
-            for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
-                if (!this[property] && init_data[property]) {
-                    this[property] = init_data[property];
-                }
-            }
 
             if (init_data.account) {
                 this.account_id = init_data.account.account_id;
@@ -725,20 +731,18 @@ const TRANSACTION_CLASSES = new Map([
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, CoinFileTransferTransaction, ],
 ]);
 
-for (let transaction_type of TRANSACTION_TYPES) {
-    TRANSACTION_READONLY_PROPERTIES.set(
-        transaction_type, new Set(Array.from(TRANSACTION_ALLOWED_PROPERTIES.get(transaction_type),
-            (property) => {
-                if (!_transaction_properties_validators.hasOwnProperty(property) &&
-                    !_transaction_properties_validators.hasOwnProperty(`${property}__${TRANSACTION_CLASSES.get(transaction_type).name}`)
-                ) {
-                    return property;
-                }
-            }
-        )),
-    );
-}
 
+for (let transaction_type of TRANSACTION_TYPES) {
+    let readonly_properties = TRANSACTION_READONLY_PROPERTIES.get(transaction_type);
+    for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(transaction_type)) {
+        if (!_transaction_properties_validators.hasOwnProperty(property) &&
+            !_transaction_properties_validators.hasOwnProperty(`${property}__${TRANSACTION_CLASSES.get(transaction_type).name}`) &&
+            !readonly_properties.has(property)
+        ) {
+            readonly_properties.add(property);
+        }
+    }
+}
 
 exports.Transaction = class Transaction {
     constructor (init_data={}) {

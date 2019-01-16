@@ -20,20 +20,20 @@ const _common_validators = {
 
 exports.BaseModel = class BaseModel {
     constructor({
-                    private_data_container_key=undefined,
-                    private_interface_key=undefined,
-                    db_session_id=undefined,
-                    allowed_properties=[],
-                    required_properties=[],
-                    hidden_properties=[],
-                    readonly_properties=[],
-                    custom_getters={},
-                    custom_setters={},
-                    validators={},
-                    db_table={},
-                    db_id_field=undefined,
-                    db_id_value=undefined
-                }) {
+        private_data_container_key=undefined,
+        private_interface_key=undefined,
+        db_session_id=undefined,
+        allowed_properties=new Set(),
+        required_properties=new Set(),
+        hidden_properties=new Set(),
+        readonly_properties=new Set(),
+        custom_getters={},
+        custom_setters={},
+        validators={},
+        db_table={},
+        db_id_field=undefined,
+        db_id_value=undefined
+    }) {
         if (!private_data_container_key) {
             throw new errors.ValueRequiredError({ class_name: 'BaseModel', field: 'private_data_container_key', });
         }

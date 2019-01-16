@@ -2,6 +2,7 @@
 
 type: !include TransactionPaymentCore.raml
 properties:
+  acceptable_issuers: !include primitives/AcceptableIssuers.raml
   expires: !include primitives/ExpireDate.raml
   transaction_id: !include primitives/TransactionId.raml
   created: !include primitives/CreateDate.raml
