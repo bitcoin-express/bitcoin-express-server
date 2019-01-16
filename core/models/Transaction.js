@@ -7,6 +7,7 @@ const uuidv4 = require('uuid/v4');
 const config = require('config');
 const db = require(config.get('system.root_dir') + '/db');
 const checks = require(config.get('system.root_dir') + '/core/checks');
+const request = require('request');
 // const { routes } = require(config.get('system.root_dir') + '/core/api');
 const utils = require(config.get('system.root_dir') + '/issuer/utils');
 const issuer = require(config.get('system.root_dir') + '/issuer');
@@ -551,8 +552,27 @@ class PaymentTransaction extends CoreTransaction {
                 }, coins_domain),
             ]);
 
-
             payment_ack.wallet_id = payment_confirmation_details.wallet_id;
+
+            try {
+                if (this.callback_url) {
+                    request(this.callback_url, (error, response, body, ) => {
+                        if (error) {
+                            console.log(`Transaction Payment - Payment resolve - callback url: ${this.callback_url} error:`, error);
+                        }
+                        else if (response && response.statusCode !== 200) {
+                            console.log(`Transaction Payment - Payment resolve - callback url: ${this.callback_url} status warning: ${response.statusCode}`);
+                        }
+                        else {
+                            console.log(`Transaction Payment - Payment resolve - callback url: ${this.callback_url} status: success`);
+                        }
+                    });
+                }
+            }
+            catch (e) {
+                console.log(`Transaction Payment - Payment resolve - callback url: ${this.callback_url} catch error:`, e);
+            }
+
             return payment_ack;
         }
         catch (e) {
@@ -570,7 +590,6 @@ class PaymentTransaction extends CoreTransaction {
             catch (e) {
                 console.log("Failed during sending 'end' to an issuer: " + e.toString());
             }
-
 
             await db_session.abortTransaction();
 
@@ -804,7 +823,7 @@ exports.Transaction = class Transaction {
 
             if (account_id) {
                 query.account_id = account_id;
-            };
+            }
 
             // Find a specific transaction
             if (transaction_id) {
