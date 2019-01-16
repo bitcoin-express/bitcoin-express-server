@@ -32,6 +32,7 @@ exports.BaseModel = class BaseModel {
                     validators={},
                     db_table={},
                     db_id_field=undefined,
+                    db_id_value=undefined
                 }) {
         if (!private_data_container_key) {
             throw new errors.ValueRequiredError({ class_name: 'BaseModel', field: 'private_data_container_key', });
@@ -58,6 +59,7 @@ exports.BaseModel = class BaseModel {
             validators,
             db_table,
             db_id_field,
+            db_id_value,
         };
 
         // Make this container invisible for any methods working on properties
@@ -155,7 +157,7 @@ exports.BaseModel = class BaseModel {
     }
 
     clone () {
-        let cloned_object = new this.constructor({ [_initialise_empty_object]: true, });
+        let cloned_object = new this.constructor();
         Object.assign(cloned_object[this[_privates].data], this[this[_privates].data]);
         Object.assign(cloned_object[this[_privates].interface], this[this[_privates].interface]);
 
@@ -204,9 +206,13 @@ exports.BaseModel = class BaseModel {
         try {
             this.checkRequiredProperties();
 
+            let id_value = this[this[_privates].interface].db_id_value ?
+                           this[this[this[_privates].interface].db_id_value] :
+                           this[this[this[_privates].interface].db_id_field];
+
             await db.findAndModify(this[this[_privates].interface].db_table,
                 {
-                    [this[this[_privates].interface].db_id_field]: this[this[this[_privates].interface].db_id_field],
+                    [this[this[_privates].interface].db_id_field]: id_value,
                 },
                 {
                     ...this[this[_privates].data],
