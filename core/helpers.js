@@ -17,7 +17,7 @@ exports.asyncWrapper = fn =>
                 success: false,
                 body: [],
                 messages: [ new Message({
-                    type: Message.TYPE_ERROR,
+                    type: Message.TYPE__ERROR,
                     body: "Something went wrong on a server side and we couldn't handle that properly. Try again and in case of failing - contact us.",
                 }),
                 ],

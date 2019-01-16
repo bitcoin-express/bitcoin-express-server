@@ -7,21 +7,19 @@ const uuidv4 = require('uuid/v4');
 const config = require('config');
 const db = require(config.get('system.root_dir') + '/db');
 const checks = require(config.get('system.root_dir') + '/core/checks');
-const api = require(config.get('system.root_dir') + '/core/api');
+// const { routes } = require(config.get('system.root_dir') + '/core/api');
 const utils = require(config.get('system.root_dir') + '/issuer/utils');
 const issuer = require(config.get('system.root_dir') + '/issuer');
+const { Settings } = require(config.get('system.root_dir') + '/core/models/Settings');
+const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
+const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
+const { PaymentAck } = require(config.get('system.root_dir') + '/core/models/PaymentAck');
+const { BaseModel } = require(config.get('system.root_dir') + '/core/models/BaseModel');
 
-
+const errors = require(config.get('system.root_dir') + '/core/models/Errors');
 /*  Models imports
 */
-
-const settings_model = require(config.get('system.root_dir') + '/core/models/Settings');
-const account_model = require(config.get('system.root_dir') + '/core/models/Account');
-const errors_model = require(config.get('system.root_dir') + '/core/models/Errors');
-
 const { ObjectId } = require('mongodb');
-const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
-const { BaseModel } = require(config.get('system.root_dir') + '/core/models/BaseModel');
 
 /*  Possible transaction statuses, shared among different types of transactions.
     It is possible that specific types of transactions won't be supporting all statuses.
@@ -101,6 +99,8 @@ const TRANSACTION_HIDDEN_PROPERTIES = new Map([
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'account_id', ]), ],
 ]);
 
+const TRANSACTION_READONLY_PROPERTIES = new Map([]);
+
 /*  Default transfer speed to be used if it's not defined in the transaction
 */
 
@@ -152,6 +152,7 @@ const _transaction_interface = Symbol('_transaction_interface');
 */
 
 const _transaction_properties_validators = {
+    account_id: (account_id) => true,
     order_id: (order_id) => {
         if (order_id !== undefined && (typeof order_id !== "string" || order_id.length < 1 || order_id.length > 64)) {
             throw new Error ('Invalid format');
@@ -160,8 +161,8 @@ const _transaction_properties_validators = {
     expires: (date) => {
         if (!(date instanceof Date)) { throw new Error ('Invalid format'); }
     },
-    return_url: settings_model.validators.return_url,
-    callback_url: settings_model.validators.callback_url,
+    return_url: Settings.VALIDATORS.return_url,
+    callback_url: Settings.VALIDATORS.callback_url,
     value: (value) => {
         if (!value) {
             throw new Error ('Required field');
@@ -175,22 +176,14 @@ const _transaction_properties_validators = {
             throw new Error('Invalid value');
         }
     },
-    description: (text) => {
-        if (!text) {
-            throw new Error ('Required field');
-        }
-
-        if (typeof text !== "string" || text.length < 1 || text.length > 64) {
-            throw new Error('Invalid format');
-        }
-    },
+    description: BaseModel.VALIDATORS.description,
     notification: (text) => {
         if (text !== undefined && (typeof text !== "string" || text.length < 1 || text.length > 128)) {
             throw new Error('Invalid format');
         }
     },
-    email_customer_contact: account_model.validators.email_customer_contact,
-    acceptable_issuers: settings_model.validators.acceptable_issuers,
+    email_customer_contact: Account.VALIDATORS.email_customer_contact,
+    acceptable_issuers: Settings.VALIDATORS.acceptable_issuers,
     policies: (policies) => {
         if (!policies) {
             return true;
@@ -210,7 +203,7 @@ const _transaction_properties_validators = {
             }
         }
     },
-    currency: settings_model.validators.default_payment_currency,
+    currency: Settings.VALIDATORS.default_payment_currency,
     status: status => {
         if (!TRANSACTION_STATUSES.has(status)) {
             throw new Error('Unknown status');
@@ -256,7 +249,7 @@ BaseModel.lockPropertiesOf(_transaction_properties_validators);
 
 const _transaction_properties_custom_getters = {
     payment_url: function () {
-        return `${config.get('server.api.endpoint_url')}${config.get('server.api.endpoint_path')}${api.routes.get('postTransactionPayment').getPathForId(this.transaction_id)}`
+        return `${config.get('server.api.endpoint_url')}${config.get('server.api.endpoint_path')}/v1.0a/transaction/${this.transaction_id}/payment`
     },
     speed: function () {
         return this[_transaction_data].speed ? this[_transaction_data].speed : BLOCKCHAIN_TRANSFER_SPEED__DEFAULT;
@@ -325,7 +318,7 @@ BaseModel.lockPropertiesOf(_transaction_properties_custom_getters);
     Objects of this class should never be created as a standalone constructs.
 */
 class CoreTransaction extends BaseModel {
-    constructor({ allowed_properties, required_properties, }) {
+    constructor({ allowed_properties, required_properties, hidden_properties, readonly_properties, }) {
         super({
             private_data_container_key: _transaction_data,
             private_interface_key: _transaction_interface,
@@ -335,6 +328,8 @@ class CoreTransaction extends BaseModel {
             validators: _transaction_properties_validators,
             allowed_properties: allowed_properties,
             required_properties: required_properties,
+            hidden_properties: hidden_properties,
+            readonly_properties: readonly_properties,
             db_table: 'transactions',
             db_id_field: 'transaction_id',
         });
@@ -343,11 +338,12 @@ class CoreTransaction extends BaseModel {
 
 
 class PaymentTransaction extends CoreTransaction {
-    constructor(init_data) {
+    constructor(init_data={}) {
         super({
             allowed_properties: TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
             required_properties: TRANSACTION_REQUIRED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
             hidden_properties: TRANSACTION_HIDDEN_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
+            readonly_properties: TRANSACTION_READONLY_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
         });
 
         this[_transaction_data].type = TRANSACTION_TYPE__PAYMENT;
@@ -385,9 +381,13 @@ class PaymentTransaction extends CoreTransaction {
             this.currency = init_data.currency || init_data.account.settings.default_payment_currency;
 
             for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
-                if (!this[property]) {
+                if (!this[property] && init_data[property]) {
                     this[property] = init_data[property];
                 }
+            }
+
+            if (init_data.account) {
+                this.account_id = init_data.account.account_id;
             }
 
             if (!this.return_url && !this.notification) {
@@ -421,19 +421,19 @@ class PaymentTransaction extends CoreTransaction {
             }, timeout);
         }
         catch (e) {
-            throw new errors_model.Warning ({class_name: this.constructor.name, field: 'create', message: 'Transaction created, but failed to set the expiration timeout'});
+            throw new errors.Warning ({class_name: this.constructor.name, field: 'create', message: 'Transaction created, but failed to set the expiration timeout'});
         }
 
         return this;
     }
 
     async resolve (payment_confirmation_details) {
-        let payment_ack = {
-            status: "ok",
+        let payment_ack = new PaymentAck({
+            status: PaymentAck.STATUS__OK,
             return_url: this.return_url,
             memo: this.notification,
             seller: this.seller,
-        };
+        });
 
         if (this.status === TRANSACTION_STATUS__RESOLVED) {
             payment_ack.wallet_id = this.confirmation_details.wallet_id;
@@ -476,7 +476,7 @@ class PaymentTransaction extends CoreTransaction {
             this.initDBSession(db_session);
 
             [ account, issuer_begin_response, ] = await Promise.all([
-                account_model.Account.find(this.account_id),
+                Account.find(this.account_id),
                 issuer.post('begin', { issuerRequest: { fn: "verify", } }, coins_domain),
                 this.save(),
             ]);
@@ -596,11 +596,12 @@ class PaymentTransaction extends CoreTransaction {
 
 
 class BlockchainTransferTransaction extends CoreTransaction {
-    constructor(init_data) {
+    constructor(init_data={}) {
         super({
             allowed_properties: TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
             required_properties: TRANSACTION_REQUIRED_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
             hidden_properties: TRANSACTION_HIDDEN_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
+            readonly_properties: TRANSACTION_READONLY_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
         });
 
         this[_transaction_data].type = TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER;
@@ -704,9 +705,24 @@ const TRANSACTION_CLASSES = new Map([
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, CoinFileTransferTransaction, ],
 ]);
 
+for (let transaction_type of TRANSACTION_TYPES) {
+    TRANSACTION_READONLY_PROPERTIES.set(
+        transaction_type, new Set(Array.from(TRANSACTION_ALLOWED_PROPERTIES.get(transaction_type),
+            (property) => {
+                if (!_transaction_properties_validators.hasOwnProperty(property) &&
+                    !_transaction_properties_validators.hasOwnProperty(`${property}__${TRANSACTION_CLASSES.get(transaction_type).name}`)
+                ) {
+                    return property;
+                }
+            }
+        )),
+    );
+}
+
 
 exports.Transaction = class Transaction {
-    constructor (init_data) {
+    constructor (init_data={}) {
+
         if (!init_data.type || !TRANSACTION_TYPES.has(init_data.type)) {
             throw new Error('Invalid type');
         }
@@ -719,16 +735,18 @@ exports.Transaction = class Transaction {
     /*      Static methods      */
 
     static get TYPES () { return TRANSACTION_TYPES; }
-    static get TYPE__PAYMENT () {return TRANSACTION_TYPE__PAYMENT;}
-    static get TYPE__BLOCKCHAIN_TRANSFER () {return TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER;}
-    static get TYPE__COIN_FILE_TRANSFER () {return TRANSACTION_TYPE__COIN_FILE_TRANSFER;}
+    static get TYPE__PAYMENT () { return TRANSACTION_TYPE__PAYMENT; }
+    static get TYPE__BLOCKCHAIN_TRANSFER () { return TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER; }
+    static get TYPE__COIN_FILE_TRANSFER () { return TRANSACTION_TYPE__COIN_FILE_TRANSFER; }
 
     static get STATUSES () { return TRANSACTION_STATUSES; }
-    static get STATUS__INITIAL () {return TRANSACTION_STATUS__INITIAL;}
-    static get STATUS__PROCESSING () {return TRANSACTION_STATUS__PROCESSING;}
-    static get STATUS__RESOLVED () {return TRANSACTION_STATUS__RESOLVED;}
-    static get STATUS__ABORTED () {return TRANSACTION_STATUS__ABORTED;}
-    static get STATUS__EXPIRED () {return TRANSACTION_STATUS__EXPIRED;}
+    static get STATUS__INITIAL () { return TRANSACTION_STATUS__INITIAL; }
+    static get STATUS__PROCESSING () { return TRANSACTION_STATUS__PROCESSING; }
+    static get STATUS__RESOLVED () { return TRANSACTION_STATUS__RESOLVED; }
+    static get STATUS__ABORTED () { return TRANSACTION_STATUS__ABORTED; }
+    static get STATUS__EXPIRED () { return TRANSACTION_STATUS__EXPIRED; }
+
+    static get VALIDATORS () { return _transaction_properties_validators; }
 
     static async find({transaction_id, account_id, type, status, offset=0, limit=100, before, after, order="descending", order_by="created", only_valid=true }) {
         try {

@@ -33,17 +33,16 @@ else {
     };
 }
 
-var exphbs = require('express-handlebars');
-
-var { createPaymentRequest } = require("./requests/createPaymentRequest");
-var { getBalance } = require("./requests/getBalance");
-var { getCoins } = require("./requests/getCoins");
-var { getPaymentStatus } = require("./requests/getPaymentStatus");
-var { getTransactions } = require("./requests/getTransactions");
-var { payment } = require("./requests/payment");
-var { redeem } = require("./requests/redeem");
-var { register } = require("./requests/register");
-var { setConfig } = require("./requests/setConfig");
+const exphbs = require('express-handlebars');
+const { createPaymentRequest } = require("./requests/createPaymentRequest");
+const { getBalance } = require("./requests/getBalance");
+const { getCoins } = require("./requests/getCoins");
+const { getPaymentStatus } = require("./requests/getPaymentStatus");
+const { getTransactions } = require("./requests/getTransactions");
+const { payment } = require("./requests/payment");
+const { redeem } = require("./requests/redeem");
+const { register } = require("./requests/register");
+const { setConfig } = require("./requests/setConfig");
 
 
 const db = require(config.get('system.root_dir') + '/db');
@@ -80,7 +79,6 @@ app.use(session({
   resave: true,
   saveUninitialized: true
 }));
-
 
 
 // Connect to Mongo on start

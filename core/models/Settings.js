@@ -4,7 +4,17 @@ const config = require('config');
 const db = require(config.get('system.root_dir') + '/db');
 const checks = require(config.get('system.root_dir') + '/core/checks');
 
-const _settings = Symbol('_settings');
+const { BaseModel } = require(config.get('system.root_dir') + '/core/models/BaseModel');
+
+const _settings_data = Symbol('_settings_data');
+const _settings_interface = Symbol('_settings_interface');
+const _db_session = Symbol('_db_session');
+
+const SETTINGS_ALLOWED_PROPERTIES = new Set(Object.keys(config.get('account.settings')));
+const SETTINGS_REQUIRED_PROPERTIES = new Set([]);
+const SETTINGS_HIDDEN_PROPERTIES = new Set(config.get('_account_hidden_settings'));
+const SETTINGS_READONLY_PROPERTIES = new Set(config.get('_account_readonly_settings'));
+
 const _settings_properties_validators = {
     default_payment_currency: (currency) => {
         if (currency && !config.get('system.supported_payment_currencies').includes(currency)) {
@@ -59,7 +69,8 @@ const _settings_properties_validators = {
         }
     },
 };
-exports.validators = _settings_properties_validators;
+BaseModel.lockPropertiesOf(_settings_properties_validators);
+
 
 const _settings_properties_custom_getters = {
     acceptable_issuers: (issuers) => {
@@ -75,82 +86,47 @@ const _settings_properties_custom_getters = {
     },
 };
 
-exports.Settings = class Settings {
-    static get ALLOWED_PROPERTIES () {
-        return Object.keys(config.get('account.settings'));
+for (let property of SETTINGS_ALLOWED_PROPERTIES) {
+    if (!_settings_properties_custom_getters.hasOwnProperty(property)) {
+        _settings_properties_custom_getters[property] = function () {
+            return config.get(`account.settings.${property}`);
+        };
     }
+}
 
-    constructor (args = {}) {
-        // Create container for private object's data. This can't be done later as we are sealing object at the end.
-        this[_settings] = {};
+BaseModel.lockPropertiesOf(_settings_properties_custom_getters);
 
-        // Make this container invisible for any methods working on properties
-        Object.defineProperty(this, _settings, {
-            enumerable: false,
+
+const _settings_properties_custom_setters = {};
+BaseModel.lockPropertiesOf(_settings_properties_custom_setters);
+
+
+exports.Settings = class Settings extends BaseModel {
+    constructor (init_data = {}) {
+        super ({
+            private_data_container_key: _settings_data,
+            private_interface_key: _settings_interface,
+            db_session_id: _db_session,
+            custom_getters: _settings_properties_custom_getters,
+            custom_setters: _settings_properties_custom_setters,
+            validators: _settings_properties_validators,
+            allowed_properties: SETTINGS_ALLOWED_PROPERTIES,
+            required_properties: SETTINGS_REQUIRED_PROPERTIES,
+            hidden_properties: SETTINGS_HIDDEN_PROPERTIES,
+            readonly_properties: SETTINGS_READONLY_PROPERTIES,
+            db_table: undefined,
+            db_id_field: undefined,
         });
 
-        for (let setting of Settings.ALLOWED_PROPERTIES) {
-            let descriptor = {
-                configurable: false,
-                enumerable: true,
-                get: () => { return this[_settings][setting] !== undefined ?
-                                    this[_settings][setting] :
-                                    _settings_properties_custom_getters.hasOwnProperty(setting) ?
-                                        _settings_properties_custom_getters[setting]() :
-                                        config.get(`account.settings.${setting}`);
-                },
-            };
-
-            if (!config.get('_account_readonly_settings').includes(setting)) {
-                descriptor.set = (value) => {
-                    if (_settings_properties_validators.hasOwnProperty(setting)) {
-                        _settings_properties_validators[setting](value);
-                    }
-
-                    this[_settings][setting] = value;
-                };
-            }
-            else {
-                descriptor.set = (value) => {
-                    throw new Error(`Key ${setting} is readonly`);
-                };
-            }
-
-            Object.defineProperty(this, setting, descriptor);
-        }
-
-        Object.seal(this);
-
-        for (let setting of Object.keys(args)) {
-            this[setting] = args[setting];
+        for (let setting of Object.keys(init_data)) {
+            this[setting] = init_data[setting];
         }
     }
 
-    getSetKeys () {
-        return Object.keys(this[_settings]);
+    static get VALIDATORS () { return _settings_properties_validators; }
+
+    get customizedSettings () {
+        return Object.keys(this[_settings_data]);
     }
-
-    getCustomisedSettings() {
-        return Object.assign({}, this[_settings]);
-    }
-
-    clone () {
-        let cloned_object = new Settings();
-        Object.assign(cloned_object[_settings], this[_settings]);
-
-        return cloned_object;
-    }
-
-    toJSON () {
-        let visible_settings = {};
-
-        for (let setting of Settings.ALLOWED_PROPERTIES) {
-            if (config.get('_account_hidden_settings').includes(setting)) { continue; }
-            visible_settings[setting] = this[setting];
-        }
-
-        return visible_settings;
-    }
-
 };
 

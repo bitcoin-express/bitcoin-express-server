@@ -6,10 +6,20 @@ const crypto = require('crypto');
 const db = require(config.get('system.root_dir') + '/db');
 const checks = require(config.get('system.root_dir') + '/core/checks');
 
+const { BaseModel } = require(config.get('system.root_dir') + '/core/models/BaseModel');
 const { Settings } = require(config.get('system.root_dir') + '/core/models/Settings');
+const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
 
 // Container identifier for private properties
-const _account = Symbol('account');
+const _account_data = Symbol('_account_data');
+const _account_interface = Symbol('_account_interface');
+const _db_session = Symbol('_db_session');
+
+
+const ACCOUNT_ALLOWED_PROPERTIES = new Set([ 'account_id', 'auth_token', ...Object.keys(config.get('account')), ]);
+const ACCOUNT_REQUIRED_PROPERTIES = new Set(config.get('_register_required_keys'));
+const ACCOUNT_HIDDEN_PROPERTIES = new Set([ 'account_id', ]);
+const ACCOUNT_READONLY_PROPERTIES = new Set([ 'auth_token', ]);
 
 const _account_properties_validators = {
     domain: (domain) => { if (domain && !checks.isDomain(domain)) { throw new Error('Invalid domain format'); }},
@@ -18,85 +28,61 @@ const _account_properties_validators = {
     name: (name) => { if (name && (name.length < 1 || name.length > 128)) { throw new Error('Invalid name format'); }},
     settings: (settings) => { if (!(settings instanceof Settings)) { throw new Error('Must be instance of Settings'); }},
 };
-exports.validators = _account_properties_validators;
+BaseModel.lockPropertiesOf(_account_properties_validators);
 
-exports.Account = class Account {
-    static get ALLOWED_PROPERTIES () {
-        let allowed_properties = [
-            'auth_token',
-            // 'account_id',
-        ];
-        allowed_properties.push(...Object.keys(config.get('account')));
+const _account_properties_custom_getters = {
+    account_id: function () {
+        return this[_account_data]._id;
+    },
+};
+BaseModel.lockPropertiesOf(_account_properties_custom_getters);
 
-        return allowed_properties;
-    }
+const _account_properties_custom_setters = {};
+BaseModel.lockPropertiesOf(_account_properties_custom_setters);
 
-    constructor (args={}) {
-        // Create container for private object's data. This can't be done later as we are sealing object at the end.
-        this[_account] = {
+exports.Account = class Account extends BaseModel {
+    constructor (init_data={}) {
+        super({
+            private_data_container_key: _account_data,
+            private_interface_key: _account_interface,
+            db_session_id: _db_session,
+            custom_getters: _account_properties_custom_getters,
+            custom_setters: _account_properties_custom_setters,
+            validators: _account_properties_validators,
+            allowed_properties: ACCOUNT_ALLOWED_PROPERTIES,
+            required_properties: ACCOUNT_REQUIRED_PROPERTIES,
+            hidden_properties: ACCOUNT_HIDDEN_PROPERTIES,
+            readonly_properties: ACCOUNT_READONLY_PROPERTIES,
+            db_table: undefined,
+            db_id_field: undefined,
+        });
+
+        this[_account_data] = {
             settings: new Settings(),
         };
 
-        // Make this container invisible for any methods working on properties
-        Object.defineProperty(this, _account, {
-            enumerable: false,
-        });
-
-        // Create getters and setters for all allowed properties. We are doing this using defineProperty and not get/set
-        // in order to make them enumerable.
-        for (let property of Account.ALLOWED_PROPERTIES) {
-            let descriptor = {
-                configurable: false,
-                enumerable: true,
-                get: () => { return this[_account][property]; },
-            };
-
-            // If there is no validator for a property then this property is readonly.
-            // Only validated options are allowed to be set.
-            if (_account_properties_validators.hasOwnProperty(property)) {
-                descriptor.set = (value) => {
-                    _account_properties_validators[property](value);
-                    this[_account][property] = value;
-                };
-            }
-            else {
-                descriptor.set = (value) => {
-                    throw new Error(`Key ${property} is readonly`);
-                };
-            }
-
-            Object.defineProperty(this, property, descriptor);
-        }
-
-        Object.defineProperty(this, 'account_id', {
-            configurable: false,
-            enumerable: false,
-            get: () => { return this[_account]._id; },
-        });
-
-        // Set initial values from constructor's arguments
         for (let property of config.get('_register_allowed_keys')) {
-            if (args.hasOwnProperty(property)) {
-                this[property] = args[property];
+            if (!this[property] && init_data[property]) {
+                this[property] = init_data[property];
             }
         }
-
-        Object.seal(this);
     }
 
-    /*      Properties      */
-
-    /* All properties are set dynamically in a constructor */
-
     /*      Static methods      */
+    static get VALIDATORS () { return _account_properties_validators; }
 
     static async find(account_identifier) {
         try {
             if (!account_identifier) { throw new Error("Missing account's identifier"); }
 
             let prepared_account = new Account();
-            prepared_account[_account] = await db.findOne('accounts', { $or: [ { _id: account_identifier }, { auth_token: account_identifier }, ] });
-            prepared_account[_account].settings = new Settings(prepared_account[_account].settings);
+            prepared_account[_account_data] = await db.findOne('accounts', { $or: [ { _id: account_identifier }, { auth_token: account_identifier }, ] });
+            prepared_account[_account_data].settings = new Settings(prepared_account[_account_data].settings);
+
+            if (prepared_account[_account_data].confirmation_details) {
+                prepared_account[_account_data].confirmation_details = new PaymentConfirmation(prepared_account[_account_data].confirmation_details);
+            }
+
             return prepared_account;
         }
         catch (e) {
@@ -115,25 +101,25 @@ exports.Account = class Account {
         diffHell.generateKeys();
 
         // TODO: to be removed after testing phase
-        this[_account].private_key = diffHell.getPrivateKey('hex');
+        this[_account_data].private_key = diffHell.getPrivateKey('hex');
 
         // Set required initial settings
-        this[_account].auth_token = diffHell.getPublicKey('hex');
-        this[_account].settings.home_issuer = config.get('account.settings.home_issuer');
-        this[_account].settings.acceptable_issuers = config.get('account.settings.acceptable_issuers');
-        this[_account].settings.default_payment_timeout = config.get('account.settings.default_payment_timeout');
-        this[_account].settings.default_payment_currency = config.get('account.settings.default_payment_currency');
+        this[_account_data].auth_token = diffHell.getPublicKey('hex');
+        this.settings.home_issuer = config.get('account.settings.home_issuer');
+        this.settings.acceptable_issuers = config.get('account.settings.acceptable_issuers');
+        this.settings.default_payment_timeout = config.get('account.settings.default_payment_timeout');
+        this.settings.default_payment_currency = config.get('account.settings.default_payment_currency');
 
         // TODO: to consider - allow to set other options like refund etc. during registration
         if (this.email_customer_contact) {
-            this[_account].settings.provide_receipt_via_email = config.get('account.settings.provide_receipt_via_email');
-            this[_account].settings.provide_refund_via_email = config.get('account.settings.provide_refund_via_email');
+            this.settings.provide_receipt_via_email = config.get('account.settings.provide_receipt_via_email');
+            this.settings.provide_refund_via_email = config.get('account.settings.provide_refund_via_email');
         }
 
         console.log('register account', this);
 
         try {
-            let account = await db.insert("accounts", this[_account]);
+            await db.insert("accounts", this[_account_data]);
             return this;
         }
         catch (e) {
@@ -143,12 +129,12 @@ exports.Account = class Account {
 
     async saveSettings () {
         try {
-            this[_account] = await db.findAndModify('accounts',
+            this[_account_data] = await db.findAndModify('accounts',
                 {
                     _id: this.account_id,
                 },
                 {
-                    settings: this[_account].settings,
+                    settings: this[_account_data].settings,
                 }
             );
 
@@ -159,17 +145,5 @@ exports.Account = class Account {
 
             throw new Error("Unable to save account's settings");
         }
-    }
-
-    toJSON () {
-        let json_data = {};
-
-        for (let property of Object.keys(this)) {
-            if (this[property] !== undefined) {
-                json_data[property] = this[property];
-            }
-        }
-
-        return json_data;
     }
 };

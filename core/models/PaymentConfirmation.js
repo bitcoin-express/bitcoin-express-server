@@ -2,23 +2,32 @@
 const config = require('config');
 const checks = require(config.get('system.root_dir') + '/core/checks');
 
-const _details = Symbol('_details');
+const { BaseModel } = require(config.get('system.root_dir') + '/core/models/BaseModel');
+
+const _confirmation_data = Symbol('_confirmation_data');
+const _confirmation_interface = Symbol('_confirmation_interface');
+const _db_session = Symbol('_db_session');
 
 const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id', 'client_type', 'options', 'memo', ]);
+const PAYMENT_CONFIRMATION_REQUIRED_PROPERTIES = new Set([]);
+const PAYMENT_CONFIRMATION_HIDDEN_PROPERTIES = new Set([]);
+const PAYMENT_CONFIRMATION_READONLY_PROPERTIES = new Set([]);
+
+
 const PAYMENT_CONFIRMATION_CLIENT_TYPES = new Set ([ 'web', 'app', ]);
 
 const _confirmation_properties_validators = {
     coins: coins => {
         console.log(coins, typeof coins);
-        if (!coins) {console.log('111');
+        if (!coins) {
             throw new Error ('Field required');
         }
 
-        if (!Array.isArray(coins)) {console.log('222');
+        if (!Array.isArray(coins)) {
             throw new Error ('Invalid format');
         }
 
-        if (coins.length < 1) {console.log('333');
+        if (coins.length < 1) {
             throw new Error ('Invalid format');
         }
 
@@ -97,57 +106,37 @@ const _confirmation_properties_validators = {
         }
     },
 };
+BaseModel.lockPropertiesOf(_confirmation_properties_validators);
+
 const _confirmation_properties_custom_getters = {};
+BaseModel.lockPropertiesOf(_confirmation_properties_custom_getters);
+
 const _confirmation_properties_custom_setters = {};
+BaseModel.lockPropertiesOf(_confirmation_properties_custom_setters);
 
-exports.PaymentConfirmation = class PaymentConfirmation {
-    static get ALLOWED_PROPERTIES () {
-        return PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES;
-    }
-
-    constructor (init_data) {
-        // Create container for private object's data. This can't be done later as we are sealing object at the end.
-        this[_details] = {};
-
-        // Make this container invisible for any methods working on properties
-        Object.defineProperty(this, _details, {
-            enumerable: false,
+exports.PaymentConfirmation = class PaymentConfirmation extends BaseModel {
+    constructor (init_data={}) {
+        super ({
+            private_data_container_key: _confirmation_data,
+            private_interface_key: _confirmation_interface,
+            db_session_id: _db_session,
+            custom_getters: _confirmation_properties_custom_getters,
+            custom_setters: _confirmation_properties_custom_setters,
+            validators: _confirmation_properties_validators,
+            allowed_properties: PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES,
+            required_properties: PAYMENT_CONFIRMATION_REQUIRED_PROPERTIES,
+            hidden_properties: PAYMENT_CONFIRMATION_HIDDEN_PROPERTIES,
+            readonly_properties: PAYMENT_CONFIRMATION_READONLY_PROPERTIES,
+            db_table: undefined,
+            db_id_field: undefined,
         });
 
-        for (let property of PaymentConfirmation.ALLOWED_PROPERTIES) {
-            let descriptor = {
-                configurable: false,
-                enumerable: true,
-                get: _confirmation_properties_custom_getters.hasOwnProperty(property) ?
-                     _confirmation_properties_custom_getters[property] :
-                     () =>  { return this[_details][property]; },
-            };
-
-            // If there is no validator for a property then this property is readonly.
-            // Only validated options are allowed to be set.
-            if (_confirmation_properties_validators.hasOwnProperty(property)) {
-                descriptor.set = _confirmation_properties_custom_setters.hasOwnProperty(property) ?
-                                 _confirmation_properties_custom_setters[property] :
-                                 (value) => {
-                                     _confirmation_properties_validators[property](value);
-                                     this[_details][property] = value;
-                                 };
-            }
-            else {
-                descriptor.set = (value) => {
-                    throw new Error(`Key ${property} is readonly`);
-                };
-            }
-
-            Object.defineProperty(this, property, descriptor);
-        }
-
-        Object.seal(this);
-
-        if (init_data) {
-            for (let property of PaymentConfirmation.ALLOWED_PROPERTIES) {
+        for (let property of PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES) {
+            if (!this[property] && init_data[property]) {
                 this[property] = init_data[property];
             }
         }
     }
+
+    static get VALIDATORS () { return _confirmation_properties_validators; }
 };

@@ -1,7 +1,7 @@
 "use strict";
 
 exports.BaseError = class BaseError extends Error {
-    constructor ({ class_name, field, message, }) {
+    constructor ({ class_name, field, message, }={}) {
         super();
 
         this.class = class_name;

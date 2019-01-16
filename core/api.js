@@ -5,13 +5,14 @@ const db = require(config.get('system.root_dir') + '/db');
 const issuer_utils = require(config.get('system.root_dir') + '/issuer/utils');
 const middleware = require(config.get('system.root_dir') + '/core/middlewares');
 const helpers = require(config.get('system.root_dir') + '/core/helpers');
-const errors_model = require(config.get('system.root_dir') + '/core/models/Errors');
+const errors = require(config.get('system.root_dir') + '/core/models/Errors');
 
 const { ObjectId } = require('mongodb');
 const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
 const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponseEnvelope');
 const { Transaction } = require(config.get('system.root_dir') + '/core/models/Transaction');
 const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
+const { PaymentAck } = require(config.get('system.root_dir') + '/core/models/PaymentAck');
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
 const { Settings } = require(config.get('system.root_dir') + '/core/models/Settings');
 
@@ -41,7 +42,7 @@ const getTransactions = async (req, res, next) => {
     catch (e) {
         console.log('api getTransactions', e);
 
-        response.messages.push(new Message({ body: "Unable to retrieve transactions", type: Message.TYPE_ERROR, }));
+        response.messages.push(new Message({ body: "Unable to retrieve transactions", type: Message.TYPE__ERROR, }));
         res.status(400);
     }
 
@@ -58,7 +59,7 @@ const postTransactions = async (req, res, next) => {
             transaction = await new Transaction({ ...req.body, account: req.params._account, }).create();
         }
         catch (e) {
-            if (!(e instanceof errors_model.Warning)) {
+            if (!(e instanceof errors.Warning)) {
                 throw e;
             }
             console.log('api postTransactions warning', e);
@@ -66,13 +67,13 @@ const postTransactions = async (req, res, next) => {
 
         response.body.push(transaction);
         response.success = true;
-        response.messages.push(new Message({ body: "Transaction created", type: Message.TYPE_INFO, }));
+        response.messages.push(new Message({ body: "Transaction created", type: Message.TYPE__INFO, }));
         res.status(200);
     }
     catch (e) {
         console.log('api postTransactions', e);
 
-        response.messages.push(new Message({ body: "Unable to create transaction", type: Message.TYPE_ERROR, }));
+        response.messages.push(new Message({ body: "Unable to create transaction", type: Message.TYPE__ERROR, }));
         res.status(400);
     }
 
@@ -111,7 +112,7 @@ const getTransactionById = async (req, res, next) => {
     catch (e) {
         console.log('api getTransactionById', e);
 
-        response.messages.push(new Message({ body: "Unable to retrieve transaction", type: Message.TYPE_ERROR, }));
+        response.messages.push(new Message({ body: "Unable to retrieve transaction", type: Message.TYPE__ERROR, }));
         res.status(400);
     }
 
@@ -120,7 +121,11 @@ const getTransactionById = async (req, res, next) => {
 
 
 const postTransactionByIdPayment = async (req, res, next) => {
-    let response = new JSONResponseEnvelope({});
+    let response = new JSONResponseEnvelope({
+        body: undefined
+    });
+    delete response.success;
+    delete response.messages;
 
     let query = {
         // Transaction id passed in url
@@ -137,36 +142,43 @@ const postTransactionByIdPayment = async (req, res, next) => {
     let transaction, payment_details, payment_ack;
 
     try {
+        try {
+            payment_details = new PaymentConfirmation(req.body);
+        }
+        catch (e) {
+            throw new Error('Invalid payment confirmation request body');
+        }
+
         transaction = await Transaction.find(query);
         transaction = transaction[0];
 
         if (!transaction) {
-            throw new Error ('Failed to find transaction');
+            response.body = new PaymentAck({
+                status: PaymentAck.STATUS__PAYMENT_UNKNOW,
+                wallet_id: payment_details.wallet_id,
+            });
+
+            throw new Error('Invalid transaction id');
         }
 
-        try {
-            payment_details = new PaymentConfirmation(req.body);
+        payment_ack = await transaction.resolve(payment_details);
+        response.body = payment_ack;
 
-            console.log(transaction);
-            payment_ack = await transaction.resolve(payment_details);
-
-            response.body.push(payment_ack);
-            response.success = true;
-            res.status(200);
+        if (payment_ack && payment_ack.status !== PaymentAck.STATUS__OK) {
+            throw new Error ('Unable to resolve the transaction');
         }
-        catch (e) {
-            console.log('api postTransactionByIdPayment', e);
 
-            response.messages.push(new Message({ body: "Unable to pay for transaction", type: Message.TYPE_ERROR, }));
-            res.status(400);
-        }
+        res.status(200);
     }
     catch (e) {
         console.log('api postTransactionByIdPayment', e);
-        // TODO: should it be like this?
-        // response.body.push({ status: 'transaction_unknown', });
 
-        response.messages.push(new Message({ body: "Invalid transaction", type: Message.TYPE_ERROR, }));
+        if (!response.body) {
+            response.body = response.body = new PaymentAck({
+                status: PaymentAck.STATUS__GENERIC_ERROR,
+            });
+        }
+
         res.status(400);
     }
 
@@ -208,14 +220,14 @@ const postAccounts = async (req, res, next) => {
         let account = await new Account(account_data).create();
         response.body.push(account);
         response.success = true;
-        response.messages.push(new Message({ body: "Account created", type: Message.TYPE_INFO, }));
+        response.messages.push(new Message({ body: "Account created", type: Message.TYPE__INFO, }));
         res.status(201);
     }
     catch (e) {
         console.log('api postAccounts', e);
 
         let error_message = e instanceof APIError ? e.toString() : 'Unable to create an account';
-        response.messages.push(new Message({ body: error_message, type: Message.TYPE_ERROR, }));
+        response.messages.push(new Message({ body: error_message, type: Message.TYPE__ERROR, }));
 
         res.status(400);
     }
@@ -235,7 +247,7 @@ const getAccountSettings = async (req, res, next) => {
         console.log('api getAccountSettings', e);
 
         let error_message = e instanceof APIError ? e.toString() : "Unable to retrieve account's settings"
-        response.messages.push(new Message({ body: error_message, type: Message.TYPE_ERROR, }));
+        response.messages.push(new Message({ body: error_message, type: Message.TYPE__ERROR, }));
 
         res.status(400);
     }
@@ -270,7 +282,7 @@ const patchAccountSettings = async (req, res, next) => {
         }
 
         let error_message = e instanceof APIError ? e.toString() : "Unable to update account's settings"
-        response.messages.push(new Message({ body: error_message, type: Message.TYPE_ERROR, }));
+        response.messages.push(new Message({ body: error_message, type: Message.TYPE__ERROR, }));
 
         res.status(400);
     }
@@ -302,7 +314,7 @@ const getAccountBalance = async (req, res, next) => {
         console.log('api getAccountBalance', e);
 
         let error_message = e instanceof APIError ? e.toString() : 'Unable to retrieve coins balance';
-        response.messages.push(new Message({ body: error_message, type: Message.TYPE_ERROR, }));
+        response.messages.push(new Message({ body: error_message, type: Message.TYPE__ERROR, }));
 
         res.status(400);
     }

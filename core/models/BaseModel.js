@@ -6,6 +6,18 @@ const errors = require(config.get('system.root_dir') + '/core/models/Errors');
 
 const _privates = Symbol('_privates');
 
+const _common_validators = {
+    description: (text) => {
+        if (!text) {
+            throw new Error ('Required field');
+        }
+
+        if (typeof text !== "string" || text.length < 1 || text.length > 64) {
+            throw new Error('Invalid format');
+        }
+    },
+};
+
 exports.BaseModel = class BaseModel {
     constructor({
                     private_data_container_key=undefined,
@@ -14,6 +26,7 @@ exports.BaseModel = class BaseModel {
                     allowed_properties=[],
                     required_properties=[],
                     hidden_properties=[],
+                    readonly_properties=[],
                     custom_getters={},
                     custom_setters={},
                     validators={},
@@ -39,6 +52,7 @@ exports.BaseModel = class BaseModel {
             allowed_properties,
             required_properties,
             hidden_properties,
+            readonly_properties,
             custom_getters,
             custom_setters,
             validators,
@@ -64,9 +78,6 @@ exports.BaseModel = class BaseModel {
             configurable: false,
             writable: false,
         });
-
-
-        // console.log(this[this[_privates].interface].custom_setters.hasOwnProperty(`${property}__${this.constructor.name}`))
 
         for (let property of this[this[_privates].interface].allowed_properties) {
             let custom_getter = this[this[_privates].interface].custom_getters.hasOwnProperty(`${property}__${this.constructor.name}`) ?
@@ -95,7 +106,7 @@ exports.BaseModel = class BaseModel {
 
             // If there is no validator for a property then this property is readonly.
             // Only validated properties are allowed to be set.
-            if (validator) {
+            if (validator && !readonly_properties.has(property)) {
                 descriptor.set = value => {
                      validator(value);
 
@@ -119,7 +130,7 @@ exports.BaseModel = class BaseModel {
         Object.seal(this);
     }
 
-    static get VALIDATORS () { return {}; }
+    static get VALIDATORS () { return _common_validators; }
 
     static lockPropertiesOf (target_object) {
         for (let property of Object.keys(target_object)) {
@@ -135,12 +146,20 @@ exports.BaseModel = class BaseModel {
         let data = {};
 
         for (let property of this[this[_privates].interface].allowed_properties) {
-            if (!this[this[_privates].interface].hidden_properties.includes(property)) {
+            if (!this[this[_privates].interface].hidden_properties.has(property)) {
                 data[property] = this[property];
             }
         }
 
         return data;
+    }
+
+    clone () {
+        let cloned_object = new this.constructor({ [_initialise_empty_object]: true, });
+        Object.assign(cloned_object[this[_privates].data], this[this[_privates].data]);
+        Object.assign(cloned_object[this[_privates].interface], this[this[_privates].interface]);
+
+        return cloned_object;
     }
 
     initDBSession (session) {
