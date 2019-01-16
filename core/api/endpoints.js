@@ -20,7 +20,7 @@ exports.getPathForId = (path, id, ) => {
     }
 };
 
-exports.getEndpointPath = (api_version, path) => {
+exports.getEndpointPath = (path) => {
     return `/v1.0a${path}`;
 };
 

@@ -53,8 +53,9 @@ exports.Account = class Account extends BaseModel {
             required_properties: ACCOUNT_REQUIRED_PROPERTIES,
             hidden_properties: ACCOUNT_HIDDEN_PROPERTIES,
             readonly_properties: ACCOUNT_READONLY_PROPERTIES,
-            db_table: undefined,
-            db_id_field: undefined,
+            db_table: 'accounts',
+            db_id_field: '_id',
+            db_id_value: 'account_id',
         });
 
         this[_account_data] = {
@@ -116,15 +117,11 @@ exports.Account = class Account extends BaseModel {
             this.settings.provide_refund_via_email = config.get('account.settings.provide_refund_via_email');
         }
 
+        await super.create();
+
         console.log('register account', this);
 
-        try {
-            await db.insert("accounts", this[_account_data]);
-            return this;
-        }
-        catch (e) {
-            throw e;
-        }
+        return this;
     }
 
     async saveSettings () {

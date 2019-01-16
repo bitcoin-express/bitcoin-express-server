@@ -2,10 +2,11 @@
 
 const config = require('config');
 const db = require(config.get('system.root_dir') + '/db');
+
 const issuer_utils = require(config.get('system.root_dir') + '/issuer/utils');
 const errors = require(config.get('system.root_dir') + '/core/models/Errors');
+const endpoints = require(config.get('system.root_dir') + '/core/api/endpoints');
 
-const { ObjectId } = require('mongodb');
 const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
 const { JSONResponse, JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponseEnvelope');
 const { Transaction } = require(config.get('system.root_dir') + '/core/models/Transaction');
@@ -15,7 +16,7 @@ const { Account } = require(config.get('system.root_dir') + '/core/models/Accoun
 const { Settings } = require(config.get('system.root_dir') + '/core/models/Settings');
 class APIError extends Error {}
 
-const getTransactions = async (req, res, next) => {
+exports.getTransactions = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
     let query = {
         account_id: req.params._account_id,
@@ -46,7 +47,7 @@ const getTransactions = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-const postTransactions = async (req, res, next) => {
+exports.postTransactions = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
@@ -77,7 +78,7 @@ const postTransactions = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-const getTransactionById = async (req, res, next) => {
+exports.getTransactionById = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
     let query = {
         // Authenticated account
@@ -117,7 +118,7 @@ const getTransactionById = async (req, res, next) => {
 };
 
 
-const postTransactionByIdPayment = async (req, res, next) => {
+exports.postTransactionByIdPayment = async (req, res, next) => {
     let response = '';
 
     let query = {
@@ -179,7 +180,7 @@ const postTransactionByIdPayment = async (req, res, next) => {
 };
 
 
-const postAccounts = async (req, res, next) => {
+exports.postAccounts = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
     let account_data = {};
 
@@ -228,11 +229,68 @@ const postAccounts = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-const patchAccount = async (req, res, next) => {
+exports.getAccount = async (req, res, next) => {
+    let response = new JSONResponseEnvelope({});
 
+    try {
+        response.body.push(req.params._account);
+        response.success = true;
+        res.status(200);
+    }
+    catch (e) {
+        console.log('api getAccount', e);
+
+        let error_message = e instanceof APIError ? e.toString() : "Unable to retrieve the account"
+        response.messages.push(new Message({ body: error_message, type: Message.TYPE__ERROR, }));
+
+        res.status(400);
+    }
+
+    return res.send(response.prepareResponse(res));
 };
 
-const getAccountSettings = async (req, res, next) => {
+exports.patchAccount = async (req, res, next) => {
+    let response = new JSONResponseEnvelope({});
+
+    try {
+        if (Object.keys(req.body).includes('settings')) {
+            throw new errors.InvalidValueError({ message: `In order to change account's settings use ${endpoints.ACCOUNT_SETTINGS} endpoint` });
+        }
+
+        let new_account = req.params._account.clone();
+
+        for (let property of Object.keys(req.body)) {
+            new_account[property] = req.body[property];
+        }
+
+        new_account.save();
+
+        req.params._account = new_account;
+
+        response.body.push(new_account);
+        response.success = true;
+        res.status(202);
+    }
+    catch (e) {
+        console.log('api patchAccount', e);
+
+        try {
+            req.params._account = Account.find(req.params._account_id);
+        }
+        catch (e) {
+            console.log('Unable to restore account after error: ' + e.toString());
+        }
+
+        let error_message = e instanceof APIError ? e.toString() : "Unable to update the account"
+        response.messages.push(new Message({ body: error_message, type: Message.TYPE__ERROR, }));
+
+        res.status(400);
+    }
+
+    return res.send(response.prepareResponse(res));
+};
+
+exports.getAccountSettings = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
@@ -252,7 +310,7 @@ const getAccountSettings = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-const patchAccountSettings = async (req, res, next) => {
+exports.patchAccountSettings = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
@@ -266,7 +324,7 @@ const patchAccountSettings = async (req, res, next) => {
 
         response.body.push(req.params._account.settings);
         response.success = true;
-        res.status(200);
+        res.status(202);
     }
     catch (e) {
         console.log('api getAccountSettings', e);
@@ -287,7 +345,7 @@ const patchAccountSettings = async (req, res, next) => {
     return res.send(response.prepareResponse(res));
 };
 
-const getAccountBalance = async (req, res, next) => {
+exports.getAccountBalance = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
     let currency = req.query.currency ? req.query.currency :  undefined;
 

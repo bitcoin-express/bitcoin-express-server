@@ -43,6 +43,12 @@ exports.routes = new Map([
             actions: [ middleware.requireAuthentication, helpers.asyncWrapper(actions.getAccount), ],
         },
     ],
+    [ 'patchAccount', {
+            path: endpoints.getEndpointPath(endpoints.ACCOUNT),
+            method: 'patch',
+            actions: [ middleware.requireAuthentication, helpers.asyncWrapper(actions.patchAccount), ],
+        },
+    ],
     [ 'getAccountSettings', {
             path: endpoints.getEndpointPath(endpoints.ACCOUNT_SETTINGS),
             method: 'get',
