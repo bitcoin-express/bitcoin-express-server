@@ -170,7 +170,7 @@ const _transaction_properties_validators = {
             throw new Error ('Required field');
         }
 
-        if (!checks.isFloat(value) || value > 9_999_999_999) {
+        if (!checks.isFloat(value) || value > 9999999999) {
             throw new Error('Invalid format');
         }
 
