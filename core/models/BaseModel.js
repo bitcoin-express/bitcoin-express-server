@@ -194,6 +194,10 @@ exports.BaseModel = class BaseModel {
                 data[property] = this[this[_privates].data][property];
             }
 
+            if (!this[this[_privates].data].hasOwnProperty('created')) {
+                this[this[_privates].data].created = new Date();
+            }
+
             await db.insert(this[this[_privates].interface].db_table, data);
         }
         catch (e) {
@@ -209,6 +213,8 @@ exports.BaseModel = class BaseModel {
             let id_value = this[this[_privates].interface].db_id_value ?
                            this[this[this[_privates].interface].db_id_value] :
                            this[this[this[_privates].interface].db_id_field];
+
+            this[this[_privates].data].updated = new Date();
 
             await db.findAndModify(this[this[_privates].interface].db_table,
                 {
