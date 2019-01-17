@@ -75,15 +75,15 @@ const BLOCKCHAIN_TRANSFER_SPEED = new Map([
 const TRANSACTION_ALLOWED_PROPERTIES = new Map([
     [ TRANSACTION_TYPE__PAYMENT, new Set([ 'type', 'order_id', 'value', 'currency', 'description', 'notification',
             'return_url', 'callback_url', 'acceptable_issuers', 'email_customer_contact', 'policies', 'expires',
-            'transaction_id', 'created', 'seller', 'payment_url', 'status', 'account_id', 'confirmation_details',
+            'transaction_id', 'created', 'updated', 'seller', 'payment_url', 'status', 'account_id', 'confirmation_details',
             'verify_details', 'paid',
         ]),
     ],
     [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'status', 'type', 'currency', 'value',
-            'description', 'speed', 'address', 'label', 'account_id',
+            'description', 'speed', 'address', 'label', 'account_id', 'created', 'updated',
         ]),
     ],
-    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([]), ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'created', 'updated', 'type', ]), ],
 ]);
 
 const TRANSACTION_REQUIRED_PROPERTIES = new Map([
@@ -102,9 +102,9 @@ const TRANSACTION_HIDDEN_PROPERTIES = new Map([
 ]);
 
 const TRANSACTION_READONLY_PROPERTIES = new Map([
-    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'type', ]), ],
-    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([]), ],
-    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([]), ],
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'type', 'updated', 'paid', ]), ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'updated', 'created', 'type', ]), ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'updated', 'created', 'type', ]), ],
 ]);
 
 /*  Default transfer speed to be used if it's not defined in the transaction
@@ -317,11 +317,155 @@ const _transaction_properties_custom_setters = {
 BaseModel.lockPropertiesOf(_transaction_properties_custom_getters);
 
 
-/*  This an interface class for all transaction-like classes.
-    It defines common methods and properties used inside extending classes.
+class Transaction {
+    constructor (init_data={}) {
 
-    Objects of this class should never be created as a standalone constructs.
-*/
+        if (!init_data.type || !TRANSACTION_TYPES.has(init_data.type)) {
+            throw new Error('Invalid type');
+        }
+
+        let transaction_class = TRANSACTION_CLASSES.get(init_data.type);
+
+        return new transaction_class(init_data);
+    }
+
+    /*      Static methods      */
+
+    static get TYPES () { return TRANSACTION_TYPES; }
+    static get TYPE__PAYMENT () { return TRANSACTION_TYPE__PAYMENT; }
+    static get TYPE__BLOCKCHAIN_TRANSFER () { return TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER; }
+    static get TYPE__COIN_FILE_TRANSFER () { return TRANSACTION_TYPE__COIN_FILE_TRANSFER; }
+
+    static get STATUSES () { return TRANSACTION_STATUSES; }
+    static get STATUS__INITIAL () { return TRANSACTION_STATUS__INITIAL; }
+    static get STATUS__PROCESSING () { return TRANSACTION_STATUS__PROCESSING; }
+    static get STATUS__RESOLVED () { return TRANSACTION_STATUS__RESOLVED; }
+    static get STATUS__ABORTED () { return TRANSACTION_STATUS__ABORTED; }
+    static get STATUS__EXPIRED () { return TRANSACTION_STATUS__EXPIRED; }
+
+    static get VALIDATORS () { return _transaction_properties_validators; }
+
+    static async find({transaction_id, account_id, type, status, custom_query, offset=0, limit=100, before, after, order="descending", order_by="created", only_valid=true }) {
+        try {
+            // Check if all parameters are fine
+            if (transaction_id) {
+                const uuid_regex = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
+
+                if (!uuid_regex.exec(transaction_id)) {
+                    throw new Error('Missing transaction_id');
+                }
+            }
+
+            if (account_id && !(account_id instanceof ObjectId)) {
+                throw new Error('Missing account_id');
+            }
+
+            if (!transaction_id && !account_id) {
+                throw new Error('Either transaction_id or account_id has to be provided');
+            }
+
+            if (type && !TRANSACTION_TYPES.has(type)) {
+                throw new Error('Invalid type');
+            }
+
+            if (status && !TRANSACTION_STATUSES.has(status)) {
+                throw new Error('Invalid status');
+            }
+
+            if (!checks.isInteger(offset)) {
+                throw new Error('Invalid offset');
+            }
+
+            if (!checks.isInteger(limit)) {
+                throw new Error('Invalid limit');
+            }
+
+            if (!['ascending', 'descending'].includes(order)) {
+                throw new Error('Invalid order');
+            }
+
+            if (!['paid', 'created','time'].includes(order_by)) {
+                throw new Error('Invalid order_by');
+            }
+
+            if (before && !checks.isDate(before)) {
+                throw new Error('Invalid before date');
+            }
+
+            if (after && !checks.isDate(after)) {
+                throw new Error('Invalid after date');
+            }
+
+            // Initial query
+            let query = typeof custom_query === 'object' ? custom_query : {};
+
+            if (account_id) {
+                query.account_id = account_id;
+            }
+
+            // Find a specific transaction
+            if (transaction_id) {
+                query.transaction_id = transaction_id;
+            }
+
+            // Shows only transactions created before given date
+            if (before) {
+                query.created = { $lt: new Date(before), };
+            }
+
+            // Shows only transactions created after given date
+            if (after) {
+                query.created = { $gt: new Date(after), };
+            }
+
+            // Show only transactions of a given type
+            if (type) {
+                query.type = { $eq: type, };
+            }
+
+            // Shows only transactions in a given status
+            if (status) {
+                query.status = { $eq: status, };
+            }
+            // If status is not forced - by default - shows only valid, not expired/aborted transactions. If it's false transactions
+            // in all statuses will be returned.
+            else if (only_valid) {
+                query.status = { $in: [
+                        TRANSACTION_STATUS__INITIAL,
+                        TRANSACTION_STATUS__RESOLVED,
+                        TRANSACTION_STATUS__PROCESSING, ]
+                };
+            }
+
+            let found_transactions = await db.find('transactions', query, {
+                projection: { _id: 0, }, offset: parseInt(offset), limit: parseInt(limit), order: order, order_by: order_by,
+            });
+
+            return await Promise.all(found_transactions.map(async found_transaction => {
+
+                let transaction = new Transaction({ type: found_transaction.type, [_initialise_empty_object]: true, });
+
+                transaction[_transaction_data] = await transaction.prepareInputData(found_transaction);
+
+                return transaction;
+            }));
+        }
+        catch (e) {
+            console.log('getTransactions', e);
+
+            throw (e instanceof Error ? e : new Error(String(e)));
+        }
+    }
+
+}
+
+exports.Transaction = Transaction;
+
+    /*  This an interface class for all transaction-like classes.
+        It defines common methods and properties used inside extending classes.
+
+        Objects of this class should never be created as a standalone constructs.
+    */
 class CoreTransaction extends BaseModel {
     constructor({ allowed_properties, required_properties, hidden_properties, readonly_properties, }) {
         super({
@@ -405,7 +549,7 @@ class PaymentTransaction extends CoreTransaction {
     }
 
     async prepareInputData(input_data) {
-        if (!(input_data.confirmation_details instanceof PaymentConfirmation)) {
+        if (input_data.confirmation_details && !(input_data.confirmation_details instanceof PaymentConfirmation)) {
             input_data.confirmation_details = new PaymentConfirmation(input_data.confirmation_details);
         }
 
@@ -413,7 +557,54 @@ class PaymentTransaction extends CoreTransaction {
     }
 
     async create() {
-        await super.create();
+        let existing_transaction = undefined;
+
+        if (this.order_id) {
+            try {
+                existing_transaction = await Transaction.find({
+                    account_id: this.account_id,
+                    status: Transaction.STATUS__INITIAL,
+                    custom_query: { order_id: this.order_id, },
+                });
+                if (existing_transaction.length > 0) {
+                    existing_transaction = existing_transaction[0];
+                }
+                else {
+                    existing_transaction = undefined;
+                }
+            }
+            catch (e) {
+                console.log ('Transaction payment order id', e);
+                throw new errors.FatalError({ message: 'Unable to retrieve existing transaction', });
+            }
+        }
+
+        if (existing_transaction) {
+            let changes = {};
+
+            for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
+                if (this[property] !== existing_transaction[property]) {
+                    changes[property] = this[property] || '';
+                }
+            }
+
+            if (Object.keys(changes).length) {
+                if (!this[_transaction_data]._updates_history) {
+                    this[_transaction_data]._updates_history = [];
+                }
+
+                changes._updated = new Date();
+                this[_transaction_data]._updates_history.push(changes);
+            }
+
+            this[_transaction_data].created = existing_transaction.created;
+            this[_transaction_data].transaction_id = existing_transaction.transaction_id;
+
+            await this.save();
+        }
+        else {
+            await super.create();
+        }
 
         try {
             let timeout = this.expires - new Date();
@@ -426,7 +617,7 @@ class PaymentTransaction extends CoreTransaction {
 
                 console.log("Transaction expired - " + this.transaction_id);
                 db.findAndModify('transactions', query, { status: TRANSACTION_STATUS__EXPIRED, });
-            }, timeout);
+            }, timeout * 1000);
         }
         catch (e) {
             throw new errors.Warning ({class_name: this.constructor.name, field: 'create', message: 'Transaction created, but failed to set the expiration timeout'});
@@ -744,144 +935,4 @@ for (let transaction_type of TRANSACTION_TYPES) {
     }
 }
 
-exports.Transaction = class Transaction {
-    constructor (init_data={}) {
 
-        if (!init_data.type || !TRANSACTION_TYPES.has(init_data.type)) {
-            throw new Error('Invalid type');
-        }
-
-        let transaction_class = TRANSACTION_CLASSES.get(init_data.type);
-
-        return new transaction_class(init_data);
-    }
-
-    /*      Static methods      */
-
-    static get TYPES () { return TRANSACTION_TYPES; }
-    static get TYPE__PAYMENT () { return TRANSACTION_TYPE__PAYMENT; }
-    static get TYPE__BLOCKCHAIN_TRANSFER () { return TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER; }
-    static get TYPE__COIN_FILE_TRANSFER () { return TRANSACTION_TYPE__COIN_FILE_TRANSFER; }
-
-    static get STATUSES () { return TRANSACTION_STATUSES; }
-    static get STATUS__INITIAL () { return TRANSACTION_STATUS__INITIAL; }
-    static get STATUS__PROCESSING () { return TRANSACTION_STATUS__PROCESSING; }
-    static get STATUS__RESOLVED () { return TRANSACTION_STATUS__RESOLVED; }
-    static get STATUS__ABORTED () { return TRANSACTION_STATUS__ABORTED; }
-    static get STATUS__EXPIRED () { return TRANSACTION_STATUS__EXPIRED; }
-
-    static get VALIDATORS () { return _transaction_properties_validators; }
-
-    static async find({transaction_id, account_id, type, status, offset=0, limit=100, before, after, order="descending", order_by="created", only_valid=true }) {
-        try {
-            // Check if all parameters are fine
-            if (transaction_id) {
-                const uuid_regex = /^[0-9A-F]{8}-[0-9A-F]{4}-[4][0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/i;
-
-                if (!uuid_regex.exec(transaction_id)) {
-                    throw new Error('Missing transaction_id');
-                }
-            }
-
-            if (account_id && !(account_id instanceof ObjectId)) {
-                throw new Error('Missing account_id');
-            }
-
-            if (!transaction_id && !account_id) {
-                throw new Error('Either transaction_id or account_id has to be provided');
-            }
-
-            if (type && !TRANSACTION_TYPES.has(type)) {
-                throw new Error('Invalid type');
-            }
-
-            if (status && !TRANSACTION_STATUSES.has(status)) {
-                throw new Error('Invalid status');
-            }
-
-            if (!checks.isInteger(offset)) {
-                throw new Error('Invalid offset');
-            }
-
-            if (!checks.isInteger(limit)) {
-                throw new Error('Invalid limit');
-            }
-
-            if (!['ascending', 'descending'].includes(order)) {
-                throw new Error('Invalid order');
-            }
-
-            if (!['paid', 'created','time'].includes(order_by)) {
-                throw new Error('Invalid order_by');
-            }
-
-            if (before && !checks.isDate(before)) {
-                throw new Error('Invalid before date');
-            }
-
-            if (after && !checks.isDate(after)) {
-                throw new Error('Invalid after date');
-            }
-
-            // Initial query
-            let query = {};
-
-            if (account_id) {
-                query.account_id = account_id;
-            }
-
-            // Find a specific transaction
-            if (transaction_id) {
-                query.transaction_id = transaction_id;
-            }
-
-            // Shows only transactions created before given date
-            if (before) {
-                query.created = { $lt: new Date(before), };
-            }
-
-            // Shows only transactions created after given date
-            if (after) {
-                query.created = { $gt: new Date(after), };
-            }
-
-            // Show only transactions of a given type
-            if (type) {
-                query.type = { $eq: type, };
-            }
-
-            // Shows only transactions in a given status
-            if (status) {
-                query.status = { $eq: status, };
-            }
-            // If status is not forced - by default - shows only valid, not expired/aborted transactions. If it's false transactions
-            // in all statuses will be returned.
-            else if (only_valid) {
-                query.status = { $in: [
-                        TRANSACTION_STATUS__INITIAL,
-                        TRANSACTION_STATUS__RESOLVED,
-                        TRANSACTION_STATUS__PROCESSING, ]
-                };
-            }
-
-            let found_transactions = await db.find('transactions', query, {
-                projection: { _id: 0, }, offset: parseInt(offset), limit: parseInt(limit), order: order, order_by: order_by,
-            });
-
-            return await Promise.all(found_transactions.map(async found_transaction => {
-
-                let transaction = new Transaction({ type: found_transaction.type, [_initialise_empty_object]: true, });
-
-                transaction[_transaction_data] = await transaction.prepareInputData(found_transaction);
-
-                return transaction;
-            }));
-        }
-        catch (e) {
-            console.log('getTransactions', e);
-
-            throw (e instanceof Error ? e : new Error(String(e)));
-        }
-    }
-
-};
