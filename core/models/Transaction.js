@@ -231,7 +231,7 @@ const _transaction_properties_validators = {
             throw new Error ('Field required');
         }
 
-        if (typeof address !== "string" || address.length < 26 || address.length > 35) {
+        if (typeof address !== "string" || address.length < 1 || address.length > 256) {
             throw new Error ('Invalid format');
         }
     },
