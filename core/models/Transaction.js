@@ -563,7 +563,6 @@ class PaymentTransaction extends CoreTransaction {
             try {
                 existing_transaction = await Transaction.find({
                     account_id: this.account_id,
-                    status: Transaction.STATUS__INITIAL,
                     custom_query: { order_id: this.order_id, },
                 });
                 if (existing_transaction.length > 0) {
@@ -579,28 +578,39 @@ class PaymentTransaction extends CoreTransaction {
             }
         }
 
-        if (existing_transaction) {
-            let changes = {};
-
-            for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
-                if (this[property] !== existing_transaction[property]) {
-                    changes[property] = this[property] || '';
-                }
+        if (existing_transaction &&
+            existing_transaction.status !== Transaction.STATUS__ABORTED &&
+            existing_transaction.status !== Transaction.STATUS__EXPIRED
+        ) {
+            if (existing_transaction.status === Transaction.STATUS__PROCESSING) {
+                throw new errors.InvalidValueError({ message: `Transaction with order_id ${this.order_id} is currently being processed.`});
             }
+            else if (existing_transaction.status === Transaction.STATUS__RESOLVED) {
+                throw new errors.InvalidValueError({ message: `Transaction with order_id ${this.order_id} is already resolved.`});
+            }
+            else if (existing_transaction.status === Transaction.STATUS__INITIAL) {
+                let changes = {};
 
-            if (Object.keys(changes).length) {
-                if (!this[_transaction_data]._updates_history) {
-                    this[_transaction_data]._updates_history = [];
+                for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
+                    if (this[property] !== existing_transaction[property]) {
+                        changes[property] = this[property] || '';
+                    }
                 }
 
-                changes._updated = new Date();
-                this[_transaction_data]._updates_history.push(changes);
+                if (Object.keys(changes).length) {
+                    if (!this[_transaction_data]._updates_history) {
+                        this[_transaction_data]._updates_history = [];
+                    }
+
+                    changes._updated = new Date();
+                    this[_transaction_data]._updates_history.push(changes);
+                }
+
+                this[_transaction_data].created = existing_transaction.created;
+                this[_transaction_data].transaction_id = existing_transaction.transaction_id;
+
+                await this.save();
             }
-
-            this[_transaction_data].created = existing_transaction.created;
-            this[_transaction_data].transaction_id = existing_transaction.transaction_id;
-
-            await this.save();
         }
         else {
             await super.create();

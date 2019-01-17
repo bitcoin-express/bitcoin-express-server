@@ -194,7 +194,14 @@ securedBy: AuthToken
       - Blockchain Transfer (blockchain-transfer) - transfers a requested currency (defined value) to a blockchain,
       - Coin File Transfer (coin-file-transfer) - exports a requested currency (defined value) to the Wallet-ready file.
 
-      Each type of transaction's request has a different parameters and responses. In order to define which type of transaction should be created ***type*** parameter has to be set to the required value.
+      Each type of transaction's request has different parameters and responses. In order to define which type of transaction should be created ***type*** parameter has to be set to the required value.
+
+      For the Payment transaction, it is important to remember that the ***order_id*** is affecting how - and if - a new transaction will be created.
+      Rules are as follow:
+      - a new transaction with a given ***order_id*** cannot be created if a transaction with the same ***order_id*** already exists in the **resolved** status. It is to prevent the same order to be paid twice,
+      - a new transaction with a given ***order_id*** cannot be created if a transaction with the same ***order_id*** already exists in the **processing** status. It is to prevent the same order to be paid again while the payment for it is already being processed,
+      - if a transaction with a given ***order_id*** already exists and is in the **initial** status a new transaction will not be created but instead the old transaction will be updated with the new set of data and new ***expire*** date will be set. ***transaction_id*** will remain the same,
+      - if a transaction with a given ***order_id*** does not exist or it is in either **aborted** or **expired** status a new transaction will be created.
     body:
       application/json:
         type: TransactionRequestTypes
