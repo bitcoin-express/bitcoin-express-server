@@ -110,14 +110,13 @@ securedBy: AuthToken
       limit: !include schemas/primitives/Limit.raml
       order_by:
         description: |
-          Field to sort the returned dataset on. Not all transaction types will support all order fields.
-          ***paid*** order by value is to be used with **Payment** type of transaction.
-        default: created
+          Field to sort the returned dataset on. Not all transaction types may support all order fields.
+        default: completed
         required: false
         type: string
         example: created
         enum:
-          - paid
+          - completed
           - created
       order:
         description: Direction to sort the returned dataset on - either as ascending or descending.

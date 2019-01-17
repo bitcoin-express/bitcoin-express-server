@@ -76,11 +76,11 @@ const TRANSACTION_ALLOWED_PROPERTIES = new Map([
     [ TRANSACTION_TYPE__PAYMENT, new Set([ 'type', 'order_id', 'value', 'currency', 'description', 'notification',
             'return_url', 'callback_url', 'acceptable_issuers', 'email_customer_contact', 'policies', 'expires',
             'transaction_id', 'created', 'updated', 'seller', 'payment_url', 'status', 'account_id', 'confirmation_details',
-            'verify_details', 'paid',
+            'verify_details', 'completed',
         ]),
     ],
     [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'status', 'type', 'currency', 'value',
-            'description', 'speed', 'address', 'label', 'account_id', 'created', 'updated',
+            'description', 'speed', 'address', 'label', 'account_id', 'created', 'updated', 'completed',
         ]),
     ],
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'created', 'updated', 'type', ]), ],
@@ -102,9 +102,9 @@ const TRANSACTION_HIDDEN_PROPERTIES = new Map([
 ]);
 
 const TRANSACTION_READONLY_PROPERTIES = new Map([
-    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'type', 'updated', 'paid', ]), ],
-    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'updated', 'created', 'type', ]), ],
-    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'updated', 'created', 'type', ]), ],
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'type', 'updated', 'completed', ]), ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'updated', 'created', 'type', 'completed', ]), ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'updated', 'created', 'type', 'completed', ]), ],
 ]);
 
 /*  Default transfer speed to be used if it's not defined in the transaction
@@ -216,7 +216,7 @@ const _transaction_properties_validators = {
     },
     confirmation_details: details => true,
     verify_details: details => true,
-    paid: (date) => {
+    completed: (date) => {
         if (!(date instanceof Date)) {
             throw new Error ('Invalid format');
         }
@@ -345,7 +345,7 @@ class Transaction {
 
     static get VALIDATORS () { return _transaction_properties_validators; }
 
-    static async find({transaction_id, account_id, type, status, custom_query, offset=0, limit=100, before, after, order="descending", order_by="created", only_valid=true }) {
+    static async find({transaction_id, account_id, type, status, custom_query, offset=0, limit=100, before, after, order="descending", order_by="completed", only_valid=true }) {
         try {
             // Check if all parameters are fine
             if (transaction_id) {
@@ -384,7 +384,7 @@ class Transaction {
                 throw new Error('Invalid order');
             }
 
-            if (!['paid', 'created','time'].includes(order_by)) {
+            if (!['completed', 'created', 'time', ].includes(order_by)) {
                 throw new Error('Invalid order_by');
             }
 
@@ -747,7 +747,7 @@ class PaymentTransaction extends CoreTransaction {
 
             this.status = TRANSACTION_STATUS__RESOLVED;
             this.verify_details = verify_info;
-            this.paid = new Date();
+            this.completed = new Date();
 
             await Promise.all([
                 db.insert('coins', coin_data),
@@ -846,14 +846,14 @@ class BlockchainTransferTransaction extends CoreTransaction {
         }
     }
 
-    async create() {
+    async create () {
         await super.create();
         await this.resolve();
 
         return this;
     }
 
-    async resolve() {
+    async resolve () {
         this.checkRequiredProperties();
 
         try {
@@ -902,6 +902,8 @@ class BlockchainTransferTransaction extends CoreTransaction {
             await this.save();
 
             this[_transaction_data].transfer_details = await utils.transferBitcoin(blockchain_uri, coins, this.value, BLOCKCHAIN_TRANSFER_SPEED.get(this.speed), this.account_id);
+
+            this[_transaction_data].completed = new Date();
 
             await this.save();
 
