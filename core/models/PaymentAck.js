@@ -30,8 +30,10 @@ const PAYMENT_ACK_STATUSES = new Set([
     PAYMENT_ACK_STATUS__GENERIC_ERROR,
 ]);
 
-const PAYMENT_ACK_ALLOWED_PROPERTIES = new Set([ 'status', 'return_url', 'memo', 'seller', 'wallet_id', ]);
+const PAYMENT_ACK_ALLOWED_PROPERTIES = new Set([ 'status', 'return_url', 'memo', 'seller', 'wallet_id', 'created', 'updated', ]);
 const PAYMENT_ACK_REQUIRED_PROPERTIES = new Set([ 'status', 'wallet_id', ]);
+const PAYMENT_ACK_READONLY_PROPERTIES = new Set([ 'created', 'updated', ]);
+const PAYMENT_ACK_HIDDEN_PROPERTIES = new Set([ 'created', 'updated', ]);
 
 const _payment_ack_properties_validators = {
     status: (status) => {
@@ -57,8 +59,8 @@ exports.PaymentAck = class PaymentAck extends BaseModel {
             validators: _payment_ack_properties_validators,
             allowed_properties: PAYMENT_ACK_ALLOWED_PROPERTIES,
             required_properties: PAYMENT_ACK_REQUIRED_PROPERTIES,
-            hidden_properties: new Set([]),
-            readonly_properties: new Set([]),
+            hidden_properties: PAYMENT_ACK_HIDDEN_PROPERTIES,
+            readonly_properties: PAYMENT_ACK_READONLY_PROPERTIES,
             db_table: undefined,
             db_id_field: undefined,
         });

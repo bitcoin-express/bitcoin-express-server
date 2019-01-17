@@ -12,7 +12,7 @@ const _db_session = Symbol('_db_session');
 
 const SETTINGS_ALLOWED_PROPERTIES = new Set(Object.keys(config.get('account.settings')));
 const SETTINGS_REQUIRED_PROPERTIES = new Set([]);
-const SETTINGS_HIDDEN_PROPERTIES = new Set(config.get('_account_hidden_settings'));
+const SETTINGS_HIDDEN_PROPERTIES = new Set([ 'created', 'updated', ...config.get('_account_hidden_settings'), ]);
 const SETTINGS_READONLY_PROPERTIES = new Set(config.get('_account_readonly_settings'));
 
 const _settings_properties_validators = {

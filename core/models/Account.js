@@ -16,10 +16,10 @@ const _account_interface = Symbol('_account_interface');
 const _db_session = Symbol('_db_session');
 
 
-const ACCOUNT_ALLOWED_PROPERTIES = new Set([ 'account_id', 'auth_token', ...Object.keys(config.get('account')), ]);
+const ACCOUNT_ALLOWED_PROPERTIES = new Set([ 'account_id', 'auth_token', 'updated', 'created', ...Object.keys(config.get('account')), ]);
 const ACCOUNT_REQUIRED_PROPERTIES = new Set(config.get('_register_required_keys'));
-const ACCOUNT_HIDDEN_PROPERTIES = new Set([ 'account_id', ]);
-const ACCOUNT_READONLY_PROPERTIES = new Set([ 'auth_token', ]);
+const ACCOUNT_HIDDEN_PROPERTIES = new Set([ 'account_id', 'updated', 'created', ]);
+const ACCOUNT_READONLY_PROPERTIES = new Set([ 'account_id', 'auth_token', 'updated', 'created', ]);
 
 const _account_properties_validators = {
     domain: (domain) => { if (domain && !checks.isDomain(domain)) { throw new Error('Invalid domain format'); }},
