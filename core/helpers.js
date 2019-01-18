@@ -1,5 +1,8 @@
 "use strict";
 
+const crypto = require('crypto');
+const ecies = require('ecies-lite');
+
 exports.asyncWrapper = fn =>
     function asyncWrap(...args) {
         const result = fn(...args);
@@ -24,3 +27,20 @@ exports.asyncWrapper = fn =>
             }).prepareResponse(res));
         });
     };
+
+
+exports.encrypt = function (public_key, message) {
+    let encryption_body = ecies.encrypt(Buffer.from(public_key, 'hex'), Buffer.from(message));
+    return Buffer.from(JSON.stringify(encryption_body)).toString('base64');
+};
+
+exports.decrypt = function (private_key, encoded_encryption_body) {
+    let ascii_body = Buffer.from(encoded_encryption_body, 'base64').toString('ascii');
+    let encryption_body = JSON.parse(ascii_body);
+
+    for (let prop of Object.keys(encryption_body)) {
+        encryption_body[prop] = Buffer.from(encryption_body[prop].data);
+    }
+
+    return ecies.decrypt(Buffer.from(private_key, 'hex'), encryption_body).toString('utf-8');
+};
