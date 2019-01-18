@@ -4,5 +4,7 @@ type: !include AccountCore.raml
 
 properties:
   auth_token: !include primitives/AuthToken.raml
+  admin_auth_token: !include primitives/AdminAuthToken.raml
+  private_key: !include primitives/PrivateKey.raml
   settings: !include AccountSettings.raml
 example: !include ../examples/AccountDetails.json

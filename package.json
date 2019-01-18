@@ -6,6 +6,7 @@
   "dependencies": {
     "atob": "^2.1.1",
     "config": "^3.0.0",
+    "ecies-lite": "^1.0.6",
     "email-addresses": "^3.0.3",
     "express": "^4.16.3",
     "express-handlebars": "^3.0.0",

@@ -1,0 +1,14 @@
+#%RAML 1.0 DataType
+
+type: string
+description: |
+  Token used for the account authentication and operations requiring admin rights.
+  Its body contains:
+  ***auth_key***_<SEPARATOR>_***private_key***
+  where *<SEPARATOR>* is a dot (**.**)
+
+  This token is used for the Merchant's identification and authentication and to perform **sensitive operations like Coins decryption** and should be kept secret at all times.
+  The only moment when this key is being exposed and accessible is the result of account creation process.
+
+  It's not being saved on the Gateway side at any time, meaning if it will be lost (together with ***private_key***) there is no other way to gain admin rights for the Merchant's account.
+example: "025f87e546becfa77cf04d3906f703524d5f17e24c2dca8afbb0281ca98b5124d8.bedbd3de24e2e4976908bba6de16f266f29c997ace642f528647a2f0952cb5e3"

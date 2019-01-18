@@ -1,0 +1,12 @@
+#%RAML 1.0 DataType
+
+type: string
+description: |
+  Token used to gain the admin rights on the Merchant's account.
+  It's a part of the ***admin_auth_token*** and it's never being saved on the Gateway's side.
+  The only moment when this key is being exposed and accessible is the result of account creation process.
+
+  **It's up to the Merchant to save this key and store it in a safe place.**
+
+  As this key is used to perform sensitive operations on the Gateway (like Coins encryption), its loss may lead to irreversibly loosing access to gathered resources.
+example: "025f87e546becfa77cf04d3906f703524d5f17e24c2dca8afbb0281ca98b5124d8"

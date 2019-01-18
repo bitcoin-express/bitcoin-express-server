@@ -288,24 +288,32 @@ securedBy: AuthToken
   description: |
     This endpoint provides an option to work on a collection of accounts' objects.
   post:
+    description: |
+      Old: /register
+
+      Provides a way to create a new Merchant's account on the Gateway.
+      The account will be created with the default configuration inherited from the Gateway. It's advisable to set required settings after the account is created using _/account/settings_ endpoint.
+
+      By default, these settings will be copied over to the account from the Gateway and any changes in the Gateway's default configuration won't affect them.
+      It's up to the Merchant to make sure that these setting are valid and up to date as the Gateway operator will not be able to update them:
+      - ***home_issuer***
+      - ***acceptable_issuers***
+      - ***default_payment_timeout***
+      - ***default_payment_currency***
+
+      In case ***email_customer_contact*** is being set then values of ***provide_receipt_via_email*** and ***provide_refund_via_email*** from Gateway's configuration are also copied over.
+
+      It is extremelly important to remember to save and store in a secure way:
+      - ***auth_token***
+      - ***admin_auth_token***
+      - ***private_key***
+
+      **Account creation is the only moment where this keys are accessible!**      
+      Both ***admin_auth_token*** and ***private_key*** are not storred on the Gateway in any way, meaning there is no way to recover them once lost!
     is: [JSON201Envelope, JSON400Envelope]
     securedBy:
     body:
       application/json:
-        description: |
-          Old: /register
-
-          Provides a way to create a new Merchant's account on the Gateway.
-          The account will be created with the default configuration inherited from the Gateway. It's advisable to set required settings after the account is created using _/account/settings_ endpoint.
-
-          By default, these settings will be copied over to the account from the Gateway and any changes in the Gateway's default configuration won't affect them.
-          It's up to the Merchant to make sure that these setting are valid and up to date as the Gateway operator will not be able to update them:
-          - ***home_issuer***
-          - ***acceptable_issuers***
-          - ***default_payment_timeout***
-          - ***default_payment_currency***
-
-          In case ***email_customer_contact*** is being set then values of ***provide_receipt_via_email*** and ***provide_refund_via_email*** from Gateway's configuration are also copied over.
         type: AccountCore
     responses:
       201:

@@ -15,11 +15,12 @@ const _account_data = Symbol('_account_data');
 const _account_interface = Symbol('_account_interface');
 const _db_session = Symbol('_db_session');
 
+const AUTH_TOKEN_KEY_SEPARATOR = '.';
 
-const ACCOUNT_ALLOWED_PROPERTIES = new Set([ 'account_id', 'auth_token', 'updated', 'created', ...Object.keys(config.get('account')), ]);
+const ACCOUNT_ALLOWED_PROPERTIES = new Set([ 'account_id', 'auth_token', 'private_key', 'admin_auth_token', 'updated', 'created', ...Object.keys(config.get('account')), ]);
 const ACCOUNT_REQUIRED_PROPERTIES = new Set(config.get('_register_required_keys'));
 const ACCOUNT_HIDDEN_PROPERTIES = new Set([ 'account_id', 'updated', 'created', ]);
-const ACCOUNT_READONLY_PROPERTIES = new Set([ 'account_id', 'auth_token', 'updated', 'created', ]);
+const ACCOUNT_READONLY_PROPERTIES = new Set([ 'account_id', 'auth_token', 'updated', 'created', 'admin_auth_token', 'private_key', ]);
 
 const _account_properties_validators = {
     domain: (domain) => { if (domain && !checks.isDomain(domain)) { throw new Error('Invalid domain format'); }},
@@ -76,12 +77,21 @@ exports.Account = class Account extends BaseModel {
         try {
             if (!account_identifier) { throw new Error("Missing account's identifier"); }
 
-            let prepared_account = new Account();
+            let prepared_account = new Account(), private_key = undefined;
+
+            [account_identifier, private_key, ] = account_identifier.split(AUTH_TOKEN_KEY_SEPARATOR);
+
             prepared_account[_account_data] = await db.findOne('accounts', { $or: [ { _id: account_identifier }, { auth_token: account_identifier }, ] });
             prepared_account[_account_data].settings = new Settings(prepared_account[_account_data].settings);
 
             if (prepared_account[_account_data].confirmation_details) {
                 prepared_account[_account_data].confirmation_details = new PaymentConfirmation(prepared_account[_account_data].confirmation_details);
+            }
+
+            prepared_account[_account_data].private_key = private_key;
+
+            if (private_key) {
+                prepared_account[_account_data].admin_auth_token = `${account_identifier}${AUTH_TOKEN_KEY_SEPARATOR}${private_key}`;
             }
 
             return prepared_account;
@@ -97,15 +107,12 @@ exports.Account = class Account extends BaseModel {
     // Create new account using data provided in a constructor
     async create() {
         // Generate account's auth token
-        // TODO: make sense to it
-        const diffHell = crypto.createDiffieHellman(60);
+        const diffHell = crypto.createECDH('secp256k1');
         diffHell.generateKeys();
 
-        // TODO: to be removed after testing phase
-        this[_account_data].private_key = diffHell.getPrivateKey('hex');
+        this[_account_data].auth_token = diffHell.getPublicKey('hex', 'compressed');
 
         // Set required initial settings
-        this[_account_data].auth_token = diffHell.getPublicKey('hex');
         this.settings.home_issuer = config.get('account.settings.home_issuer');
         this.settings.acceptable_issuers = config.get('account.settings.acceptable_issuers');
         this.settings.default_payment_timeout = config.get('account.settings.default_payment_timeout');
@@ -118,6 +125,9 @@ exports.Account = class Account extends BaseModel {
         }
 
         await super.create();
+
+        this[_account_data].admin_auth_token = `${this[_account_data].auth_token}${AUTH_TOKEN_KEY_SEPARATOR}${this[_account_data].private_key}`;
+        this[_account_data].private_key = diffHell.getPrivateKey('hex');
 
         console.log('register account', this);
 
