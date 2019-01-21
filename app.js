@@ -73,6 +73,7 @@ app.use(express.static(__dirname + '/assets'));
 // Middelwares and config for REST API
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+// TODO: To think: should this be used for /panel route as well as it is now? is there a security threat?
 app.use(middleware.corsMiddleware);
 app.use(session({
   secret: config.get('server.session.secret'),

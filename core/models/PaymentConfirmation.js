@@ -9,7 +9,7 @@ const _confirmation_interface = Symbol('_confirmation_interface');
 const _db_session = Symbol('_db_session');
 
 const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id', 'client_type', 'options', 'memo', 'created', 'updated', ]);
-const PAYMENT_CONFIRMATION_REQUIRED_PROPERTIES = new Set([]);
+const PAYMENT_CONFIRMATION_REQUIRED_PROPERTIES = new Set([ 'coins', ]);
 const PAYMENT_CONFIRMATION_HIDDEN_PROPERTIES = new Set([ 'created', 'updated', ]);
 const PAYMENT_CONFIRMATION_READONLY_PROPERTIES = new Set([ 'created', 'updated', ]);
 
