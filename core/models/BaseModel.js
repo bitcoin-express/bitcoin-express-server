@@ -441,21 +441,6 @@ exports.BaseModel = class BaseModel {
 
 
     /**
-     * Helper method that should be overridden in inheriting classes. Its purpose is to prepare object's data to a form
-     * required by the class, after deserialising it from the database. For example - one of the class' properties may
-     * be an object and we want to ensure that after deserialisation it will still be an object of this specific class.
-     * One common usage example is to run this method in a "find" method to return a properly initialised object.
-     * @param input_data
-     * @returns {Promise<object>}
-     * @async
-     * @interface
-     */
-    async prepareInputData (input_data) {
-        throw new errors.NotImplementedError({ class_name: this.constructor.name, field: 'prepareInputData', })
-    }
-
-
-    /**
      * Create a new representation of the current object in the database.
      * It uses a database name defined in [the object's constructor]{@link module:core/models/BaseModel/BaseModel.constructor},
      * under "db_table" key.
