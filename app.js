@@ -47,6 +47,7 @@ const { setConfig } = require("./requests/setConfig");
 
 const db = require(config.get('system.root_dir') + '/db');
 const middleware = require(config.get('system.root_dir') + '/core/middlewares');
+const api_helpers = require(config.get('system.root_dir') + '/core/api/helpers');
 const app = express();
 
 var { panelRoute } = require('./routes');
@@ -93,17 +94,17 @@ db.connect(config.get('server.db.uri'), function (err) {
   app.get('/', (req, res) => {
     res.render('index');
   });
-  app.all('/panel/*', middleware.noAuthentication, panelRoute);
+  app.all('/panel/*', api_helpers.noAuthentication, panelRoute);
 
-  app.post('/createPaymentRequest', middleware.requireAuthentication, createPaymentRequest);
-  app.get('/getBalance', middleware.requireAuthentication, getBalance);
-  app.post('/getCoins', middleware.requireAuthentication, getCoins);
-  app.get('/getPaymentStatus', middleware.requireAuthentication, getPaymentStatus);
-  app.get('/getTransactions', middleware.requireAuthentication, getTransactions);
-  app.post('/payment', middleware.noAuthentication, payment);
-  app.post('/redeem', middleware.requireAuthentication, redeem);
-  app.post('/register', middleware.noAuthentication, register);
-  app.post('/setConfig', middleware.requireAuthentication, setConfig);
+  app.post('/createPaymentRequest', api_helpers.requireAuthentication, createPaymentRequest);
+  app.get('/getBalance', api_helpers.requireAuthentication, getBalance);
+  app.post('/getCoins', api_helpers.requireAuthentication, getCoins);
+  app.get('/getPaymentStatus', api_helpers.requireAuthentication, getPaymentStatus);
+  app.get('/getTransactions', api_helpers.requireAuthentication, getTransactions);
+  app.post('/payment', api_helpers.noAuthentication, payment);
+  app.post('/redeem', api_helpers.requireAuthentication, redeem);
+  app.post('/register', api_helpers.noAuthentication, register);
+  app.post('/setConfig', api_helpers.requireAuthentication, setConfig);
 
 
     for (let route_config of api.routes.values()) {
