@@ -27,6 +27,16 @@ exports.TRANSACTION_ID = '/transaction/:transaction_id';
 
 
 /**
+ * "transaction by order id" endpoint definition
+ * @type {string}
+ * @const
+ * @default
+ * @link getPathForId
+ */
+exports.TRANSACTION_ORDER_ID = '/order/:order_id';
+
+
+/**
  * "transaction payment by id" endpoint definition
  * @type {string}
  * @const
@@ -81,6 +91,7 @@ exports.ACCOUNT_BALANCE = '/account/balance';
  */
 exports.getPathForId = (path, id, ) => {
     if (path === exports.TRANSACTION_ID) { return `/transaction/${id}`; }
+    if (path === exports.TRANSACTION_ORDER_ID) { return `/order/${id}`; }
     else if (path === exports.TRANSACTION_ID_PAYMENT) { return `/transaction/${id}/payment`; }
     else { return path; }
 };

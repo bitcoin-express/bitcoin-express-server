@@ -67,6 +67,12 @@ exports.routes = new Map([
             actions: [ helpers.requireAuthentication, helpers.asyncWrapper(actions.getTransactionById), ],
         },
     ],
+    [ 'getTransactionByOrderId', {
+            path: endpoints.getEndpointPath(endpoints.TRANSACTION_ORDER_ID),
+            method: 'get',
+            actions: [ helpers.requireAuthentication, helpers.asyncWrapper(actions.getTransactionByOrderId), ],
+        },
+    ],
     [ 'postTransactionPayment', {
             path: endpoints.getEndpointPath(endpoints.TRANSACTION_ID_PAYMENT),
             method: 'post',

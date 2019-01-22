@@ -169,6 +169,60 @@ exports.getTransactionById = async (req, res, next) => {
 
 
 /**
+ * Returns an information about the transaction identified by the order id
+ * @param {object} req - The Express' request object
+ * @param {object} res - The Express' response object
+ * @param {function} next - function to be called to proceed with the Express' chain of execution
+ * @returns {Promise}
+ * @link module:core/models/Transaction
+ * @link module:core/models/JSONResponses
+ */
+exports.getTransactionByOrderId = async (req, res, next) => {
+    let response = new JSONResponseEnvelope({});
+    let query = {
+        // Authenticated account'd id
+        account_id: req.params._account_id,
+
+        // Order id passed in the URL
+        custom_query: {
+            order_id: req.params.order_id,
+        },
+
+        limit: 1,
+
+        // In order to also return transactions that are not "valid" we need to disable this check
+        only_valid: false,
+    };
+
+    try {
+        // We are only allowing to access own transactions, so if by any chance account_id is not provided we have
+        // to quit
+        if (!query.account_id) {
+            throw new Error('Missing account_id');
+        }
+
+        response.body = await Transaction.find(query);
+
+        // If we can't find a transaction with a given order id under authenticated account we should treat it as
+        // an error. This is a different behaviour from when we are asking for a set of transactions and get an empty
+        // result.
+        if (!response.body.length) { throw new Error(`Unable to find transaction with order id: ${req.params.order_id} on account: ${query.account_id}`); }
+
+        response.success = true;
+        res.status(200);
+    }
+    catch (e) {
+        console.log('api getTransactionById', e);
+
+        response.messages.push(new Message({ body: "Unable to retrieve transaction", type: Message.TYPE__ERROR, }));
+        res.status(400);
+    }
+
+    return res.send(response.prepareResponse(res));
+};
+
+
+/**
  * Tries to resolve the transaction specified by the id of the "payment" type. It accepts a payment confirmation from
  * the Buyer in a format defined by the [PaymentConfirmation class]{@link module:core/models/PaymentConfirmation} and
  * return the [PaymentAck object]{@link module:core/models/PaymentConfirmation} specified in the Bitcoin-Express Payment
