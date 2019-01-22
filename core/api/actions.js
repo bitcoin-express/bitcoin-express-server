@@ -5,7 +5,7 @@
  *
  * These actions are used by [API]{@link module:core/api} to execute a required action for a specific endpoint.
  * All actions are asynchronous, Express-valid functions. All actions, with an exception of postTransactionByIdPayment,
- * returns [enveloped JSON responses]{@link module:core/models/JSONResponseEnvelope}
+ * returns [enveloped JSON responses]{@link module:core/models/JSONResponses}
  * @module core/api/actions
  * @link core/api
  */
@@ -18,7 +18,7 @@ const errors = require(config.get('system.root_dir') + '/core/models/Errors');
 const endpoints = require(config.get('system.root_dir') + '/core/api/endpoints');
 
 const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
-const { JSONResponse, JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponseEnvelope');
+const { JSONResponse, JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponses');
 const { Transaction } = require(config.get('system.root_dir') + '/core/models/Transaction');
 const { PaymentAck } = require(config.get('system.root_dir') + '/core/models/PaymentAck');
 const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
@@ -34,7 +34,7 @@ class APIError extends Error {}
  * @param {function} next - function to be called to proceed with the Express' chain of execution
  * @returns {Promise}
  * @link module:core/models/Transaction
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.getTransactions = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
@@ -81,7 +81,7 @@ exports.getTransactions = async (req, res, next) => {
  * @param {function} next - function to be called to proceed with the Express' chain of execution
  * @returns {Promise}
  * @link module:core/models/Transaction
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.postTransactions = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
@@ -118,13 +118,13 @@ exports.postTransactions = async (req, res, next) => {
 
 
 /**
- * Returns an information about the transaction specified by an id
+ * Returns an information about the transaction identified by the id
  * @param {object} req - The Express' request object
  * @param {object} res - The Express' response object
  * @param {function} next - function to be called to proceed with the Express' chain of execution
  * @returns {Promise}
  * @link module:core/models/Transaction
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.getTransactionById = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
@@ -174,7 +174,7 @@ exports.getTransactionById = async (req, res, next) => {
  * return the [PaymentAck object]{@link module:core/models/PaymentConfirmation} specified in the Bitcoin-Express Payment
  * specification.
  *
- * This is the only method that send back JSON response NOT wrapped in a standard [JSON envelope]@{@link module:core/models/JSONResponseEnvelope}
+ * This is the only method that send back JSON response NOT wrapped in a standard [JSON envelope]@{@link module:core/models/JSONResponses}
  * @param {object} req - The Express' request object
  * @param {object} res - The Express' response object
  * @param {function} next - function to be called to proceed with the Express' chain of execution
@@ -268,7 +268,7 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
  * @returns {Promise}
  * @link module:core/models/Account
  * @link module:core/models/Settings
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.postAccounts = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
@@ -332,7 +332,7 @@ exports.postAccounts = async (req, res, next) => {
  * @returns {Promise}
  * @link module:core/models/Account
  * @link module:core/models/Settings
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.getAccount = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
@@ -366,7 +366,7 @@ exports.getAccount = async (req, res, next) => {
  * @returns {Promise}
  * @link module:core/models/Account
  * @link module:core/models/Settings
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.patchAccount = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
@@ -420,7 +420,7 @@ exports.patchAccount = async (req, res, next) => {
  * @returns {Promise}
  * @link module:core/models/Account
  * @link module:core/models/Settings
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.getAccountSettings = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
@@ -453,7 +453,7 @@ exports.getAccountSettings = async (req, res, next) => {
  * @returns {Promise}
  * @link module:core/models/Account
  * @link module:core/models/Settings
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.patchAccountSettings = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
@@ -509,7 +509,7 @@ exports.patchAccountSettings = async (req, res, next) => {
  * @param {function} next - function to be called to proceed with the Express' chain of execution
  * @returns {Promise}
  * @link module:core/models/Account
- * @link module:core/models/JSONResponseEnvelope
+ * @link module:core/models/JSONResponses
  */
 exports.getAccountBalance = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});

@@ -1,5 +1,12 @@
 "use strict";
 
+/**
+ * This module defines classes responsible for common API response wrappers to ensure that all API responses will have
+ * the same structure and will use the same mechanisms.
+ * @module core/models/Account
+ * @link module:core/models/BaseModel
+ */
+
 exports.JSONResponseEnvelope = class JSONResponseEnvelope {
     constructor ({ body=[], messages=[], success=false}={}) {
         // Initial checks
