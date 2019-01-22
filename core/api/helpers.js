@@ -3,7 +3,7 @@
 /**
  * API helper functions' definition.
  * @module core/api/helpers
- * @link core/api
+ * @link module:core/api
  */
 
 const config = require('config');

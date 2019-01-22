@@ -192,7 +192,7 @@ exports.Account = class Account extends BaseModel {
 
 
     /**
-     * Static method that allows to retrieve an account from a database that is identified by the provide account
+     * Static method that allows to retrieve an account from the database that is identified by the provide account
      * identifier. It is using object's private interface to initialise the object without firing its validators and
      * setters.
      * @param {string} account_identifier - either account's id or auth_token

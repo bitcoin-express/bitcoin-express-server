@@ -6,9 +6,9 @@
  *
  * It is important to remember to always explicitly define if a route requires - or not - an authentication.
  * @module core/api
- * @link core/api/actions
- * @link core/api/endpoints
- * @link core/api/helpers
+ * @link module:core/api/actions
+ * @link module:core/api/endpoints
+ * @link module:core/api/helpers
  */
 
 const config = require('config');

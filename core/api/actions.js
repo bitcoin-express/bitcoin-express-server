@@ -7,7 +7,7 @@
  * All actions are asynchronous, Express-valid functions. All actions, with an exception of postTransactionByIdPayment,
  * returns [enveloped JSON responses]{@link module:core/models/JSONResponses}
  * @module core/api/actions
- * @link core/api
+ * @link module:core/api
  */
 
 const config = require('config');

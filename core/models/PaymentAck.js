@@ -1,9 +1,10 @@
 "use strict";
 
 /**
- * This module defines the PaymentAck class that is a container for [the payment method]{@link module:core/api/actions.postTransactionByIdPayment}
+ * This module defines the PaymentAck class, a container for [the payment method response]{@link module:core/api/actions.postTransactionByIdPayment}
  * and strictly follows the Bitcoin-Express Payment specification.
  * @module core/models/PaymentAck
+ * @link module:core/models/Transaction
  * @link module:core/models/BaseModel
  */
 
@@ -185,10 +186,32 @@ BaseModel.lockPropertiesOf(_payment_ack_properties_validators);
 
 
 /**
+ * Structure defining custom getters for PaymentAck's properties as described in {@link module:core/models/BaseModel/BaseModel.constructor}
+ * @type {object}
+ * @private
+ */
+const _payment_ack_properties_custom_getters = {};
+
+// We are sealing the structure to prevent any modifications
+BaseModel.lockPropertiesOf(_payment_ack_properties_custom_getters);
+
+
+/**
+ * Structure defining custom setters for PaymentAck's properties as described in {@link module:core/models/BaseModel/BaseModel.constructor}
+ * @type {object}
+ * @private
+ */
+const _payment_ack_properties_custom_setters = {};
+
+// We are sealing the structure to prevent any modifications
+BaseModel.lockPropertiesOf(_payment_ack_properties_custom_setters);
+
+
+/**
  * Class representing the response from the transaction's payment. It is strictly following Bitcoin-Express Payment
  * specification and implementing its requirements. Objects of this class are not stored in the database but build
  * ad-hoc to generate an API response.
- * @type {Account}
+ * @type {PaymentAck}
  * @extends BaseModel
  */
 exports.PaymentAck = class PaymentAck extends BaseModel {
@@ -202,8 +225,8 @@ exports.PaymentAck = class PaymentAck extends BaseModel {
             private_data_container_key: _payment_ack_data,
             private_interface_key: _payment_ack_interface,
             db_session_id: _db_session,
-            custom_getters: {},
-            custom_setters: {},
+            custom_getters: _payment_ack_properties_custom_getters,
+            custom_setters: _payment_ack_properties_custom_setters,
             validators: _payment_ack_properties_validators,
             allowed_properties: PAYMENT_ACK_ALLOWED_PROPERTIES,
             required_properties: PAYMENT_ACK_REQUIRED_PROPERTIES,
