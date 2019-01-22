@@ -8,7 +8,7 @@
 
 const config = require('config');
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
-const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponseEnvelope');
+const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponses');
 const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
 
 
