@@ -224,5 +224,32 @@ exports.Settings = class Settings extends BaseModel {
     get customizedSettings () {
         return new Set(Object.keys(this[_settings_data]));
     }
+
+
+    /**
+     * Returns names of properties that are locked and can't be modified.
+     * @returns {Set<String>}
+     */
+    get lockedSettings () {
+        return SETTINGS_READONLY_PROPERTIES;
+    }
+
+    /**
+     * Overrides the BaseModel'a toJSON in order to add _locked_settings key to the returned dataset.
+     * @returns {Object}
+     */
+    toJSON () {
+        let data = super.toJSON();
+        let locked_settings = Array.from(this.lockedSettings.values());
+
+        if (locked_settings && locked_settings.length) {
+            data._locked_settings = locked_settings;
+        }
+        else {
+            data._locked_settings = [];
+        }
+
+        return data;
+    }
 };
 
