@@ -142,7 +142,7 @@ exports.BaseModel = class BaseModel {
      * - standard - where the key has the name the same as property's name, i.e. for property "description" the key name
      * would be "description" as well,
      * - class-specific - where the name of a key is build by adding class name to the property name and joining them
-     * with two underscores, i.e. for property "value" in the class Transaction the key name would be
+     * with two underscores, i.e. for property "name" in the class Transaction the key name would be
      * "name__Transaction".
      * This mechanism is used when two or more classes are sharing the same structure with setters but they need
      * to distinguish how a specific property will behave, without changing the whole structure.
@@ -164,7 +164,7 @@ exports.BaseModel = class BaseModel {
      * - standard - where the key has the name the same as property's name, i.e. for property "description" the key name
      * would be "description" as well,
      * - class-specific - where the name of a key is build by adding class name to the property name and joining them
-     * with two underscores, i.e. for property "value" in the class Transaction the key name would be
+     * with two underscores, i.e. for property "name" in the class Transaction the key name would be
      * "name__Transaction".
      * This mechanism is used when two or more classes are sharing the same structure with validators but they need
      * to distinguish how a specific property will behave, without changing the whole structure.
