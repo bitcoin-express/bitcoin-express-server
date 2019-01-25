@@ -214,12 +214,7 @@ exports.Account = class Account extends BaseModel {
 
             // Make sure that settings property is of type Settings
             prepared_account[_account_data].settings = new Settings(prepared_account[_account_data].settings);
-
-            // Make sure that confirmation_details property is of type PaymentConfirmation
-            if (prepared_account[_account_data].confirmation_details) {
-                prepared_account[_account_data].confirmation_details = new PaymentConfirmation(prepared_account[_account_data].confirmation_details);
-            }
-
+            
             // If admin auth token was provided we can fill both private_key property and admin_auth_token
             prepared_account[_account_data].private_key = private_key;
 
