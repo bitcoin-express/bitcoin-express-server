@@ -52,12 +52,12 @@ const TRANSACTION_STATUS__RESOLVED = 'resolved';
 
 
 /**
- * 'aborted' transaction's status. Transaction was canceled, it's a terminal state and no more changes is allowed to it.
+ * 'failed' transaction's status. Transaction failed, it's a terminal state and no more changes is allowed to it.
  * @type {string}
  * @const
  * @link module:core/models/Transactions~TRANSACTION_STATUSES
  */
-const TRANSACTION_STATUS__ABORTED = 'aborted';
+const TRANSACTION_STATUS__FAILED = 'failed';
 
 
 /**
@@ -88,7 +88,7 @@ const TRANSACTION_STATUS__PROCESSING = 'processing';
 const TRANSACTION_STATUSES = new Set([
     TRANSACTION_STATUS__INITIAL,
     TRANSACTION_STATUS__RESOLVED,
-    TRANSACTION_STATUS__ABORTED,
+    TRANSACTION_STATUS__FAILED,
     TRANSACTION_STATUS__EXPIRED,
     TRANSACTION_STATUS__PROCESSING,
 ]);
@@ -507,11 +507,11 @@ class Transaction {
 
 
     /**
-     * Publicly exposed INITIAL status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__ABORTED}
+     * Publicly exposed INITIAL status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__FAILED}
      * @returns {String}
      * @static
      */
-    static get STATUS__ABORTED () { return TRANSACTION_STATUS__ABORTED; }
+    static get STATUS__FAILED () { return TRANSACTION_STATUS__FAILED; }
 
 
     /**
@@ -787,7 +787,6 @@ class PaymentTransaction extends CoreTransaction {
         return input_data;
     }
 
-
     /**
      * Extends the [BaseModel create]{@link module:core/models/BaseModel/BaseModel.create} by adding class specific
      * operations to be performed before object can be saved to the database.
@@ -830,7 +829,7 @@ class PaymentTransaction extends CoreTransaction {
 
         // Assuming we've found a transaction and it's not in a terminal state...
         if (existing_transaction &&
-            existing_transaction.status !== Transaction.STATUS__ABORTED &&
+            existing_transaction.status !== Transaction.STATUS__FAILED &&
             existing_transaction.status !== Transaction.STATUS__EXPIRED
         ) {
             //...if it's still proceeding we need to throw...
