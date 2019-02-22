@@ -13,6 +13,9 @@
 const config = require('config');
 const request = require('request');
 const uuidv4 = require('uuid/v4');
+const util = require('util');
+const moment = require('moment');
+
 
 const db = require(config.get('system.root_dir') + '/db');
 const checks = require(config.get('system.root_dir') + '/core/checks');
@@ -71,12 +74,32 @@ const TRANSACTION_STATUS__EXPIRED = 'expired';
 
 
 /**
+ * 'aborted' transaction's status. Transaction was by the Buyer before it was resolved, it's a terminal state and no
+ * more changes is allowed to it.
+ * @type {string}
+ * @const
+ * @link module:core/models/Transactions~TRANSACTION_STATUSES
+ */
+const TRANSACTION_STATUS__ABORTED = 'aborted';
+
+
+/**
  * 'processing' transaction's status. Transaction is being processed right now, changes can't be made in that state.
  * @type {string}
  * @const
  * @link module:core/models/Transactions~TRANSACTION_STATUSES
  */
-const TRANSACTION_STATUS__PROCESSING = 'processing';
+const TRANSACTION_STATUS__PENDING = 'pending';
+
+
+/**
+ * 'deferred' transaction's status. Transaction is put on hold for a time being and is waiting for a new request to
+ * proceed.
+ * @type {string}
+ * @const
+ * @link module:core/models/Transactions~TRANSACTION_STATUSES
+ */
+const TRANSACTION_STATUS__DEFERRED = 'pending';
 
 
 /**
@@ -87,10 +110,12 @@ const TRANSACTION_STATUS__PROCESSING = 'processing';
  */
 const TRANSACTION_STATUSES = new Set([
     TRANSACTION_STATUS__INITIAL,
+    TRANSACTION_STATUS__PENDING,
+    TRANSACTION_STATUS__DEFERRED,
     TRANSACTION_STATUS__RESOLVED,
     TRANSACTION_STATUS__FAILED,
+    TRANSACTION_STATUS__ABORTED,
     TRANSACTION_STATUS__EXPIRED,
-    TRANSACTION_STATUS__PROCESSING,
 ]);
 
 
@@ -210,6 +235,20 @@ const _db_session = Symbol('_db_session');
 
 
 /**
+ * Set of keys that are available to be set via API as described in {@link module:core/models/BaseModel/BaseModel.constructor}
+ * Each key holds a set of available keys for a corresponding transaction type.
+ * @type {Set}
+ * @private
+ * @const
+ */
+const TRANSACTION_API_PROPERTIES = new Map([
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'currency', 'amount', 'callback_url', 'notification', 'return_url', 'order_id', 'description', 'email_customer_contact', 'polices', 'expires', 'time_budget', 'ack_passthrough', ]), ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'currency', 'amount', 'description', 'speed', 'address', 'label', ]), ],
+    [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ ]), ],
+]);
+
+
+/**
  * Properties available via the object's public interface as described in {@link module:core/models/BaseModel/BaseModel.constructor}
  * Each key holds a set of available keys for a corresponding transaction type.
  * @type {Map<Set>}
@@ -217,13 +256,13 @@ const _db_session = Symbol('_db_session');
  * @const
  */
 const TRANSACTION_ALLOWED_PROPERTIES = new Map([
-    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'type', 'order_id', 'value', 'currency', 'description', 'notification',
-            'return_url', 'callback_url', 'acceptable_issuers', 'email_customer_contact', 'policies', 'expires',
-            'transaction_id', 'created', 'updated', 'seller', 'payment_url', 'status', 'account_id', 'confirmation_details',
-            'verify_details', 'completed',
-        ]),
+    [ TRANSACTION_TYPE__PAYMENT, new Set(['type', 'status', 'transaction_id', 'created', 'completed', 'updated',
+          'payment_confirmation', 'payment_details', 'payment_ack', 'acceptable_issuers', 'seller', 'payment_url',
+          'account_id', 'currency', 'amount', 'callback_url', 'notification', 'return_url', 'order_id', 'description',
+          'email_customer_contact', 'polices', 'expires', 'time_budget', 'ack_passthrough',
+    ]),
     ],
-    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'status', 'type', 'currency', 'value',
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'status', 'type', 'currency', 'amount',
             'description', 'speed', 'address', 'label', 'account_id', 'created', 'updated', 'completed',
         ]),
     ],
@@ -239,11 +278,11 @@ const TRANSACTION_ALLOWED_PROPERTIES = new Map([
  * @const
  */
 const TRANSACTION_REQUIRED_PROPERTIES = new Map([
-    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'type', 'value', 'currency', 'description', 'acceptable_issuers',
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'type', 'amount', 'currency', 'description', 'acceptable_issuers',
             'transaction_id', 'seller', 'payment_url', 'status', 'account_id',
         ]),
     ],
-    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'type', 'currency', 'value', 'address', ]), ],
+    [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'type', 'currency', 'amount', 'address', ]), ],
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([]), ],
 ]);
 
@@ -256,7 +295,7 @@ const TRANSACTION_REQUIRED_PROPERTIES = new Map([
  * @const
  */
 const TRANSACTION_HIDDEN_PROPERTIES = new Map([
-    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'account_id', ]), ],
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'seller', 'payment_url', 'account_id', ]), ],
     [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'account_id', ]), ],
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'account_id', ]), ],
 ]);
@@ -270,7 +309,7 @@ const TRANSACTION_HIDDEN_PROPERTIES = new Map([
  * @const
  */
 const TRANSACTION_READONLY_PROPERTIES = new Map([
-    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'type', 'updated', 'completed', ]), ],
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'type', 'transaction_id', 'created', 'completed', 'updated', 'acceptable_issuers', 'payment_details', 'payment_ack', 'payment', 'seller', 'payment_url', 'account_id', ]), ],
     [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'updated', 'created', 'type', 'completed', ]), ],
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'updated', 'created', 'type', 'completed', ]), ],
 ]);
@@ -294,35 +333,30 @@ const _transaction_properties_validators = {
     },
     return_url: Settings.VALIDATORS.return_url,
     callback_url: Settings.VALIDATORS.callback_url,
-    value: (value) => {
+    amount: (value) => {
         if (!value) { throw new Error ('Required field'); }
         if (!checks.isFloat(value) || value > 9999999999) { throw new Error('Invalid format'); }
         if (parseFloat(value) <= 0) { throw new Error('Invalid value'); }
     },
     description: BaseModel.VALIDATORS.description,
-    notification: (text) => {
-        if (text !== undefined && (typeof text !== "string" || text.length < 1 || text.length > 128)) {
-            throw new Error('Invalid format');
-        }
-    },
+    notification: BaseModel.VALIDATORS.notification,
     email_customer_contact: Account.VALIDATORS.email_customer_contact,
-    policies: (policies) => {
-        if (!policies) { return true; }
+    polices: (polices) => {
+        if (!polices) { return true; }
 
-        if (typeof policies !== "object") { throw new Error('Invalid format'); }
+        if (typeof polices !== "object") { throw new Error('Invalid format'); }
 
-        let allowed_policies = [ 'receipt_via_email', 'refund_via_email', ];
-        for (let policy of Object.keys(policies)) {
-            if (!allowed_policies.includes(policy)) { throw new Error ('Unknown policy'); }
-            else if (typeof policies[policy] !== typeof true) { throw new Error ('Invalid format'); }
+        let allowed_polices = [ 'receipt_via_email', 'refund_via_email', 'issuer_refund_via_email', ];
+        for (let policy of Object.keys(polices)) {
+            if (!allowed_polices.includes(policy)) { throw new Error ('Unknown policy'); }
+            else if (typeof polices[policy] !== typeof true) { throw new Error ('Invalid format'); }
         }
     },
     currency: Settings.VALIDATORS.default_payment_currency,
     status: status => {
         if (!TRANSACTION_STATUSES.has(status)) { throw new Error('Unknown status'); }
     },
-    confirmation_details: details => true,
-    verify_details: details => true,
+    payment_confirmation: details => true,
     completed: (date) => {
         if (!(date instanceof Date)) { throw new Error ('Invalid format'); }
     },
@@ -338,6 +372,8 @@ const _transaction_properties_validators = {
             throw new Error ('Invalid format');
         }
     },
+    time_budget: BaseModel.VALIDATORS.time_budget,
+    ack_passthrough: PaymentAck.VALIDATORS.ack_passthrough,
 };
 
 // We are sealing the structure to prevent any modifications
@@ -354,6 +390,14 @@ const _transaction_properties_custom_getters = {
     },
     speed: function () {
         return this[_transaction_data].speed ? this[_transaction_data].speed : BLOCKCHAIN_TRANSFER_SPEED__DEFAULT;
+    },
+    acceptable_issuers: function () {
+        if (this[_transaction_data].acceptable_issuers) {
+            return this[_transaction_data].acceptable_issuers;
+        }
+        else {
+            return [ '*', ];
+        }
     },
 };
 
@@ -399,10 +443,20 @@ const _transaction_properties_custom_setters = {
 
         this[_transaction_data]['callback_url'] = value;
     },
+    status: function (value) {
+        console.log('w status', value, this[_transaction_data].status);
+
+        this[_transaction_interface].__prev_status = this[_transaction_data].status;
+        this[_transaction_data].status = value;
+
+        if ([ TRANSACTION_STATUS__RESOLVED, TRANSACTION_STATUS__FAILED, ].includes(value)) {
+            this[_transaction_data].completed = new Date();
+        }
+    },
 };
 
 // We are sealing the structure to prevent any modifications
-BaseModel.lockPropertiesOf(_transaction_properties_custom_getters);
+BaseModel.lockPropertiesOf(_transaction_properties_custom_setters);
 
 
 /**
@@ -432,6 +486,26 @@ class Transaction {
 
         return new transaction_class(init_data);
     }
+
+
+    /**
+     * Checks if all keys in an object passed as an argument are exposed via API and can be used as a constructor
+     * payload. This method should be used on API level in order to test passed in the request keys to check if the
+     * request is valid.
+     */
+    static checkAPIProperties (properties) {
+        if (!properties.type) {
+            throw new Error('Invalid format');
+        }
+        let transaction_class = TRANSACTION_CLASSES.get(properties.type);
+        let filtered_properties = Object.assign({}, properties);
+        delete filtered_properties.type;
+
+
+        console.log(transaction_class.prototype);
+        transaction_class.checkAPIProperties(filtered_properties);
+    }
+
 
     /**
      * A public interface to access class specific validators. This is needed if a different class will have the same
@@ -491,15 +565,23 @@ class Transaction {
 
 
     /**
-     * Publicly exposed INITIAL status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__PROCESSING}
+     * Publicly exposed PENDING status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__PENDING}
      * @returns {String}
      * @static
      */
-    static get STATUS__PROCESSING () { return TRANSACTION_STATUS__PROCESSING; }
+    static get STATUS__PENDING () { return TRANSACTION_STATUS__PENDING; }
 
 
     /**
-     * Publicly exposed INITIAL status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__RESOLVED}
+     * Publicly exposed DEFERRED status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__DEFERRED}
+     * @returns {String}
+     * @static
+     */
+    static get STATUS__DEFERRED () { return TRANSACTION_STATUS__DEFERRED; }
+
+
+    /**
+     * Publicly exposed RESOLVED status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__RESOLVED}
      * @returns {String}
      * @static
      */
@@ -507,7 +589,7 @@ class Transaction {
 
 
     /**
-     * Publicly exposed INITIAL status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__FAILED}
+     * Publicly exposed FAILED status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__FAILED}
      * @returns {String}
      * @static
      */
@@ -515,7 +597,15 @@ class Transaction {
 
 
     /**
-     * Publicly exposed INITIAL status, described in {@link module:core/models/Transaction~STATUS__EXPIRED}
+     * Publicly exposed ABORTED status, described in {@link module:core/models/Transaction~TRANSACTION_STATUS__ABORTED}
+     * @returns {String}
+     * @static
+     */
+    static get STATUS__ABORTED () { return TRANSACTION_STATUS__ABORTED; }
+
+
+    /**
+     * Publicly exposed EXPIRED status, described in {@link module:core/models/Transaction~STATUS__EXPIRED}
      * @returns {String}
      * @static
      */
@@ -631,7 +721,7 @@ class Transaction {
                 query.status = { $in: [
                         TRANSACTION_STATUS__INITIAL,
                         TRANSACTION_STATUS__RESOLVED,
-                        TRANSACTION_STATUS__PROCESSING, ]
+                        TRANSACTION_STATUS__PENDING, ]
                 };
             }
 
@@ -672,11 +762,12 @@ class CoreTransaction extends BaseModel {
      * Constructor accepts class-specific structures and together with the shared ones initialises BaseModel mechanisms
      * by calling the super constructor. Required structures are described in {@link module:core/models/BaseModel/BaseModel.constructor}
      * @param {Set} allowed_properties
+     * @param {Set} api_properties
      * @param {Set} required_properties
      * @param {Set} hidden_properties
      * @param {Set} readonly_properties
      */
-    constructor({ allowed_properties, required_properties, hidden_properties, readonly_properties, }) {
+    constructor({ allowed_properties, api_properties, required_properties, hidden_properties, readonly_properties, }) {
         super({
             private_data_container_key: _transaction_data,
             private_interface_key: _transaction_interface,
@@ -688,9 +779,35 @@ class CoreTransaction extends BaseModel {
             required_properties: required_properties,
             hidden_properties: hidden_properties,
             readonly_properties: readonly_properties,
+            api_properties: api_properties,
             db_table: 'transactions',
             db_id_field: 'transaction_id',
         });
+
+        this[_transaction_interface].__initialised = moment();
+    }
+
+
+    /**
+     * Overrides {@link module:core/models/BaseModel/BaseModel.save} enforcing checking 'status' before saving the
+     * object.
+     * In order to persist Transaction we have to make sure that it's still in the same status as in the moment we
+     * started processing it, to make sure that there are no concurrent requests working on it.
+     * @param {Boolean} ignore_status - persist Transaction without checking if it was mutated by the concurrent request
+     * @returns {Promise<Transaction>}
+     */
+    async save ({ ignore_status=false }={}) {
+        let query = {};
+
+        if (!ignore_status) {
+            query = {
+                status: this[_transaction_interface].__prev_status || this[_transaction_data].status,
+            };
+        }
+
+        await super.save({ query: query, });
+
+        this[_transaction_interface].__prev_status = this.status;
     }
 }
 
@@ -710,6 +827,7 @@ class PaymentTransaction extends CoreTransaction {
     constructor(init_data={}) {
         super({
             allowed_properties: TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
+            api_properties: TRANSACTION_API_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
             required_properties: TRANSACTION_REQUIRED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
             hidden_properties: TRANSACTION_HIDDEN_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
             readonly_properties: TRANSACTION_READONLY_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
@@ -720,14 +838,6 @@ class PaymentTransaction extends CoreTransaction {
         // data but this would require to make such an operation in a couple of different places so it's easier to do it
         // here.
         delete init_data.type;
-
-        // We are initialising values passed in the init_data. We do it via the public interface hence we are enforcing
-        // validity of the data.
-        for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
-            if (init_data[property]) {
-                this[property] = init_data[property];
-            }
-        }
 
         this[_transaction_data].type = TRANSACTION_TYPE__PAYMENT;
 
@@ -754,21 +864,64 @@ class PaymentTransaction extends CoreTransaction {
 
             this.email_customer_contact = init_data.email_customer_contact || init_data.account.email_customer_contact;
 
-            this.policies = {
-                receipt_via_email: init_data.policies && init_data.policies.hasOwnProperty('receipt_via_email') ?
-                                   init_data.policies.receipt_via_email :
+            this.polices = {
+                receipt_via_email: init_data.polices && init_data.polices.hasOwnProperty('receipt_via_email') ?
+                                   init_data.polices.receipt_via_email :
                                    init_data.account.settings.provide_receipt_via_email,
-                refund_via_email: init_data.policies && init_data.policies.hasOwnProperty('refund_via_email') ?
-                                  init_data.policies.refund_via_email :
+                refund_via_email: init_data.polices && init_data.polices.hasOwnProperty('refund_via_email') ?
+                                  init_data.polices.refund_via_email :
                                   init_data.account.settings.provide_refund_via_email,
             };
 
             this.currency = init_data.currency || init_data.account.settings.default_payment_currency;
+            this.time_budget = init_data.time_budget || config.get('server.api.time_budget');
+            this.notification = init_data.notification;
 
             if (!this.return_url && !this.notification) {
                 throw new Error('Either return_url or notification is required');
             }
         }
+
+        // We are initialising values passed in the init_data. We do it via the public interface hence we are enforcing
+        // validity of the data.
+        for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
+            if (init_data[property] && this[_transaction_data][property] === undefined) {
+                this[property] = init_data[property];
+            }
+        }
+    }
+
+
+    /**
+     * Properties' names that can be set via API. This structure is used by the static method [checkAPIProperties]{@link module:core/models/BaseModel/BaseModel#checkAPIProperties}
+     * to validate if passed structure has only allowed properties and can be feed to constructor.
+     * @returns {Set<Sring>>}
+     * @static
+     */
+    static get API_PROPERTIES () { return TRANSACTION_API_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT); }
+
+
+    /**
+     * Return a map mapping properties that should be used in a JSON representation of 'payment_details' key to internal
+     * object's properties.
+     * @returns {Map}
+     * @static
+     */
+    static get PAYMENT_DETAILS_PROPERTIES () {
+        return new Map([
+            [ 'amount', 'amount', ],
+            [ 'currency', 'currency', ],
+            [ 'description', 'description', ],
+            [ 'expires', 'expires', ],
+            [ 'created', 'created', ],
+            [ 'seller', 'seller', ],
+            [ 'payment_url', 'payment_url', ],
+            [ 'polices', 'polices', ],
+            [ 'email_customer_contact', 'email_customer_contact', ],
+            [ 'transaction_id', 'transaction_id', ],
+            [ 'order_id', 'order_id', ],
+            [ 'acceptable_issuers', 'acceptable_issuers', ],
+        ]);
     }
 
 
@@ -780,12 +933,17 @@ class PaymentTransaction extends CoreTransaction {
      * @returns {Promise<Object>}
      */
     async prepareInputData(input_data) {
-        if (input_data.confirmation_details && !(input_data.confirmation_details instanceof PaymentConfirmation)) {
-            input_data.confirmation_details = new PaymentConfirmation(input_data.confirmation_details);
+        if (input_data.payment_confirmation && !(input_data.payment_confirmation instanceof PaymentConfirmation)) {
+            input_data.payment_confirmation = new PaymentConfirmation(input_data.payment_confirmation);
+        }
+
+        if (input_data.payment_ack && !(input_data.payment_ack instanceof PaymentAck)) {
+            input_data.payment_ack = new PaymentAck(input_data.payment_ack);
         }
 
         return input_data;
     }
+
 
     /**
      * Extends the [BaseModel create]{@link module:core/models/BaseModel/BaseModel.create} by adding class specific
@@ -804,7 +962,7 @@ class PaymentTransaction extends CoreTransaction {
      * @async
      * @link module:core/models/BaseModel/BaseModel.create
      */
-    async create() {
+    async create () {
         let existing_transaction = undefined;
 
         // If there is an order_id we need to check if we should update the old transaction, throw or create a new one
@@ -833,7 +991,7 @@ class PaymentTransaction extends CoreTransaction {
             existing_transaction.status !== Transaction.STATUS__EXPIRED
         ) {
             //...if it's still proceeding we need to throw...
-            if (existing_transaction.status === Transaction.STATUS__PROCESSING) {
+            if (existing_transaction.status === Transaction.STATUS__PENDING) {
                 throw new errors.InvalidValueError({ message: `Transaction with order_id ${this.order_id} is currently being processed.`});
             }
             //...if it's already resolved we need to throw...
@@ -877,18 +1035,27 @@ class PaymentTransaction extends CoreTransaction {
 
             // We want to automatically expire the transaction after a set time hence we need to schedule an expiry
             // action
+
             setTimeout(() => {
                 let query = {
                     transaction_id: { $eq: this.transaction_id, },
-                    status: { $eq: TRANSACTION_STATUS__INITIAL, },
+                    status: { $eq: Transaction.STATUS__INITIAL, },
                 };
 
                 console.log("Transaction expired - " + this.transaction_id);
-                db.findAndModify('transactions', query, { status: TRANSACTION_STATUS__EXPIRED, });
-            }, timeout * 1000);
+                try {
+                    db.findAndModify('transactions', query, {
+                        status: Transaction.STATUS__EXPIRED,
+                        updated: new Date(),
+                    });
+                }
+                catch (e) {
+                    console.log('Error during Transaction migration from initial to expired', e);
+                }
+            }, timeout);
         }
         catch (e) {
-            throw new errors.Warning ({class_name: this.constructor.name, field: 'create', message: 'Transaction created, but failed to set the expiration timeout'});
+            console.log('Error during setting timeout for Transaction migration from initial to expired', e);
         }
 
         return this;
@@ -899,173 +1066,501 @@ class PaymentTransaction extends CoreTransaction {
      * Implements the [BaseModel resolve]{@link module:core/models/BaseModel/BaseModel.resolve}. It's main purpose is to
      * complete a transaction by accepting a payment confirmation from the Buyer and returning PaymentAck as defined in
      * Bitcoin-Express Payment specification.
-     * @param {PaymentConfirmation} payment_confirmation_details
+     * @param {PaymentConfirmation} payment_confirmation
      * @returns {Promise<PaymentAck>}
      * @async
      * @link module:core/models/PaymentConfirmation
      * @link module:core/models/PaymentAck
      */
-    async resolve (payment_confirmation_details) {
+    async resolve (payment_confirmation) {
         this.checkRequiredProperties();
 
         // We are building an initial PaymentAck object as we will always return it
         let payment_ack = new PaymentAck({
-            status: PaymentAck.STATUS__OK,
-            seller: this.seller,
+            status: PaymentAck.STATUS__REJECTED,
+            wallet_id: payment_confirmation.wallet_id,
         });
 
-        // If transaction is already completed - return the original PaymentAck
-        if (this.status === TRANSACTION_STATUS__RESOLVED) {
-            payment_ack.wallet_id = this.confirmation_details.wallet_id;
-            payment_ack.return_url = this.return_url;
-            payment_ack.memo = this.notification;
+
+        // Perform status-wise checks...
+
+        //...check if Transaction was already aborted or is pending right now...
+        if (this.status === Transaction.STATUS__ABORTED || this.status === Transaction.STATUS__PENDING) {
+            //...and if so - reject the request.
+            return payment_ack;
+        }
+
+        //...or if it is in a terminal state...
+        if (this.status === Transaction.STATUS__RESOLVED && this.status === Transaction.STATUS__FAILED) {
+            try {
+                //..check if request is made with the same Coins...
+                if (this.payment_confirmation.coins.sort().toString() !== payment_confirmation.coins.sort().toString()) {
+                    //...and if it is not or Coins are not available at all - go to catch block...
+                    throw new Error();
+                }
+                else {
+                    //...if it is - return the original payment_ack.
+                    return this.payment_ack;
+                }
+            }
+            catch (e) {
+                console.log('transaction resolved error', e);
+
+                //...and reject the request.
+                payment_ack.status = PaymentAck.STATUS__REJECTED;
+                return payment_ack;
+            }
+        }
+
+        //...or if it has expired...
+        if (this.status === Transaction.STATUS__EXPIRED) {
+            payment_ack.status = PaymentAck.STATUS__AFTER_EXPIRES;
 
             return payment_ack;
         }
-        // Payment specification is not recognizing this state hence we are throwing an error - API should take care
-        // about it on its own
-        else if (this.status === TRANSACTION_STATUS__PROCESSING) {
-            throw new Error("A payment is already being processed for this transaction");
-        }
-        else if (this.status === TRANSACTION_STATUS__EXPIRED) {
-            payment_ack.status = PaymentAck.STATUS__AFTER_EXPIRES;
+
+        //...after this point only initial or deferred Transactions are allowed so quit if somehow Transaction has a
+        // different status.
+        if (this.status !== Transaction.STATUS__INITIAL && this.status !== Transaction.STATUS__DEFERRED) {
             return payment_ack;
-            // throw new Error("Transaction expired");
         }
-        else if (!payment_confirmation_details.coins.every(coin => this.currency === utils.Coin(coin).c)) {
+
+
+        // Perform prima facie checks. Check...
+
+        //...if all Coins have the right currency...
+        if (!payment_confirmation.coins.every(coin => this.currency === utils.Coin(coin).c)) {
             payment_ack.status = PaymentAck.STATUS__BAD_COINS;
             return payment_ack;
-            // throw new Error("Some coins are not from the requested currency");
         }
-        else if (utils.coinsValue(payment_confirmation_details.coins) < this.value) {
+
+        //...if total value is enough to cover the Transaction...
+        if (utils.coinsValue(payment_confirmation.coins) < this.amount) {
             payment_ack.status = PaymentAck.STATUS__INSUFFICIENT_AMOUNT;
             return payment_ack;
-            // throw new Error("The value of sent coins is not enough");
         }
 
-        let coins_domain = utils.Coin(payment_confirmation_details.coins[0]).d;
+        let account = undefined;
+        try {
+            account = await Account.find(this.account_id);
 
-        if (!payment_confirmation_details.coins.every((coin) => {
-            coin = utils.Coin(coin);
-            return (
-                this.acceptable_issuers.includes(coin.d) ||
-                this.acceptable_issuers.includes(`(${coin.d})`)
-            ) && coin.d === coins_domain;
-        })) {
-            payment_ack.status = PaymentAck.STATUS__BAD_COINS;
+            console.log('account', account.account_id);
+
+            // Up to this point we didn't fail the transaction if something was wrong with it or with the request, but
+            // if we can tell that the account that the transaction was created for is missing it's not something we
+            // can recover from in the next iteration and we should fail the transaction.
+            if (!account) {
+                payment_ack.status = PaymentAck.STATUS__FAILED;
+
+                try {
+                    // Let's try to save information that transaction has failed, together with payment_ack and
+                    // payment_confirmation
+                    this.status = Transaction.STATUS__FAILED;
+                    this[_transaction_data].payment_ack = payment_ack;
+                    this[_transaction_data].payment_confirmation = payment_confirmation;
+
+                    await this.save();
+                }
+                catch (e) {
+                    //If we failed there is nothing we can do - we still need to return information to the Buyer
+                }
+
+                return payment_ack;
+            }
+
+            payment_ack.seller = account.domain;
+        }
+        catch (e) {
+            // Something went wrong during retrieving the account but it shouldn't be fatal for the transaction so let's
+            // give it another chance
+            payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+            payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
+
             return payment_ack;
-            // throw new Error(`Some coins are not from the list of acceptable issuers or selected coins are from different issuers.`);
         }
 
-        // Mark current transaction as processing and save confirmation details so - in case operation fails - we can
-        // retry
-        this.status = TRANSACTION_STATUS__PROCESSING;
-        this.confirmation_details = payment_confirmation_details;
+        //...prima facie checks passed - start processing the transaction.
 
-        // All operations should be performed inside a transaction so we can revert everything in case of an error
+        // As we are going to persist Transaction many times and require common process to do it (plus access to context
+        // variables) we are defining a function expression to do it. This function expression will
+        // try to persist Transaction and in case of an error - handle it:
+        // - if error is due to the fact that Transaction was already migrated by a different process (Persistence
+        // Error) tries to return already saved PaymentAck,
+        // - if there is no payment_ack to recover - return failed PaymentAck,
+        // - and if error is of a different kind - return soft-error to try again a little bit later.
+
+        const _persistTransaction = async () => {
+            try {
+                // Try to persist the Transaction...
+                await this.save();
+            }
+            catch (e) {
+                console.log('Persist Transaction error', e);
+                payment_ack.status = PaymentAck.STATUS__FAILED;
+
+                //...and if it is not possible, check if it is due to the fact that...
+                try {
+                    // ...this Transaction was already migrated by another process...
+                    if (e instanceof errors.PersistenceError) {
+                        let original_transaction = Transaction.find({ transaction_id: this.transaction_id, type: Transaction.TYPE__PAYMENT, limit: 1, only_valid: false, });
+
+                        //...and if so check if there is payment_ack that we can use...
+                        if (original_transaction && original_transaction.payment_ack && Object.keys(original_transaction.payment_ack).length > 0) {
+                            return original_transaction.payment_ack;
+                        }
+                        //...if not - return failed PaymentAck
+                        else {
+                            return payment_ack;
+                        }
+                    }
+                    //...or if there was different type of error - return soft error so this Transaction can be retried...
+                    else {
+                        payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                        payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
+
+                        return payment_ack;
+                    }
+                }
+                //...if something breaks - return failed PaymentAck.
+                catch (e) {
+                    return payment_ack;
+                }
+            }
+        };
+
+
+        // Mark current transaction as pending to prevent next requests to modify it in any way...
+        this.status = Transaction.STATUS__PENDING;
+
+        let error_payment_ack = await _persistTransaction();
+        if (error_payment_ack) { return error_payment_ack; }
+
+
+        console.log('transaction migrated to pending state');
+
+
+        // We want to automatically defer the Transaction after depleting time_budget extended by a time buffer to
+        // prevent pending Transactions from hanging and make them available for the Wallet again
+        let pending_to_deferred_timeout = undefined;
+        try {
+            let timeout = (config.get('server.api.time_budget') + config.get('server.api.time_budget_trigger_buffer')) * 1000;
+
+            pending_to_deferred_timeout = setTimeout(() => {
+                let query = {
+                    transaction_id: { $eq: this.transaction_id, },
+                    status: { $eq: Transaction.STATUS__PENDING, },
+                };
+
+                console.log("Pending Transaction deferred - " + this.transaction_id);
+
+                try {
+                    db.findAndModify('transactions', query, {
+                        status: Transaction.STATUS__DEFERRED,
+                        updated: new Date(),
+                    });
+                }
+                catch (e) {
+                    console.log('Error during Transaction migration from pending to deferred', e);
+                }
+            }, timeout);
+        }
+        catch (e) {
+            console.log('Error during setting timeout for Transaction migration from pending to deferred', e);
+        }
+
+        // As we are calling issuer multiple times we need a common way to handle these calls. This is why we need this
+        // function expression. It's task is to call the Issuer using given parameters and handle the response.
+        // This function expression takes two parameters:
+        // - issuer_call_args - an array of arguments that will be passed to the Issuer call,
+        // - ok_handler - a function to handle positive result from the Issuer. Negative/Error responses and cases are
+        // handled in the same way, but each type of Issuer's request requires different type of operation to be
+        // performed.
+        //
+        // ok_handler should return PaymentAck in case of an error or nothing if operation succeeded.
+        const _handleIssuerCall = async (issuer_call_args, ok_handler) => {
+            try {
+                let iterator = 1,
+                    issuer_response = undefined,
+                    negative_response_indicator = true;
+
+                // If we can and if it's reasonable we will try to retry this operation if we are still within
+                // time_budget limit and number of possible retries is not crossed
+                while (iterator++ <= config.get('server.api.issuer_call_retries')) {
+                    try {
+                        issuer_response = await issuer.post(...issuer_call_args);
+                        console.log('issuer_response', issuer_response, 'retry: ', iterator - 1);
+                    }
+                    catch (e) {
+                        // We are handling the result in ifs below so we don't need any specific behaviour in here
+                        console.log('issuer_response error', issuer_response, 'retry: ', iterator - 1);
+                    }
+
+                    // If there the response is malformed or deferred handle it accordingly...
+                    if (!issuer_response ||
+                        !issuer_response.issuerResponse ||
+                        !issuer_response.issuerResponse.status ||
+                        !issuer_response.issuerResponse.headerInfo ||
+                        issuer_response.issuerResponse.status === "defer") {
+
+                        //...check if we are already post time_budget limit for this operation...
+                        if (moment().isAfter(moment(this[_transaction_interface].__initialised).add(this.time_budget, 'seconds'))) {
+                            payment_ack.status = PaymentAck.STATUS__ISSUER_ERROR;
+
+                            this[_transaction_data].payment_ack = payment_ack;
+                            this.status = Transaction.STATUS__DEFERRED;
+
+                            break;
+                        }
+                        //...check if there is after set in the Issuer's response and if so if it's crossing time_budget
+                        // limit...
+                        else if (issuer_response.issuerResponse && issuer_response.issuerResponse.after &&
+                            moment().add(issuer_response.issuerResponse.after, 'seconds').isAfter(moment(this[_transaction_interface].__initialised).add(this.time_budget, 'seconds'))) {
+
+                            payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                            payment_ack.retry_after = issuer_response.issuerResponse.after;
+
+                            this[_transaction_data].payment_ack = payment_ack;
+                            this.status = Transaction.STATUS__DEFERRED;
+
+                            break;
+                        }
+                        //...check if there is after set in the Issuer's response and if so wait for such a time before
+                        // making another request...
+                        else if (issuer_response.issuerResponse && issuer_response.issuerResponse.after) {
+                            await helpers.sleep(issuer_response.issuerResponse.after * 1000);
+                        }
+                        //...in other case - retry as long as number of retries is not exhausted.
+                        else {
+                            continue;
+                        }
+                    }
+                    //...if the response is positive run "ok_handler" on it...
+                    else if (issuer_response && issuer_response.issuerResponse && issuer_response.issuerResponse.status === 'ok') {
+                        let ok_response = await ok_handler(issuer_response);
+
+                        //...if ok_handler did not return anything it means that there was no error and we can exit the
+                        // loop. It'a also the way of informing code calling _handleIssuerCall that there was no error
+                        // caught during the process.
+                        if (!ok_response) {
+                            negative_response_indicator = false;
+                        }
+
+                        break;
+                    }
+                    //...any other kind of answer indicates that something went wrong but we can't be sure what and it
+                    // may be worth to retry the operation.
+                    else {
+                        payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                        payment_ack.retry_after = issuer_response.issuerResponse && issuer_response.issuerResponse.after ?
+                                                  issuer_response.issuerResponse.after :
+                                                  config.get('server.api.soft_error_retry_delay');
+
+                        this[_transaction_data].payment_ack = payment_ack;
+                        this.status = Transaction.STATUS__DEFERRED;
+
+                        break;
+                    }
+                }
+
+                // Try to persist the operation's result, no matter positive or negative...
+                let error_payment_ack = await _persistTransaction();
+
+                //...if it's not possible - return persistence's PaymentAck...
+                if (error_payment_ack) { return error_payment_ack; }
+
+                //...if successful but the Issuer call has negative outcome - return it.
+                if (negative_response_indicator) {
+                    // We know at this point that Transaction is no longer in pending state so we should remove
+                    // migration timeout.
+                    clearTimeout(pending_to_deferred_timeout);
+                    return payment_ack;
+                }
+            }
+            catch (e) {
+                payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
+
+                this[_transaction_data].payment_ack = payment_ack;
+                this.status = Transaction.STATUS__DEFERRED;
+
+                let error_payment_ack = await _persistTransaction();
+                if (error_payment_ack) { return error_payment_ack; }
+
+                // We know at this point that Transaction is no longer in pending state so we should remove
+                // migration timeout.
+                clearTimeout(pending_to_deferred_timeout);
+
+                return payment_ack;
+            }
+        };
+
+        console.log('before begin');
+
+        // If we do not already have verify_tid we need to call /begin to get one...
+        if (!this.payment_confirmation || !this.payment_confirmation.verify_tid) {
+            let issuer_call_result = await _handleIssuerCall(
+                [ 'begin', { issuerRequest: { fn: "verify", } }, account.settings.home_issuer, ],
+                async (issuer_response) => {
+                    if (!issuer_response.issuerResponse.headerInfo || !issuer_response.issuerResponse.headerInfo.tid) {
+                        payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                        payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
+
+                        this[_transaction_data].payment_ack = payment_ack;
+                        this.status = Transaction.STATUS__DEFERRED;
+
+                        return payment_ack;
+                    }
+
+                    payment_confirmation.verify_tid = issuer_response.issuerResponse.headerInfo.tid;
+                    payment_confirmation.verify_expiry = moment().add(config.get('system.issuer_verify_call_expiry'), 'seconds').toDate();
+
+                    this[_transaction_data].payment_confirmation = payment_confirmation;
+
+                    // TODO: calculate if there is change coin needed
+
+                }
+            );
+
+            if (issuer_call_result) { return issuer_call_result; }
+        }
+        //...and if we have verify_tid we need to check if it's still valid.
+        else if (moment(this.payment_confirmation.verify_expiry).isBefore(moment())) {
+            this.status = Transaction.STATUS__FAILED;
+
+            let error_payment_ack = await _persistTransaction();
+            if (error_payment_ack) { return error_payment_ack; }
+
+            clearTimeout(pending_to_deferred_timeout);
+        }
+
+
+        // As we are going to both persist the Transaction and Coins we have to perform these operations inside a
+        // database transaction so we can revert everything in case of an error. We have to use "all or nothing"
+        // approach.
         let db_session = db.getClient().startSession();
         await db_session.startTransaction();
+        this.initDBSession(db_session);
 
-        let issuer_begin_response, account;
+        // TODO: make a class
+        let coin_data = {};
+
+        console.log('before verify');
 
         try {
-            this.initDBSession(db_session);
+            let issuer_call_result = await _handleIssuerCall(
+                [ 'verify', {
+                        issuerRequest: {
+                            tid: this.payment_confirmation.verify_tid,
+                            expiry: this.payment_confirmation.verify_expiry,
+                            coin: this.payment_confirmation.coins,
+                            issuePolicy: "single",
+                            expiryEmail: {
+                                email: config.get('server.api.issuer_recovery_email'),
+                                passphrase: config.get('server.api.issuer_recovery_password'),
+                            },
+                            // targetValue: this.amount,
+                        },
+                    },
+                    account.settings.home_issuer,
+                ],
+                async (issuer_response) => {
+                    let verify_info = issuer_response.issuerResponse.verifyInfo;
 
-            // We need to find the account object, begin the verification procedure on the Issuer's end and save current
-            // transaction in its processing state. All this can be done in parallel but we can't proceed unless its
-            // done.
-            [ account, issuer_begin_response, ] = await Promise.all([
-                Account.find(this.account_id),
-                issuer.post('begin', { issuerRequest: { fn: "verify", } }, coins_domain),
-                this.save(),
-            ]);
+                    if (!issuer_response.issuerResponse.coin && !issuer_response.issuerResponse.verifyInfo) {
+                        payment_ack.status = PaymentAck.STATUS__FAILED;
 
-            if (!account) {
-                throw new Error("Payment account does not exist");
-            }
+                        if (issuer_response.issuerResponse.coin) {
+                            payment_ack.coins = [ issuer_response.issuerResponse.coin, ];
+                        }
 
-            /* TODO: commiting transaction here brings a risk of transaction stuck in the processing status if
-                verification fails for any reason. For now I will try to revert transaction back to initial state and
-                remove confirmation details in catch block but this is not a perfect solution as save in catch block
-                can fail as well.
-                On the other hand if transaction fails after this commit for example on verify level, we may try to proceed
-                it later on one more time as we have all the details saved.
-                Currently if anything breaks and throws error in this try/catch block I'm trying to revert transaction to
-                it's original state with initial status
-             */
-            // Commit to set transaction as processing in order to prevent new payments of modifying this transaction
+                        this[_transaction_data].payment_ack = payment_ack;
+                        this.status = Transaction.STATUS__FAILED;
+
+                        return payment_ack;
+                    }
+
+                    if (verify_info.actualValue < this.amount) {
+                        payment_ack.status = PaymentAck.STATUS__INSUFFICIENT_AMOUNT;
+                        payment_ack.coins = [ issuer_response.issuerResponse.coin, ];
+
+                        this[_transaction_data].payment_ack = payment_ack;
+                        this.status = Transaction.STATUS__FAILED;
+
+                        return payment_ack;
+                    }
+
+                    coin_data = {
+                        account_id: this.account_id,
+                        coins: issuer_response.issuerResponse.coin,
+                        currency: this.currency,
+                        date: new Date(),
+                        value: verify_info.actualValue,
+                        transaction_id: this.transaction_id,
+                    };
+
+                    if (payment_confirmation.notification) {
+                        coin_data.notification = payment_confirmation.notification;
+                    }
+
+                    if (payment_confirmation.client) {
+                        coin_data.client = payment_confirmation.client;
+                    }
+
+                    if (this.order_id) {
+                        coin_data.order_id = this.order_id;
+                    }
+
+                    // TODO: add coins encryption before saving them in the database
+
+                    await db.insert('coins', coin_data);
+
+                    payment_ack.return_url = this.return_url;
+                    payment_ack.notification = this.notification;
+                    payment_ack.status = PaymentAck.STATUS__OK;
+
+                    this[_transaction_data].payment_ack = payment_ack;
+                    this.status = Transaction.STATUS__RESOLVED;
+
+                    this[_transaction_data].payment_confirmation.verify_info = verify_info;
+                }
+            );
+
+            console.log('post verify, all good');
+
+            payment_ack.return_url = this.return_url;
+            payment_ack.notification = this.notification;
+            payment_ack.status = PaymentAck.STATUS__OK;
+
+            this[_transaction_data].payment_ack = payment_ack;
+            this.status = Transaction.STATUS__RESOLVED;
+
+            let error_payment_ack = await _persistTransaction();
+            if (error_payment_ack) { return error_payment_ack; }
+
+            clearTimeout(pending_to_deferred_timeout);
+
             await db_session.commitTransaction();
 
-            // Begin verification procedure for delivered coins
-            let issuer_verify_response = await issuer.post('verify', {
-                issuerRequest: {
-                    tid: issuer_begin_response.issuerResponse.headerInfo.tid,
-                    expiry: this.expires,
-                    coin: payment_confirmation_details.coins,
-                    targetValue: this.value,
-                    issuePolicy: "single",
-                }
-            }, coins_domain);
-
-            let verified_coins = issuer_verify_response.issuerResponse.coin;
-            let verify_info = issuer_verify_response.issuerResponse.verifyInfo;
-
-            if (verify_info.actualValue < this.value) {
-                payment_ack.status = PaymentAck.STATUS__INSUFFICIENT_AMOUNT;
-                return payment_ack;
-                // throw new Error("The value of verified coins is not enough");
+            if (issuer_call_result) {
+            //     TODO: send recovered Coins back to the Buyer
+                return issuer_call_result;
             }
 
-            // TODO: make a class
-            let coin_data = {
-                account_id: this.account_id,
-                coins: verified_coins,
-                currency: this.currency,
-                date: new Date(),
-                value: verify_info.actualValue,
-                transaction_id: this.transaction_id,
-            };
-
-            if (payment_confirmation_details.memo) {
-                coin_data.memo = payment_confirmation_details.memo;
-            }
-
-            if (payment_confirmation_details.client_type) {
-                coin_data.client_type = payment_confirmation_details.client_type;
-            }
-
-            if (this.order_id) {
-                coin_data.order_id = this.order_id;
-            }
-
-            this.status = TRANSACTION_STATUS__RESOLVED;
-            this.verify_details = verify_info;
-            this.completed = new Date();
-
-            // TODO: add coins encryption before saving them in the database
-            // Store verified coins in the database and save current transaction with resolved status. We can do it in
-            // parallel
-            await Promise.all([
-                db.insert('coins', coin_data),
-                this.save(),
-            ]);
+            console.log('saved, calling end')
 
             // Try to finish transaction on the Issuers end...
             try {
                 issuer.post('end', {
                     issuerRequest: {
-                        tid: issuer_begin_response.issuerResponse.headerInfo.tid
+                        tid: this.payment_confirmation.issuer_tid,
                     }
-                }, coins_domain).catch(e => console.log("Couldn't close transaction on the Issuer's end", e));
+                }, account.settings.home_issuer).
+                catch(e => console.log("Couldn't close transaction on the Issuer's end", e));
             }
             //... but we don't really care if we couldn't
             catch (e) {
                 console.log("Couldn't close transaction on the Issuer's end", e);
             }
-
-            payment_ack.wallet_id = payment_confirmation_details.wallet_id;
-            payment_ack.return_url = this.return_url;
-            payment_ack.memo = this.notification;
 
             // Call callback_url if there is one, but again - we are not aborting the transaction if this fails
             try {
@@ -1093,10 +1588,10 @@ class PaymentTransaction extends CoreTransaction {
             console.log("Failed during finalising payment: " + e.toString());
 
             try {
-                if (coins_domain && issuer_begin_response) {
+                if (this.status === Transaction.STATUS__FAILED) {
                     issuer.post('end', {
                         issuerRequest: {
-                            tid: issuer_begin_response.issuerResponse.headerInfo.tid
+                            tid: this.payment_confirmation.tid
                         }
                     }, coins_domain);
                 }
@@ -1107,24 +1602,34 @@ class PaymentTransaction extends CoreTransaction {
 
             await db_session.abortTransaction();
 
-            // We are trying to revert transaction to its initial state so it can be processed once again
-            try {
-                this.status = TRANSACTION_STATUS__INITIAL;
-                this.confirmation_details = undefined;
-                await db_session.startTransaction();
-                await this.save();
-                await db_session.commitTransaction();
-            }
-            catch (e) {
-                console.log("Failed during finalising payment - unable to revert transaction to original state: " + e.toString());
-            }
-
             throw e;
         }
         finally {
             this.closeDBSession();
             await db_session.endSession();
         }
+    }
+
+    toJSON() {
+        // Let's populate all fields on the root level...
+        let data = super.toJSON();
+
+
+        //...as Payment specification demands 'payment_details' section - let's create one...
+        data.payment_details = {};
+        for (let property of PaymentTransaction.PAYMENT_DETAILS_PROPERTIES.entries()) {
+            if (this[property[1]] !== undefined) {
+                data.payment_details[property[0]] = this[property[1]];
+            }
+        }
+
+        //...Payment specification also requires 'payment' section instead of 'payment_confirmation' so we have to rename it...
+        if (data.payment_confirmation) {
+            data.payment = data.payment_confirmation;
+            delete data.payment_confirmation;
+        }
+
+        return data;
     }
 }
 
@@ -1143,6 +1648,7 @@ class BlockchainTransferTransaction extends CoreTransaction {
     constructor(init_data={}) {
         super({
             allowed_properties: TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
+            api_properties: TRANSACTION_API_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT),
             required_properties: TRANSACTION_REQUIRED_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
             hidden_properties: TRANSACTION_HIDDEN_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
             readonly_properties: TRANSACTION_READONLY_PROPERTIES.get(TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER),
@@ -1175,6 +1681,15 @@ class BlockchainTransferTransaction extends CoreTransaction {
 
 
     /**
+     * Properties' names that can be set via API. This structure is used by the static method [checkAPIProperties]{@link module:core/models/BaseModel/BaseModel#checkAPIProperties}
+     * to validate if passed structure has only allowed properties and can be feed to constructor.
+     * @returns {Set<Sring>>}
+     * @static
+     */
+    static get API_PROPERTIES () { return TRANSACTION_API_PROPERTIES[TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER]; }
+
+
+    /**
      * Extends the [BaseModel create]{@link module:core/models/BaseModel/BaseModel.create} by adding class specific
      * operations to be performed before object can be saved to the database.
      * As BlockchainTransferTransaction is not expected to stay in its initial state but instead to be completed right
@@ -1202,7 +1717,7 @@ class BlockchainTransferTransaction extends CoreTransaction {
 
         // Mark transaction as processing to prevent any external modifications
         try {
-            this.status = TRANSACTION_STATUS__PROCESSING;
+            this.status = TRANSACTION_STATUS__PENDING;
             await this.save();
         }
         catch (e) {
@@ -1224,7 +1739,7 @@ class BlockchainTransferTransaction extends CoreTransaction {
             //...calculate coins value...
             let total_value = utils.coinsValue(coins);
 
-            if (total_value < parseFloat(this.value)) {
+            if (total_value < parseFloat(this.amount)) {
                 throw new Error('Invalid value');
             }
 
@@ -1234,7 +1749,7 @@ class BlockchainTransferTransaction extends CoreTransaction {
             }
 
             // Prepare a blockchain URI to be called to initialise transfer
-            let blockchain_uri = `bitcoin:${this.address}?amount=${this.value}`;
+            let blockchain_uri = `bitcoin:${this.address}?amount=${this.amount}`;
 
             if (this.description) {
                 blockchain_uri += `&message=${encodeURIComponent(this.description)}}`;
@@ -1244,7 +1759,7 @@ class BlockchainTransferTransaction extends CoreTransaction {
                 blockchain_uri += `&label=${encodeURIComponent(this.label)}`;
             }
 
-            console.log('BlockchainTransferTransaction resolve', blockchain_uri, coins, this.value, this.speed, this.account_id);
+            console.log('BlockchainTransferTransaction resolve', blockchain_uri, coins, this.amount, this.speed, this.account_id);
 
             this.status = TRANSACTION_STATUS__RESOLVED;
 
@@ -1254,7 +1769,7 @@ class BlockchainTransferTransaction extends CoreTransaction {
             await this.save();
 
             // Make an actual transfer
-            this[_transaction_data].transfer_details = await utils.transferBitcoin(blockchain_uri, coins, this.value, BLOCKCHAIN_TRANSFER_SPEED.get(this.speed), this.account_id);
+            this[_transaction_data].transfer_details = await utils.transferBitcoin(blockchain_uri, coins, this.amount, BLOCKCHAIN_TRANSFER_SPEED.get(this.speed), this.account_id);
 
             this[_transaction_data].completed = new Date();
 
