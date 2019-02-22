@@ -66,6 +66,17 @@ const ACCOUNT_ALLOWED_PROPERTIES = new Set([ 'account_id', 'auth_token', 'privat
 
 
 /**
+ * Set of keys defining properties available via the object's public interface as described in {@link module:core/models/BaseModel/BaseModel.constructor}
+ * We are combining one-time or conditional keys like private_key with properties defined on the config level to ensure
+ * a common interface to all of them but preventing some of them to be defined on the Gateway level.
+ * @type {Set}
+ * @private
+ * @const
+ */
+const ACCOUNT_API_PROPERTIES = new Set(config.get('_register_allowed_keys'));
+
+
+/**
  * Set of keys defining properties required by the object before it can be saved in the database as described in {@link module:core/models/BaseModel/BaseModel.constructor}.
  * In this case required keys are the same as defined in the Gateway configuration {@link Config/_register_required_keys}
  * @type {Set}
@@ -83,7 +94,7 @@ const ACCOUNT_REQUIRED_PROPERTIES = new Set(config.get('_register_required_keys'
  * @private
  * @const
  */
-const ACCOUNT_HIDDEN_PROPERTIES = new Set([ 'account_id', 'updated', 'created', ]);
+const ACCOUNT_HIDDEN_PROPERTIES = new Set([ 'updated', 'created', ]);
 
 
 /**
@@ -162,6 +173,7 @@ exports.Account = class Account extends BaseModel {
             custom_setters: _account_properties_custom_setters,
             validators: _account_properties_validators,
             allowed_properties: ACCOUNT_ALLOWED_PROPERTIES,
+            api_properties: ACCOUNT_API_PROPERTIES,
             required_properties: ACCOUNT_REQUIRED_PROPERTIES,
             hidden_properties: ACCOUNT_HIDDEN_PROPERTIES,
             readonly_properties: ACCOUNT_READONLY_PROPERTIES,
@@ -180,6 +192,15 @@ exports.Account = class Account extends BaseModel {
             }
         }
     }
+
+
+    /**
+     * Properties' names that can be set via API. This structure is used by the static method [checkAPIProperties]{@link module:core/models/BaseModel/BaseModel#checkAPIProperties}
+     * to validate if passed structure has only allowed properties and can be feed to constructor.
+     * @returns {Set<Sring>>}
+     * @static
+     */
+    static get API_PROPERTIES () { return ACCOUNT_API_PROPERTIES; }
 
 
     /**
