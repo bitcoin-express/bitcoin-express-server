@@ -85,36 +85,48 @@ app.use(session({
 
 // Connect to Mongo on start
 db.connect(config.get('server.db.uri'), function (err) {
-  if (err) {
-    console.log('Unable to connect to MongoDB.', err);
-    process.exit(1);
-    return;
-  }
+    if (err) {
+        console.log('Unable to connect to MongoDB.', err);
+        process.exit(1);
+        return;
+    }
 
-  app.get('/', (req, res) => {
-    res.render('index');
-  });
-  app.all('/panel/*', api_helpers.noAuthentication, panelRoute);
+    app.get('/', (req, res) => { res.render('index'); });
+    app.all('/panel/*', api_helpers.noAuthentication, panelRoute);
 
-  app.post('/createPaymentRequest', api_helpers.requireAuthentication, createPaymentRequest);
-  app.get('/getBalance', api_helpers.requireAuthentication, getBalance);
-  app.post('/getCoins', api_helpers.requireAuthentication, getCoins);
-  app.get('/getPaymentStatus', api_helpers.requireAuthentication, getPaymentStatus);
-  app.get('/getTransactions', api_helpers.requireAuthentication, getTransactions);
-  app.post('/payment', api_helpers.noAuthentication, payment);
-  app.post('/redeem', api_helpers.requireAuthentication, redeem);
-  app.post('/register', api_helpers.noAuthentication, register);
-  app.post('/setConfig', api_helpers.requireAuthentication, setConfig);
-
+    app.post('/createPaymentRequest', api_helpers.requireAuthentication, createPaymentRequest);
+    app.get('/getBalance', api_helpers.requireAuthentication, getBalance);
+    app.post('/getCoins', api_helpers.requireAuthentication, getCoins);
+    app.get('/getPaymentStatus', api_helpers.requireAuthentication, getPaymentStatus);
+    app.get('/getTransactions', api_helpers.requireAuthentication, getTransactions);
+    app.post('/payment', api_helpers.noAuthentication, payment);
+    app.post('/redeem', api_helpers.requireAuthentication, redeem);
+    app.post('/register', api_helpers.noAuthentication, register);
+    app.post('/setConfig', api_helpers.requireAuthentication, setConfig);
 
     for (let route_config of api.routes.values()) {
         app.route(route_config.path)[route_config.method](...route_config.actions);
     }
 
-    web_server.handler.createServer(web_server.options, app)
-              .listen(config.get('server.port'), function() {
-                console.log(`Listening on port ${config.get('server.port')}...`);
+    web_server.handler.createServer(
+        web_server.options, app).listen(config.get('server.port'), function() {
+            console.log(`Listening on port ${config.get('server.port')}...`);
+        }
+    );
+
+    console.log('Migrating hanging pending Transactions to deferred...');
+
+    db.findAndModify('transactions',
+        { type: { $eq: Transaction.TYPE__PAYMENT, }, status: { $eq: Transaction.STATUS__PENDING, }, },
+        { status: Transaction.STATUS__DEFERRED, }).
+    then((result) => {
+        console.log('Pending Transactions migrated to deferred: ', result);
+    }).
+    catch((error) => {
+        console.log('Error during pending to deferred migration: ', error);
     });
+
+    console.log('Done.');
 
     setTimeout(() => {
         let query = {
@@ -125,16 +137,17 @@ db.connect(config.get('server.db.uri'), function (err) {
 
         db.findAndModify('transactions', query, { status: Transaction.STATUS__EXPIRED, }).
         then((result) => {
-            console.log('Expired payment transactions', result);
+            console.log('Expired payment transactions: ', result);
         }).
         catch((error) => {
-            console.log('Error during expiring transactions', error);
+            console.log('Error during expiring transactions: ', error);
         });
     }, 5 * 60 * 1000);
 
     if (config.get('system.remove_expired_transactions')) {
         setInterval(() => {
             const now = new Date().addSeconds(30); // 30 sec
+
             const query = {
                 expires: { $lt: now },
                 status: { $in: ["initial", "timeout"] },
