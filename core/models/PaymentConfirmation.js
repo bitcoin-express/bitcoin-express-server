@@ -29,10 +29,11 @@ const PAYMENT_CONFIRMATION_CLIENT_TYPES = new Set ([ 'web', 'app', ]);
  * - language_preference - the ISO language code of the Buyer's preferred language (including email communications).
  * If the merchant is able to respond in this language they should do so,
  * - send_receipt_to - object defining if and where to send a receipt to the Buyer,
- * - send_refund_to - object defining if and where to send a refund to the Buyer.
+ * - send_refund_to - object defining if and where to send a refund to the Buyer,
+ * - send_issuer_refund_to - object defining if and where the Issuer should send a refund to the Buyer - if supported.
  * @type {Set}
  */
-const PAYMENT_CONFIRMATION_OPTION = new Set([ 'language_preference', 'send_receipt_to', 'send_refund_to', ]);
+const PAYMENT_CONFIRMATION_OPTION = new Set([ 'language_preference', 'send_receipt_to', 'send_refund_to', 'send_issuer_refund_to', ]);
 
 
 /**
@@ -68,7 +69,16 @@ const _db_session = Symbol('_db_session');
  * @private
  * @const
  */
-const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id', 'client_type', 'options', 'memo', 'created', 'updated', ]);
+const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id', 'client', 'options', 'notification', 'created', 'updated', 'verify_info', 'transaction_id', 'order_id', 'verify_tid', 'verify_expiry', 'time_budget', ]);
+
+
+/**
+ * Set of keys that are available to be set via API as described in {@link module:core/models/BaseModel/BaseModel.constructor}.
+ * @type {Set}
+ * @private
+ * @const
+ */
+const PAYMENT_CONFIRMATION_API_PROPERTIES = new Set([ 'coins', 'wallet_id', 'client', 'options', 'notification', 'time_budget', ]);
 
 
 /**
@@ -86,7 +96,7 @@ const PAYMENT_CONFIRMATION_REQUIRED_PROPERTIES = new Set([ 'coins', ]);
  * @private
  * @const
  */
-const PAYMENT_CONFIRMATION_HIDDEN_PROPERTIES = new Set([ 'created', 'updated', ]);
+const PAYMENT_CONFIRMATION_HIDDEN_PROPERTIES = new Set([ 'created', 'updated', 'verify_tid', 'verify_expiry', ]);
 
 
 /**
@@ -105,8 +115,12 @@ const PAYMENT_CONFIRMATION_READONLY_PROPERTIES = new Set([ 'created', 'updated',
  * @private
  */
 const _confirmation_properties_validators = {
+    verify_info: verify_info => true,
+    verify_tid: verify_tid => true,
+    verify_expiry: verify_expiry => { if (!checks.isDate(verify_expiry)) { throw new Error ('Invalid format'); } },
+    transaction_id: transaction_id => true,
+    order_id: order_id => true,
     coins: coins => {
-        console.log(coins, typeof coins);
         if (!coins) { throw new Error ('Field required'); }
         if (!Array.isArray(coins)) { throw new Error ('Invalid format'); }
         if (coins.length < 1) { throw new Error ('Invalid format'); }
@@ -124,7 +138,7 @@ const _confirmation_properties_validators = {
             throw new Error ('Invalid format');
         }
     },
-    client_type: client_type => {
+    client: client_type => {
         if (!PAYMENT_CONFIRMATION_CLIENT_TYPES.has(client_type)) { throw new Error ('Invalid value'); }
     },
     options: options => {
@@ -134,7 +148,7 @@ const _confirmation_properties_validators = {
         if (options.language_preference && language.preference > 10) { throw new Error ('Invalid format'); }
 
         if (options.send_receipt_to) {
-            if (typeof send_receipt_to !== "object") {
+            if (typeof options.send_receipt_to !== "object") {
                 throw new Error ('Invalid format');
             }
 
@@ -148,32 +162,58 @@ const _confirmation_properties_validators = {
         }
 
         if (options.send_refund_to) {
-            if (typeof send_refund_to !== "object") {
+            if (typeof options.send_refund_to !== "object") {
                 throw new Error('Invalid format');
             }
 
-            if (!Object.keys(options.send_receipt_to).every((option) => [ 'email', 'password', 'reference', ].includes(option))) {
+            if (!Object.keys(options.send_refund_to).every((option) => [ 'email', 'password', 'reference', ].includes(option))) {
                 throw new Error ('Invalid key');
             }
 
-            if (!options.send_receipt_to.email || !checks.isEmail(options.send_receipt_to.email)) {
+            if (!options.send_refund_to.email || !checks.isEmail(options.send_refund_to.email)) {
                 throw new Error ('Invalid format');
             }
 
-            if (options.send_receipt_to.password && (typeof options.send_receipt_to.password !== "string" ||
-                options.send_receipt_to.password.length < 8 || options.send_receipt_to.password.length > 64)) {
+            if (options.send_refund_to.password && (typeof options.send_refund_to.password !== "string" ||
+                options.send_refund_to.password.length < 8 || options.send_refund_to.password.length > 64)) {
                 throw new Error ('Invalid format');
             }
 
-            if (options.send_receipt_to.reference && (typeof options.send_receipt_to.reference !== "string" ||
-                options.send_receipt_to.reference.length < 8 || options.send_receipt_to.reference.length > 64)) {
+            if (options.send_refund_to.reference && (typeof options.send_refund_to.reference !== "string" ||
+                options.send_refund_to.reference.length < 8 || options.send_refund_to.reference.length > 64)) {
                 throw new Error ('Invalid format');
             }
         }
+
+        if (options.send_issuer_refund_to) {
+            if (typeof options.send_issuer_refund_to !== "object") {
+                throw new Error('Invalid format');
+            }
+
+            if (!Object.keys(options.send_issuer_refund_to).every((option) => [ 'email', 'password', 'reference', ].includes(option))) {
+                throw new Error ('Invalid key');
+            }
+
+            if (!options.send_issuer_refund_to.email || !checks.isEmail(options.send_issuer_refund_to.email)) {
+                throw new Error ('Invalid format');
+            }
+
+            if (options.send_issuer_refund_to.password && (typeof options.send_issuer_refund_to.password !== "string" ||
+                options.send_issuer_refund_to.password.length < 8 || options.send_issuer_refund_to.password.length > 64)) {
+                throw new Error ('Invalid format');
+            }
+
+            if (options.send_issuer_refund_to.reference && (typeof options.send_issuer_refund_to.reference !== "string" ||
+                options.send_issuer_refund_to.reference.length < 8 || options.send_issuer_refund_to.reference.length > 64)) {
+                throw new Error ('Invalid format');
+            }
+        }
+
     },
-    memo: memo => {
-        if (typeof memo !== "string" || memo.length < 1 || memo.length > 256) { throw new Error ('Invalid format'); }
+    notification: notification => {
+        if (typeof notification !== "string" || notification.length < 1 || notification.length > 256) { throw new Error ('Invalid format'); }
     },
+    time_budget: BaseModel.VALIDATORS.time_budget,
 };
 
 // We are sealing the structure to prevent any modifications
@@ -225,6 +265,7 @@ exports.PaymentConfirmation = class PaymentConfirmation extends BaseModel {
             custom_setters: _confirmation_properties_custom_setters,
             validators: _confirmation_properties_validators,
             allowed_properties: PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES,
+            api_properties: PAYMENT_CONFIRMATION_API_PROPERTIES,
             required_properties: PAYMENT_CONFIRMATION_REQUIRED_PROPERTIES,
             hidden_properties: PAYMENT_CONFIRMATION_HIDDEN_PROPERTIES,
             readonly_properties: PAYMENT_CONFIRMATION_READONLY_PROPERTIES,
@@ -239,6 +280,14 @@ exports.PaymentConfirmation = class PaymentConfirmation extends BaseModel {
         }
     }
 
+
+    /**
+     * Properties' names that can be set via API. This structure is used by the static method [checkAPIProperties]{@link module:core/models/BaseModel/BaseModel#checkAPIProperties}
+     * to validate if passed structure has only allowed properties and can be feed to constructor.
+     * @returns {Set<Sring>>}
+     * @static
+     */
+    static get API_PROPERTIES () { return PAYMENT_CONFIRMATION_API_PROPERTIES; }
 
     /**
      * A public interface to access class specific validators. This is needed if a different class will have the same
