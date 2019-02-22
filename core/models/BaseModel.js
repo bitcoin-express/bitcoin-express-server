@@ -517,7 +517,7 @@ exports.BaseModel = class BaseModel {
      * @returns {Promise<Object>}
      * @async
      */
-    async save () {
+    async save ({ query={}, }={}) {
         try {
             this.checkRequiredProperties();
 
@@ -525,18 +525,26 @@ exports.BaseModel = class BaseModel {
                            this[this[this[_privates].interface].db_id_value] :
                            this[this[this[_privates].interface].db_id_field];
 
+            let save_query = { [this[this[_privates].interface].db_id_field]: id_value, };
+
+            Object.assign(save_query, query);
+
             // TODO: move globally required/allowed/hidden fields like created and updated to the BaeModel
             // Make sure to always include the "updated" field
             this[this[_privates].data].updated = new Date();
 
-            await db.findAndModify(this[this[_privates].interface].db_table,
-                // What field to modify...
-                { [this[this[_privates].interface].db_id_field]: id_value, },
+            let modify_result = await db.findAndModify(this[this[_privates].interface].db_table,
+                // What field to look for...
+                save_query,
                 // ...what data to change...
                 { ...this[this[_privates].data], },
                 // ...should we use transactions.
                 { db_session: this[this[_privates].interface][this[_privates].interface.db_session_id], }
             );
+
+            if (!modify_result) {
+                throw new errors.PersistenceError('Transaction not found or already migrated to a different status');
+            }
 
             return this;
         }
@@ -547,7 +555,7 @@ exports.BaseModel = class BaseModel {
             // locked by a different transaction so we can try and retry the whole transaction
             if (e.errorLabels && e.errorLabels.indexOf('TransientTransactionError') >= 0) {
                 console.log(`${this.constructor.name} TransientTransactionError - retrying transaction`);
-                await this.save();
+                await this.save(args);
             } else {
                 throw new errors.FatalError(`Unable to save ${this.constructor.name}`);
             }
