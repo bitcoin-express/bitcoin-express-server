@@ -19,6 +19,7 @@ const { ReadOnlyError } = require(config.get('system.root_dir') + '/core/models/
 const { ValueRequiredError } = require(config.get('system.root_dir') + '/core/models/Errors/ValueRequiredError');
 const { FatalError } = require(config.get('system.root_dir') + '/core/models/Errors/FatalError');
 const { InvalidValueError } = require(config.get('system.root_dir') + '/core/models/Errors/InvalidValueError');
+const { PersistenceError } = require(config.get('system.root_dir') + '/core/models/Errors/PersistenceError');
 
 exports.Warning = Warning;
 exports.NotImplementedError = NotImplementedError;
@@ -26,5 +27,6 @@ exports.ReadOnlyError = ReadOnlyError;
 exports.ValueRequiredError = ValueRequiredError;
 exports.FatalError = FatalError;
 exports.InvalidValueError = InvalidValueError;
+exports.PersistenceError = PersistenceError;
 
 // TODO: add parameter to errors to indicate if message can be forwarded or not - or add two types of messages
