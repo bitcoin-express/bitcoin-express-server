@@ -129,7 +129,7 @@ exports.payment = function (req, res) {
       );
     }
 
-    var modifyOptions = { returnOriginal: true }; // returns payment document before being modified
+    var modifyOptions = { return_original: true }; // returns payment document before being modified
     var modification = { status: "processing" };
     var promiseModifyPayment = db.findAndModify(
       'transactions', query, modification, modifyOptions
