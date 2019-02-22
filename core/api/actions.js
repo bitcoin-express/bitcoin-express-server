@@ -257,17 +257,20 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         only_valid: false,
     };
 
-    let transaction, payment_details, payment_ack, response = '';
+    let transaction, payment_confirmation, payment_ack, response = '';
 
     try {
         try {
-            // Try to initialise a new PaymentConfirmation object using the request's body in order to extract necessary
+            // Check if only allowed fields were send in the request...
+            PaymentConfirmation.checkAPIProperties(req.body);
+            // ...and if yes, try to initialise a new PaymentConfirmation object using the request's body in order to extract necessary
             // and/or allowed keys. Throw an error if it fails...
-            payment_details = new PaymentConfirmation(req.body);
+            payment_confirmation = new PaymentConfirmation(req.body);
             // ... and check if all required fields are filled as well. Again - throw an error if they aren't.
-            payment_details.checkRequiredProperties();
+            payment_confirmation.checkRequiredProperties();
         }
         catch (e) {
+            console.log('Invalid payment confirmation request body', e);
             throw new Error('Invalid payment confirmation request body');
         }
 
@@ -279,18 +282,42 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         if (!transaction) {
             response = new PaymentAck({
                 status: PaymentAck.STATUS__PAYMENT_UNKNOWN,
-                wallet_id: payment_details.wallet_id,
+                wallet_id: payment_confirmation.wallet_id,
             });
 
             throw new Error('Invalid transaction id');
         }
 
-        payment_ack = await transaction.resolve(payment_details);
+
+        // Feed payment_confirmation with transaction_id and order_id as these are required to be included in the
+        // response
+        payment_confirmation.transaction_id = transaction.transaction_id;
+        if (transaction.order_id) {
+            payment_confirmation.order_id = transaction.order_id;
+        }
+
+
+        let time_budget_counter = new Promise(
+            (resolve) => setTimeout(
+                () => { console.log('w time_buget_counter'); resolve(new PaymentAck({
+                    status: PaymentAck.STATUS__SOFT_ERROR,
+                    retry_after: config.get('server.api.soft_error_retry_delay'),
+                    wallet_id: payment_confirmation.wallet_id,
+                })); },
+                1 * 1000
+            )
+        );
+
+        await Promise.race([ time_budget_counter, transaction.resolve(payment_confirmation), ]).then((result) => {
+            console.log(result);
+            payment_ack = result;
+        });
+
         response = payment_ack;
 
-        // Only if the PaymentAck object was returned and only if it's in a valid state we may continue.
-        // In any other case we will be returning an error to the API caller.
-        if (payment_ack && payment_ack.status !== PaymentAck.STATUS__OK) {
+        // We may continue only if the PaymentAck object was returned and only if it's in a valid state.
+        // In any other case we should take 400 route and return generated payment_ack to the API caller.
+        if (!payment_ack || payment_ack.status !== PaymentAck.STATUS__OK) {
             throw new Error ('Unable to resolve the transaction');
         }
 
@@ -303,7 +330,7 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         // compliant to the Bitcoin-Express Payment specification
         if (!response) {
             response = new PaymentAck({
-                status: PaymentAck.STATUS__GENERIC_ERROR,
+                status: PaymentAck.STATUS__FAILED,
             });
         }
 
