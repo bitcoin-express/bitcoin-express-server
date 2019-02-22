@@ -87,6 +87,8 @@ exports.postTransactions = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
+        Transaction.checkAPIProperties(req.body);
+
         let transaction = undefined;
 
         try {
@@ -329,13 +331,9 @@ exports.postAccounts = async (req, res, next) => {
     let account_data = {};
 
     try {
-        // As the Gateway operator can define which keys should be allowed during the registration we have to run
-        // an additional checks, apart from the one run in the object itself...
-        for (let key of Object.keys(req.body)) {
-            if (!config.get('_register_allowed_keys').includes(key)) {
-                throw new APIError(`Unknown key: ${key}`);
-            }
-        }
+        // As only a set of Account's properties is exposed via API and the Gateway operator may influence it by
+        // changing the Gateway configuration we need to check passed keys
+        Account.checkAPIProperties(req.body);
 
         // ...and do the same thing with required keys as these can be modified by the Gateway operator as well
         let missing_required_keys = [];
@@ -432,6 +430,8 @@ exports.patchAccount = async (req, res, next) => {
             throw new errors.InvalidValueError({ message: `In order to change account's settings use ${endpoints.ACCOUNT_SETTINGS} endpoint` });
         }
 
+        Account.checkAPIProperties(req.body);
+
         // We are working on the currently authenticated account but as we don't want to directly modify it we are preparing
         // a copy to work on it. It's a shallow copy but as we already excluded settings we can use it.
         let new_account = req.params._account.clone();
@@ -513,6 +513,8 @@ exports.patchAccountSettings = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
+        Settings.checkAPIProperties(req.body);
+
         // We are working on the currently authenticated account but as we don't want to directly modify it we are
         // preparing a copy of its settings to work on it. It's a shallow copy but as settings has shallow structure
         // we can use it
