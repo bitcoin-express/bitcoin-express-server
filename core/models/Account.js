@@ -10,6 +10,7 @@
 
 const config = require('config');
 const crypto = require('crypto');
+const ObjectId = require('mongodb').ObjectId;
 
 const db = require(config.get('system.root_dir') + '/db');
 const checks = require(config.get('system.root_dir') + '/core/checks');
@@ -229,13 +230,23 @@ exports.Account = class Account extends BaseModel {
 
             // There is a chance that the Merchant passed his admin auth token, instead of a standard one. In that case
             // we need to extract the standard auth token part
-            [account_identifier, private_key, ] = account_identifier.split(AUTH_TOKEN_KEY_SEPARATOR);
+            [account_identifier, private_key, ] = String(account_identifier).split(AUTH_TOKEN_KEY_SEPARATOR);
 
-            prepared_account[_account_data] = await db.findOne('accounts', { $or: [ { _id: account_identifier }, { auth_token: account_identifier }, ] });
+            // We may find a account via auth_token or account_id. We can't be sure what format/length auth_token will
+            // have so we are simply passing it...
+            let identifiers = [ { auth_token: account_identifier }, ];
+            try {
+                //...but account_id is supposed to be an ObjectId so we are trying to convert it. If we fail, it means
+                // that it's not an account_id and we can silently skip it.
+                identifiers.push({ _id: ObjectId(account_identifier), });
+            }
+            catch (e) {}
+
+            prepared_account[_account_data] = await db.findOne('accounts', { $or: identifiers, });
 
             // Make sure that settings property is of type Settings
             prepared_account[_account_data].settings = new Settings(prepared_account[_account_data].settings);
-            
+
             // If admin auth token was provided we can fill both private_key property and admin_auth_token
             prepared_account[_account_data].private_key = private_key;
 
@@ -289,8 +300,8 @@ exports.Account = class Account extends BaseModel {
         // After the account is stored in the database fill the private_key and admin_auth_token. These fields should
         // never be stored in the database, that is why we are filling them after object's creation. We will return them
         // to the Merchant in the response from the accounts creation but it will impossible to restore them later.
-        this[_account_data].admin_auth_token = `${this[_account_data].auth_token}${AUTH_TOKEN_KEY_SEPARATOR}${this[_account_data].private_key}`;
         this[_account_data].private_key = diffHell.getPrivateKey('hex');
+        this[_account_data].admin_auth_token = `${this[_account_data].auth_token}${AUTH_TOKEN_KEY_SEPARATOR}${this[_account_data].private_key}`;
 
         return this;
     }
