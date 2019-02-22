@@ -53,6 +53,16 @@ const SETTINGS_ALLOWED_PROPERTIES = new Set(Object.keys(config.get('account.sett
 
 
 /**
+ * Set of keys defining properties available via the object's public interface as described in {@link module:core/models/BaseModel/BaseModel.constructor}
+ * In this case we want to allow for all keys defined in the Gateway configuration minus the keys set as read-only.
+ * @type {Set}
+ * @private
+ * @const
+ */
+const SETTINGS_API_PROPERTIES = new Set(Object.keys(config.get('account.settings')).filter(key => !config.get('_account_readonly_settings').includes(key)));
+
+
+/**
  * Set of keys defining properties required by the object before it can be saved in the database as described in {@link module:core/models/BaseModel/BaseModel.constructor}.
  * @type {Set}
  * @private
@@ -194,6 +204,7 @@ exports.Settings = class Settings extends BaseModel {
             custom_setters: _settings_properties_custom_setters,
             validators: _settings_properties_validators,
             allowed_properties: SETTINGS_ALLOWED_PROPERTIES,
+            api_properties: SETTINGS_API_PROPERTIES,
             required_properties: SETTINGS_REQUIRED_PROPERTIES,
             hidden_properties: SETTINGS_HIDDEN_PROPERTIES,
             readonly_properties: SETTINGS_READONLY_PROPERTIES,
@@ -207,6 +218,16 @@ exports.Settings = class Settings extends BaseModel {
             this[setting] = init_data[setting];
         }
     }
+
+
+    /**
+     * Properties' names that can be set via API. This structure is used by the static method [checkAPIProperties]{@link module:core/models/BaseModel/BaseModel#checkAPIProperties}
+     * to validate if passed structure has only allowed properties and can be feed to constructor.
+     * @returns {Set<Sring>>}
+     * @static
+     */
+    static get API_PROPERTIES () { return SETTINGS_API_PROPERTIES; }
+
 
     /**
      * A public interface to access class specific validators. This is needed if a different class will have the same
