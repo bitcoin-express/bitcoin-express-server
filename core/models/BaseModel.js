@@ -19,6 +19,7 @@
 const config = require('config');
 const db = require(config.get('system.root_dir') + '/db');
 const errors = require(config.get('system.root_dir') + '/core/models/Errors');
+const checks = require(config.get('system.root_dir') + '/core/checks');
 
 
 /**
@@ -55,6 +56,12 @@ const _common_validators = {
         if (!text) { throw new Error ('Required field'); }
         if (typeof text !== "string" || text.length < 1 || text.length > 64) { throw new Error('Invalid format'); }
     },
+    notification: (text) => {
+        if (text !== undefined && (typeof text !== "string" || text.length < 1 || text.length > 128)) {
+            throw new Error('Invalid format');
+        }
+    },
+    time_budget: (seconds) => { if (!checks.isInteger(seconds)) { throw new errors.InvalidValueError(); }},
 };
 
 
