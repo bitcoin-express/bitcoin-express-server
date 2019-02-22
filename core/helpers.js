@@ -37,3 +37,11 @@ exports.decrypt = function (private_key, encoded_encryption_output) {
 
     return ecies.decrypt(Buffer.from(private_key, 'hex'), encryption_body).toString('utf-8');
 };
+
+
+/**
+ * Sleeps for a specific time.
+ * @param {Number} waitTimeInMs - number of  miliseconds to sleep
+ * @returns {Promise}
+ */
+exports.sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
