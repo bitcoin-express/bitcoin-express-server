@@ -113,6 +113,11 @@ exports.BaseModel = class BaseModel {
      * will raise an error when trying to access it. Each inheriting class should define such Set unless it's not
      * exposing any public interface.
      *
+     * @param {?Set} api_properties = Set with the names of properties that can be set via the API. If a property is
+     * not define here then API should return an error indicating that fact. BaseModel is exposing a static method
+     * [checkAPIProperties]{@link module:core/models/BaseModel/BaseModel#checkAPIProperties} in order to
+     * run on API level and test all properties.
+     *
      * @param {?Set} required_properties - Set with the names of properties that are required to be set in order to
      * save the object in the database.
      *
@@ -201,6 +206,7 @@ exports.BaseModel = class BaseModel {
         private_interface_key=undefined,
         db_session_id=undefined,
         allowed_properties=new Set(),
+        api_properties=new Set(),
         required_properties=new Set(),
         hidden_properties=new Set(),
         readonly_properties=new Set(),
@@ -366,6 +372,9 @@ exports.BaseModel = class BaseModel {
     static get VALIDATORS () { return _common_validators; }
 
 
+    static get API_PROPERTIES () { throw new errors.NotImplementedError({ class_name: this.constructor.name, field: 'API_PROPERTIES', }); }
+
+
     /**
      * Makes all properties of target_object read-only and prevents its reconfiguration.
      * @param target_object
@@ -377,6 +386,20 @@ exports.BaseModel = class BaseModel {
                 writable: false,
                 configurable: false,
             });
+        }
+    }
+
+
+    /**
+     * Checks if all keys in an object passed as an argument are exposed via API and can be used as a constructor
+     * payload. This method should be used on API level in order to test passed in the request keys to check if the
+     * request is valid.
+     */
+    static checkAPIProperties (properties) {
+        for (let property of Object.keys(properties)) {
+            if (!this.API_PROPERTIES.has(property)) {
+                throw new errors.InvalidValueError ({ class_name: this.name, field: property, });
+            }
         }
     }
 
