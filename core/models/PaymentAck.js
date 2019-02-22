@@ -11,6 +11,7 @@
 const config = require('config');
 
 const errors = require(config.get('system.root_dir') + '/core/models/Errors');
+const checks = require(config.get('system.root_dir') + '/core/checks');
 const { BaseModel } = require(config.get('system.root_dir') + '/core/models/BaseModel');
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
 const { PaymentConfirmation } = require(config.get('system.root_dir') + '/core/models/PaymentConfirmation');
@@ -34,7 +35,7 @@ const PAYMENT_ACK_STATUS__OK = 'ok';
  * @const
  * @private
  */
-const PAYMENT_ACK_STATUS__PAYMENT_UNKNOWN = 'payment_unknown';
+const PAYMENT_ACK_STATUS__PAYMENT_UNKNOWN = 'payment-unknown';
 
 
 /**
@@ -44,7 +45,7 @@ const PAYMENT_ACK_STATUS__PAYMENT_UNKNOWN = 'payment_unknown';
  * @const
  * @private
  */
-const PAYMENT_ACK_STATUS__AFTER_EXPIRES = 'after_expires';
+const PAYMENT_ACK_STATUS__AFTER_EXPIRES = 'after-expires';
 
 
 /**
@@ -54,7 +55,7 @@ const PAYMENT_ACK_STATUS__AFTER_EXPIRES = 'after_expires';
  * @const
  * @private
  */
-const PAYMENT_ACK_STATUS__INSUFFICIENT_AMOUNT = 'insufficient_amount';
+const PAYMENT_ACK_STATUS__INSUFFICIENT_AMOUNT = 'insufficient-amount';
 
 
 /**
@@ -65,7 +66,7 @@ const PAYMENT_ACK_STATUS__INSUFFICIENT_AMOUNT = 'insufficient_amount';
  * @const
  * @private
  */
-const PAYMENT_ACK_STATUS__BAD_COINS = 'bad_coins';
+const PAYMENT_ACK_STATUS__BAD_COINS = 'bad-coins';
 
 
 /**
@@ -75,7 +76,38 @@ const PAYMENT_ACK_STATUS__BAD_COINS = 'bad_coins';
  * @const
  * @private
  */
-const PAYMENT_ACK_STATUS__RETRY_EXPIRED = 'retry_expired';
+const PAYMENT_ACK_STATUS__RETRY_EXPIRED = 'retry-expired';
+
+
+/**
+ * Status indicating that there was an error on the Issuer's end.
+ * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
+ * @type {string}
+ * @const
+ * @private
+ */
+const PAYMENT_ACK_STATUS__ISSUER_ERROR = 'issuer-error';
+
+
+/**
+ * Status indicating that there a non-terminal error occured. This status is used in conjuction with retry_after
+ * parameter, informing API consumer to retry current operation after a specified amount of time.
+ * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
+ * @type {string}
+ * @const
+ * @private
+ */
+const PAYMENT_ACK_STATUS__SOFT_ERROR = 'soft-error';
+
+
+/**
+ * Status indicating that the payment was recognized but for for some reason it was rejected.
+ * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
+ * @type {string}
+ * @const
+ * @private
+ */
+const PAYMENT_ACK_STATUS__REJECTED = 'rejected';
 
 
 /**
@@ -85,7 +117,7 @@ const PAYMENT_ACK_STATUS__RETRY_EXPIRED = 'retry_expired';
  * @const
  * @private
  */
-const PAYMENT_ACK_STATUS__GENERIC_ERROR = 'generic_error';
+const PAYMENT_ACK_STATUS__FAILED = 'failed';
 
 
 /**
@@ -100,7 +132,10 @@ const PAYMENT_ACK_STATUSES = new Set([
     PAYMENT_ACK_STATUS__INSUFFICIENT_AMOUNT,
     PAYMENT_ACK_STATUS__BAD_COINS,
     PAYMENT_ACK_STATUS__RETRY_EXPIRED,
-    PAYMENT_ACK_STATUS__GENERIC_ERROR,
+    PAYMENT_ACK_STATUS__REJECTED,
+    PAYMENT_ACK_STATUS__FAILED,
+    PAYMENT_ACK_STATUS__ISSUER_ERROR,
+    PAYMENT_ACK_STATUS__SOFT_ERROR,
 ]);
 
 
@@ -137,7 +172,7 @@ const _db_session = Symbol('_db_session');
  * @private
  * @const
  */
-const PAYMENT_ACK_ALLOWED_PROPERTIES = new Set([ 'status', 'return_url', 'memo', 'seller', 'wallet_id', 'created', 'updated', ]);
+const PAYMENT_ACK_ALLOWED_PROPERTIES = new Set([ 'status', 'return_url', 'notification', 'seller', 'wallet_id', 'coins', 'created', 'updated', 'retry_after', 'reference', 'recovery', 'ack_passthrough', ]);
 
 
 /**
@@ -176,9 +211,50 @@ const PAYMENT_ACK_HIDDEN_PROPERTIES = new Set([ 'created', 'updated', ]);
 const _payment_ack_properties_validators = {
     status: (status) => { if (!PAYMENT_ACK_STATUSES.has(status)) { throw new errors.InvalidValueError(); }},
     return_url: Settings.VALIDATORS.return_url,
-    memo: BaseModel.VALIDATORS.description,
+    notification: BaseModel.VALIDATORS.notification,
     seller: Account.VALIDATORS.domain,
     wallet_id: PaymentConfirmation.VALIDATORS.wallet_id,
+    coins: PaymentConfirmation.VALIDATORS.coins,
+    retry_after: (seconds) => { if (!checks.isInteger(seconds)) { throw new errors.InvalidValueError(); }},
+    reference: (reference) => {
+        if (typeof reference !== "object") {
+            throw new Error('Invalid format');
+        }
+
+        if (!Object.keys(reference).every((key) => [ 'issuer', 'id', ].includes(key))) {
+            throw new Error ('Invalid key');
+        }
+
+        if (!reference.issuer || !checks.isDomain(reference.issuer)) {
+            throw new Error ('Invalid format');
+        }
+
+        if (!reference.id || typeof reference.id !== "string" || reference.id.length < 1 || reference.id.length > 64) {
+            throw new Error ('Invalid format');
+        }
+    },
+    recovery: (recovery) => {
+        if (typeof recovery !== "object") {
+            throw new Error('Invalid format');
+        }
+
+        if (!Object.keys(recovery).every((key) => [ 'issuer', 'tid', 'expiry', ].includes(key))) {
+            throw new Error ('Invalid key');
+        }
+
+        if (!recovery.issuer || !checks.isDomain(recovery.issuer)) {
+            throw new Error ('Invalid format');
+        }
+
+        if (!recovery.tid || typeof recovery.tid !== "string" || recovery.tid.length < 1 || recovery.tid.length > 64) {
+            throw new Error ('Invalid format');
+        }
+
+        if (!recovery.expiry || !checks.isDate(recovery.expiry)) {
+            throw new Error ('Invalid format');
+        }
+    },
+    ack_passthrough: (value) => { if (typeof value !== "string" || value.length > 1024) { throw new Error ('Invalid format'); } },
 };
 
 // We are sealing the structure to prevent any modifications
@@ -310,9 +386,33 @@ exports.PaymentAck = class PaymentAck extends BaseModel {
 
 
     /**
-     * Publicly exposed GENERIC_ERROR status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__GENERIC_ERROR}
+     * Publicly exposed FAILED status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__FAILED}
      * @returns {string}
      * @static
      */
-    static get STATUS__GENERIC_ERROR () { return PAYMENT_ACK_STATUS__GENERIC_ERROR; }
+    static get STATUS__FAILED () { return PAYMENT_ACK_STATUS__FAILED; }
+
+
+    /**
+     * Publicly exposed REJECTED status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__REJECTED}
+     * @returns {string}
+     * @static
+     */
+    static get STATUS__REJECTED () { return PAYMENT_ACK_STATUS__REJECTED; }
+
+
+    /**
+     * Publicly exposed ISSUER_ERROR status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__ISSUER_ERROR}
+     * @returns {string}
+     * @static
+     */
+    static get STATUS__ISSUER_ERROR () { return PAYMENT_ACK_STATUS__ISSUER_ERROR; }
+
+
+    /**
+     * Publicly exposed SOFT_ERROR status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__SOFT_ERROR}
+     * @returns {string}
+     * @static
+     */
+    static get STATUS__SOFT_ERROR () { return PAYMENT_ACK_STATUS__SOFT_ERROR; }
 };
