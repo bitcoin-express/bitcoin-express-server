@@ -3,6 +3,8 @@ const session = require('express-session');
 const config = require('config');
 const api = require(config.get('system.root_dir') + '/core/api');
 const { Transaction } = require(config.get('system.root_dir') + '/core/models/Transaction');
+const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponses');
+const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
 
 // Check if all keys, essential for application running, are set in config files.
 // If not - prevent application from running.
@@ -107,6 +109,22 @@ db.connect(config.get('server.db.uri'), function (err) {
     for (let route_config of api.routes.values()) {
         app.route(route_config.path)[route_config.method](...route_config.actions);
     }
+
+    app.use(function(req, res, next) {
+        let response = new JSONResponseEnvelope();
+        response.messages.push(new Message({ type: Message.TYPE__ERROR, body: "Path not found", }));
+
+        res.status(404).send(response);
+    });
+
+    app.use(function(err, req, res, next) {
+        console.log('Unhandled router error', err);
+
+        let response = new JSONResponseEnvelope();
+        response.messages.push(new Message({ type: Message.TYPE__ERROR, body: "Internal error", }));
+
+        res.status(err.status || 500).send(response);
+    });
 
     web_server.handler.createServer(
         web_server.options, app).listen(config.get('server.port'), function() {
