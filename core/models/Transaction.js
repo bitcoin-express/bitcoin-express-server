@@ -793,18 +793,25 @@ class CoreTransaction extends BaseModel {
      * object.
      * In order to persist Transaction we have to make sure that it's still in the same status as in the moment we
      * started processing it, to make sure that there are no concurrent requests working on it.
-     * @param {Boolean} ignore_status - persist Transaction without checking if it was mutated by the concurrent request
+     * @param {Boolean} optimistic_locking_enabled - persist Transaction while checking if it wasn't mutated by the concurrent request
      * @returns {Promise<Transaction>}
      */
-    async save ({ ignore_status=false }={}) {
-        let query = {};
+    async save ({ optimistic_locking_enabled=true, overwrite_non_final_state_only=false, }={}) {
+        let query, status_value = [];
 
-        if (!ignore_status) {
-            query = {
-                status: this[_transaction_interface].__prev_status || this[_transaction_data].status,
-            };
+        if (overwrite_non_final_state_only) {
+            status_value.push({
+                status: { $in: [ TRANSACTION_STATUS__INITIAL, TRANSACTION_STATUS__PENDING, TRANSACTION_STATUS__DEFERRED, ], }
+            });
         }
 
+        if (optimistic_locking_enabled) {
+            status_value.push({
+                status: this[_transaction_interface].__prev_status || this[_transaction_data].status,
+            });
+        }
+
+        query = status_value.length === 1 ? status_value[0] : { $and: status_value, };
         await super.save({ query: query, });
 
         this[_transaction_interface].__prev_status = this.status;
@@ -1513,12 +1520,14 @@ class PaymentTransaction extends CoreTransaction {
                     payment_ack.notification = this.notification;
                     payment_ack.status = PaymentAck.STATUS__OK;
 
-                    this[_transaction_data].payment_ack = payment_ack;
                     this.status = Transaction.STATUS__RESOLVED;
-
+                    this[_transaction_data].payment_ack = payment_ack;
                     this[_transaction_data].payment_confirmation.verify_info = verify_info;
                 }
             );
+            await db_session.commitTransaction();
+
+            if (issuer_call_result) { return issuer_call_result; }
 
             console.log('post verify, all good');
 
