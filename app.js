@@ -168,7 +168,7 @@ db.connect(config.get('server.db.uri'), function (err) {
 
             const query = {
                 expires: { $lt: now },
-                status: { $in: ["initial", "timeout"] },
+                status: { $in: [ Transaction.STATUS__INITIAL, Transaction.STATUS__EXPIRED, ] },
             };
 
             db.remove('transactions', query).then((resp) => {
