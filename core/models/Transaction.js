@@ -99,7 +99,7 @@ const TRANSACTION_STATUS__PENDING = 'pending';
  * @const
  * @link module:core/models/Transactions~TRANSACTION_STATUSES
  */
-const TRANSACTION_STATUS__DEFERRED = 'pending';
+const TRANSACTION_STATUS__DEFERRED = 'deferred';
 
 
 /**
@@ -1114,7 +1114,7 @@ class PaymentTransaction extends CoreTransaction {
 
         //...or if it has expired...
         if (this.status === Transaction.STATUS__EXPIRED) {
-            payment_ack.status = PaymentAck.STATUS__AFTER_EXPIRES;
+            payment_ack.status = PaymentAck.STATUS__REJECTED;
 
             return payment_ack;
         }
@@ -1130,13 +1130,13 @@ class PaymentTransaction extends CoreTransaction {
 
         //...if all Coins have the right currency...
         if (!payment_confirmation.coins.every(coin => this.currency === utils.Coin(coin).c)) {
-            payment_ack.status = PaymentAck.STATUS__BAD_COINS;
+            payment_ack.status = PaymentAck.STATUS__FAILED;
             return payment_ack;
         }
 
         //...if total value is enough to cover the Transaction...
         if (utils.coinsValue(payment_confirmation.coins) < this.amount) {
-            payment_ack.status = PaymentAck.STATUS__INSUFFICIENT_AMOUNT;
+            payment_ack.status = PaymentAck.STATUS__FAILED;
             return payment_ack;
         }
 
@@ -1173,7 +1173,7 @@ class PaymentTransaction extends CoreTransaction {
         catch (e) {
             // Something went wrong during retrieving the account but it shouldn't be fatal for the transaction so let's
             // give it another chance
-            payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+            payment_ack.status = PaymentAck.STATUS__DEFERRED;
             payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
 
             return payment_ack;
@@ -1215,7 +1215,7 @@ class PaymentTransaction extends CoreTransaction {
                     }
                     //...or if there was different type of error - return soft error so this Transaction can be retried...
                     else {
-                        payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                        payment_ack.status = PaymentAck.STATUS__DEFERRED;
                         payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
 
                         return payment_ack;
@@ -1301,10 +1301,9 @@ class PaymentTransaction extends CoreTransaction {
                         !issuer_response.issuerResponse.status ||
                         !issuer_response.issuerResponse.headerInfo ||
                         issuer_response.issuerResponse.status === "defer") {
-
                         //...check if we are already post time_budget limit for this operation...
                         if (moment().isAfter(moment(this[_transaction_interface].__initialised).add(this.time_budget, 'seconds'))) {
-                            payment_ack.status = PaymentAck.STATUS__ISSUER_ERROR;
+                            payment_ack.status = PaymentAck.STATUS__DEFERRED;
 
                             this[_transaction_data].payment_ack = payment_ack;
                             this.status = Transaction.STATUS__DEFERRED;
@@ -1316,7 +1315,7 @@ class PaymentTransaction extends CoreTransaction {
                         else if (issuer_response.issuerResponse && issuer_response.issuerResponse.after &&
                             moment().add(issuer_response.issuerResponse.after, 'seconds').isAfter(moment(this[_transaction_interface].__initialised).add(this.time_budget, 'seconds'))) {
 
-                            payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                            payment_ack.status = PaymentAck.STATUS__DEFERRED;
                             payment_ack.retry_after = issuer_response.issuerResponse.after;
 
                             this[_transaction_data].payment_ack = payment_ack;
@@ -1350,24 +1349,20 @@ class PaymentTransaction extends CoreTransaction {
                     //...any other kind of answer indicates that something went wrong but we can't be sure what and it
                     // may be worth to retry the operation.
                     else {
-                        payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                        payment_ack.status = PaymentAck.STATUS__DEFERRED;
                         payment_ack.retry_after = issuer_response.issuerResponse && issuer_response.issuerResponse.after ?
                                                   issuer_response.issuerResponse.after :
                                                   config.get('server.api.soft_error_retry_delay');
 
                         this[_transaction_data].payment_ack = payment_ack;
                         this.status = Transaction.STATUS__DEFERRED;
-
                         break;
                     }
                 }
-
                 // Try to persist the operation's result, no matter positive or negative...
                 let error_payment_ack = await _persistTransaction();
-
                 //...if it's not possible - return persistence's PaymentAck...
                 if (error_payment_ack) { return error_payment_ack; }
-
                 //...if successful but the Issuer call has negative outcome - return it.
                 if (negative_response_indicator) {
                     // We know at this point that Transaction is no longer in pending state so we should remove
@@ -1377,7 +1372,7 @@ class PaymentTransaction extends CoreTransaction {
                 }
             }
             catch (e) {
-                payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                payment_ack.status = PaymentAck.STATUS__DEFERRED;
                 payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
 
                 this[_transaction_data].payment_ack = payment_ack;
@@ -1402,7 +1397,7 @@ class PaymentTransaction extends CoreTransaction {
                 [ 'begin', { issuerRequest: { fn: "verify", } }, account.settings.home_issuer, ],
                 async (issuer_response) => {
                     if (!issuer_response.issuerResponse.headerInfo || !issuer_response.issuerResponse.headerInfo.tid) {
-                        payment_ack.status = PaymentAck.STATUS__SOFT_ERROR;
+                        payment_ack.status = PaymentAck.STATUS__DEFERRED;
                         payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
 
                         this[_transaction_data].payment_ack = payment_ack;
@@ -1480,7 +1475,7 @@ class PaymentTransaction extends CoreTransaction {
                     }
 
                     if (verify_info.actualValue < this.amount) {
-                        payment_ack.status = PaymentAck.STATUS__INSUFFICIENT_AMOUNT;
+                        payment_ack.status = PaymentAck.STATUS__FAILED;
                         payment_ack.coins = [ issuer_response.issuerResponse.coin, ];
 
                         this[_transaction_data].payment_ack = payment_ack;

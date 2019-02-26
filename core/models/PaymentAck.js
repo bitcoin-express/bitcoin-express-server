@@ -29,75 +29,13 @@ const PAYMENT_ACK_STATUS__OK = 'ok';
 
 
 /**
- * Status indicating that transaction id is not recognised
+ * Status indicating that there was an error, most likely a temporary one, and that it's worth to retry the operation. 
  * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
  * @type {string}
  * @const
  * @private
  */
-const PAYMENT_ACK_STATUS__PAYMENT_UNKNOWN = 'payment-unknown';
-
-
-/**
- * Status indicating that the payment arrived after trasaction's expiration date.
- * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
- * @type {string}
- * @const
- * @private
- */
-const PAYMENT_ACK_STATUS__AFTER_EXPIRES = 'after-expires';
-
-
-/**
- * Status indicating that the face value of the supplied coins was not sufficient to complete the purchase.
- * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
- * @type {string}
- * @const
- * @private
- */
-const PAYMENT_ACK_STATUS__INSUFFICIENT_AMOUNT = 'insufficient-amount';
-
-
-/**
- * Status indicating that the coin's domain was unacceptable or the actual value of the supplied coins was not
- * sufficient to complete the purchase.
- * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
- * @type {string}
- * @const
- * @private
- */
-const PAYMENT_ACK_STATUS__BAD_COINS = 'bad-coins';
-
-
-/**
- * Status indicating that the payment retry is no longer being accepted.
- * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
- * @type {string}
- * @const
- * @private
- */
-const PAYMENT_ACK_STATUS__RETRY_EXPIRED = 'retry-expired';
-
-
-/**
- * Status indicating that there was an error on the Issuer's end.
- * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
- * @type {string}
- * @const
- * @private
- */
-const PAYMENT_ACK_STATUS__ISSUER_ERROR = 'issuer-error';
-
-
-/**
- * Status indicating that there a non-terminal error occured. This status is used in conjuction with retry_after
- * parameter, informing API consumer to retry current operation after a specified amount of time.
- * This status is exposed via [PaymentAck]{@link module:core/models/PaymentAck/PaymentAck} public interface.
- * @type {string}
- * @const
- * @private
- */
-const PAYMENT_ACK_STATUS__SOFT_ERROR = 'soft-error';
+const PAYMENT_ACK_STATUS__DEFERRED = 'deferred';
 
 
 /**
@@ -127,15 +65,9 @@ const PAYMENT_ACK_STATUS__FAILED = 'failed';
  */
 const PAYMENT_ACK_STATUSES = new Set([
     PAYMENT_ACK_STATUS__OK,
-    PAYMENT_ACK_STATUS__PAYMENT_UNKNOWN,
-    PAYMENT_ACK_STATUS__AFTER_EXPIRES,
-    PAYMENT_ACK_STATUS__INSUFFICIENT_AMOUNT,
-    PAYMENT_ACK_STATUS__BAD_COINS,
-    PAYMENT_ACK_STATUS__RETRY_EXPIRED,
     PAYMENT_ACK_STATUS__REJECTED,
     PAYMENT_ACK_STATUS__FAILED,
-    PAYMENT_ACK_STATUS__ISSUER_ERROR,
-    PAYMENT_ACK_STATUS__SOFT_ERROR,
+    PAYMENT_ACK_STATUS__DEFERRED,
 ]);
 
 
@@ -346,46 +278,6 @@ exports.PaymentAck = class PaymentAck extends BaseModel {
 
 
     /**
-     * Publicly exposed PAYMENT_UNKNOWN status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__PAYMENT_UNKNOWN}
-     * @returns {string}
-     * @static
-     */
-    static get STATUS__PAYMENT_UNKNOWN () { return PAYMENT_ACK_STATUS__PAYMENT_UNKNOWN; }
-
-
-    /**
-     * Publicly exposed AFTER_EXPIRES status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__AFTER_EXPIRES}
-     * @returns {string}
-     * @static
-     */
-    static get STATUS__AFTER_EXPIRES () { return PAYMENT_ACK_STATUS__AFTER_EXPIRES; }
-
-
-    /**
-     * Publicly exposed INSUFFICIENT_AMOUNT status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__INSUFFICIENT_AMOUNT}
-     * @returns {string}
-     * @static
-     */
-    static get STATUS__INSUFFICIENT_AMOUNT () { return PAYMENT_ACK_STATUS__INSUFFICIENT_AMOUNT; }
-
-
-    /**
-     * Publicly exposed BAD_COINS status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__BAD_COINS}
-     * @returns {string}
-     * @static
-     */
-    static get STATUS__BAD_COINS () { return PAYMENT_ACK_STATUS__BAD_COINS; }
-
-
-    /**
-     * Publicly exposed RETRY_EXPIRED status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__RETRY_EXPIRED}
-     * @returns {string}
-     * @static
-     */
-    static get STATUS__RETRY_EXPIRED () { return PAYMENT_ACK_STATUS__RETRY_EXPIRED; }
-
-
-    /**
      * Publicly exposed FAILED status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__FAILED}
      * @returns {string}
      * @static
@@ -402,17 +294,9 @@ exports.PaymentAck = class PaymentAck extends BaseModel {
 
 
     /**
-     * Publicly exposed ISSUER_ERROR status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__ISSUER_ERROR}
+     * Publicly exposed ISSUER_ERROR status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__DEFERRED}
      * @returns {string}
      * @static
      */
-    static get STATUS__ISSUER_ERROR () { return PAYMENT_ACK_STATUS__ISSUER_ERROR; }
-
-
-    /**
-     * Publicly exposed SOFT_ERROR status, described in {@link module:core/models/PaymentAck~PAYMENT_ACK_STATUS__SOFT_ERROR}
-     * @returns {string}
-     * @static
-     */
-    static get STATUS__SOFT_ERROR () { return PAYMENT_ACK_STATUS__SOFT_ERROR; }
+    static get STATUS__DEFERRED () { return PAYMENT_ACK_STATUS__DEFERRED; }
 };
