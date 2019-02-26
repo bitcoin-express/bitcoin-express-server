@@ -79,6 +79,12 @@ exports.routes = new Map([
             actions: [ helpers.noAuthentication, helpers.asyncWrapper(actions.postTransactionByIdPayment), ],
         },
     ],
+    [ 'deleteTransactionPayment', {
+            path: endpoints.getEndpointPath(endpoints.TRANSACTION_ID_PAYMENT),
+            method: 'delete',
+            actions: [ helpers.noAuthentication, helpers.asyncWrapper(actions.deleteTransactionByIdPayment), ],
+        },
+    ],
     [ 'postAccounts', {
             path: endpoints.getEndpointPath(endpoints.ACCOUNTS),
             method: 'post',

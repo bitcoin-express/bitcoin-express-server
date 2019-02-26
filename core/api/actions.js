@@ -281,7 +281,7 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         // ...and if you can't - prepare the PaymentAck object with a proper, specified for this situation, status
         if (!transaction) {
             response = new PaymentAck({
-                status: PaymentAck.STATUS__PAYMENT_UNKNOWN,
+                status: PaymentAck.STATUS__REJECTED,
                 wallet_id: payment_confirmation.wallet_id,
             });
 
@@ -300,7 +300,7 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         let time_budget_counter = new Promise(
             (resolve) => setTimeout(
                 () => { console.log('w time_buget_counter'); resolve(new PaymentAck({
-                    status: PaymentAck.STATUS__SOFT_ERROR,
+                    status: PaymentAck.STATUS__DEFERRED,
                     retry_after: config.get('server.api.soft_error_retry_delay'),
                     wallet_id: payment_confirmation.wallet_id,
                 })); },
@@ -334,6 +334,60 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
             });
         }
 
+        res.status(400);
+    }
+
+    return res.send(new JSONResponse(response).prepareResponse(res));
+};
+
+
+/**
+ * Cancels the transaction specified by the id of the "payment" type. It's working for non-terminal and non-resolved
+ * Transactions leaving necessary actions to recover to actual payment process.
+ *
+ * @param {object} req - The Express' request object
+ * @param {object} res - The Express' response object
+ * @param {function} next - function to be called to proceed with the Express' chain of execution
+ * @returns {Promise}
+ * @link module:core/models/Transaction
+ * @link module:core/models/JSONResponses
+ */
+exports.deleteTransactionByIdPayment = async (req, res, next) => {
+    let query = {
+        // Transaction id passed in url
+        transaction_id: req.params.transaction_id,
+
+        // Only payment type transactions are supporting this operation
+        type: Transaction.TYPE__PAYMENT,
+
+        limit: 1,
+
+        // In order to also include transactions that are not "valid" we need to disable this check
+        only_valid: false,
+    };
+
+    let transaction, response = new JSONResponseEnvelope({});
+
+    try {
+        // Try to find a query that we are trying to pay for...
+        transaction = await Transaction.find(query);
+        transaction = transaction[0];
+
+        // ...and if you can't - prepare the PaymentAck object with a proper, specified for this situation, status
+        if (!transaction) {
+            throw new Error('Invalid transaction id');
+        }
+
+        transaction.status = Transaction.STATUS__ABORTED;
+        transaction.save({ overwrite_non_final_state_only: true, });
+
+        console.log('api deleteTransactionByIdPayment post save');
+
+        response.success = true;
+        res.status(200);
+    }
+    catch (e) {
+        console.log('api deleteTransactionByIdPayment', e);
         res.status(400);
     }
 
