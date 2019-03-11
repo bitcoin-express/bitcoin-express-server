@@ -1,0 +1,27 @@
+{
+  "body":[{
+    "account_name":"John Smith",
+    "admin_auth_token": "024e3647af980f34fed58b27bfa5235d04d7851097590322a8fafaad86dd3f80cf.342e3647af980f34fed58b27bfa5235d04d7851097590322a8fafaad86dd3f76ee",
+    "auth_token": "024e3647af980f34fed58b27bfa5235d04d7851097590322a8fafaad86dd3f80cf",
+    "domain":"my.site.url",
+    "email_account_contact": "account@my.site.url",
+    "email_customer_contact": "sales@my.site.url",
+    "private_key": "342e3647af980f34fed58b27bfa5235d04d7851097590322a8fafaad86dd3f76ee",
+    "settings": {
+      "callback_url": "",
+      "default_payment_currency": "XBT",
+      "default_payment_timeout": "3600",
+      "home_issuer": "be.ap.rmp.net",
+      "provide_receipt_via_email": false,
+      "provide_refund_via_email": false,
+      "return_url": ""
+    }
+  }],
+  "messages":[
+    {
+      "type":"info",
+      "body":"Success! Your account is now active!"
+    }
+  ],
+  "success":true
+}

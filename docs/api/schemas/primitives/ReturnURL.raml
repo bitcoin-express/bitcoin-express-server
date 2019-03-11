@@ -5,12 +5,14 @@ minLength: 0
 maxLength: 256
 description: |
   An URL where the purchased product may be obtained and/or order finalized.
+
   The Gateway will additionaly include two parameters in the ***return_url*** query string:
   - ***transaction_id***
   - ***order_id*** - if it was provided by the Merchant.
+
   Example: ***return_url*** set to ``https://my.site.url/order?in=12345`` will became ``https://my.site.url/order?in=12345&transaction_id=98765`` or ``https://my.site.url/order?in=12345&transaction_id=98765&order_id=98765`` if ***order_id*** was provided as well.
 
-  Please bear in mind that if the original URL already has any of these keys they will be overwritten.
+  If the original URL already had any of these keys they will be overwritten.
 
   If it is not explicitly set then the ***return_url*** setting from the Merchant account's config will be taken.
 

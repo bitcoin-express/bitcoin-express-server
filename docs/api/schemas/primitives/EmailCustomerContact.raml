@@ -1,5 +1,8 @@
 #%RAML 1.0 DataType
 
 type: !include Email.raml
-description: An email address for the customer related queries.
+description: |
+  An email address for the customer related queries.
+
+  If it is not explicitly set then the ***email_customer_contact*** setting from the Merchant account's config will be taken.
 example: sales@my.site.url

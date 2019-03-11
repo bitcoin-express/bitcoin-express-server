@@ -1,0 +1,47 @@
+{
+  "body":[
+    {
+      "ack_passthrough": "String passed by the Merchant",
+      "amount": "0.00088900",
+      "callback_url": "https://my.site.url/post-order?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+      "completed": "",
+      "created": "2018-08-28T05:25:26Z",
+      "currency": "XBT",
+      "description": "The art of asking",
+      "email_customer_contact": "sales@my.site.url",
+      "expires": "2018-08-28T06:25:26Z",
+      "notification": "",
+      "order_id": "IN1234",
+      "polices": {
+        "issuer_refund_via_email": true,
+        "receipt_via_email": true,
+        "refund_via_email": false
+      },
+      "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+      "status": "initial",
+      "time_budget": "60",
+      "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
+      "type": "payment",
+      "payment_details": {
+        "acceptable_issuers": [ "eu.carrotpay.com" ],
+        "amount": "0.00088900",
+        "created": "2018-08-28T05:25:26Z",
+        "currency": "XBT",
+        "description": "The art of asking",
+        "email_customer_contact": "sales@my.site.url",
+        "expires": "2018-08-28T06:25:26Z",
+        "order_id": "IN1234",
+        "payment_url": "https://my.gateway.url/transaction/97e00590-aa8a-11e8-a18f-4d64691098e6/payment",
+        "polices": {
+          "issuer_refund_via_email": true,
+          "receipt_via_email": true,
+          "refund_via_email": false
+        },
+        "seller": "my.site.url",
+        "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6"
+      }
+    }
+  ],
+  "messages": [],
+  "success": true
+}

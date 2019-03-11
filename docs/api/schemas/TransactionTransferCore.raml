@@ -9,13 +9,13 @@ properties:
     type: !include primitives/Currency.raml
     required: true
     description: Currency of _Coins_ to be transfered.
-  value:
-    type: types.ValueMulti
+  amount:
+    type: string
     required: true
     description: |
       Value of _Coins_ to be transfered.
 
-      If ***value*** is explicitly set to ***all*** then all funds of a given currency will be transfered.
+      If ***amount*** is explicitly set to ***all*** then all funds of a given currency will be transfered.
   description:
     type: !include primitives/Description.raml
     required: true

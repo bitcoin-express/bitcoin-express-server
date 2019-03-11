@@ -1,0 +1,27 @@
+{
+  "client": "web",
+  "coins": [
+    "ewogICJhIjoiZzBZd2...",
+    "ewogICJhIjoiZzBZd2..."
+  ],
+  "notification": "Please send it to 123 Street, Town, City, Country",
+  "options": {
+    "language_preference": "en-GB",
+    "send_issuer_refund_to": {
+      "email":"buyer@mail.url",
+      "password":"hX,LsQ9z",
+      "reference":"12344321"
+    },
+    "send_receipt_to": {
+      "email":"buyer@mail.url"
+    },
+    "send_refund_to": {
+      "email":"buyer@mail.url",
+      "password":"hX,LsQ9z",
+      "reference":"12344321"
+    },
+  },
+  "order_id": "IN1234",
+  "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
+  "wallet_id": "12344321"
+}

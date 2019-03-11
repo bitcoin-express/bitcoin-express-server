@@ -1,0 +1,28 @@
+#%RAML 1.0 DataType
+
+type: object
+required: false
+description: |
+  Modifications of transaction's behavior. Options in this section influence the transaction flow and change how the transaction will be processed.
+example: |
+  {
+    "receipt_via_email": true,
+    "refund_via_email": false
+  }
+properties:
+  receipt_via_email:
+    type: !include ProvideReceiptViaEmail.raml
+    required: false
+    description: |
+      Indicator if the Merchant is offering to send a sales receipt by email.
+
+      If it is not explicitly set then the ***provide_receipt_via_email*** setting from the Merchant account's config will be taken.
+  refund_via_email:
+    type: !include ProvideRefundViaEmail.raml
+    required: false
+    description: |
+      Indicator if the Merchant is offering to send a refund by email.
+
+      If it is not explicitly set then the ***provide_refund_via_email*** setting from the Merchant account's config will be taken.
+
+      The actual refund mechanism has to be implemented on the Merchant's end.

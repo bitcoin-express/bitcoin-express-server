@@ -2,12 +2,12 @@
 
 type: string
 description: |
-  Old: merchant_data
-
   Typically a reference that is meaningful to the Merchant – for example, a sales invoice number.
   It's being recorded in the history of the Buyer's Wallet so it may be quoted by the Buyer as a reference in subsequent communications.
 
   Must be unique for the Merchant and its value myst be **URI encoded**.
+  Only one transaction in a non-final state (***initial***, ***pending***, ***deferred***) may exists with the same ***order_id***.
+  If there is a need to create a new transaction a new ***order_id*** should be generated or old transaction - aborted, before creating the new one.
 minLength: 1
 maxLength: 64
 example: IN20181212345

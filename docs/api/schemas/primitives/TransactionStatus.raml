@@ -5,13 +5,17 @@ enum:
   - initial
   - resolved
   - aborted
+  - failed
   - expired
-  - processing
+  - pending
+  - deferred
 default: initial
 description: |
   Status of the transaction:
   - **initial** - a transaction was initialized but is not yet processed. It still can be modified and/or canceled,
+  - **deferred** - a transaction was already being processed but unable to finish. It can be restarted or canceled, but it can't be modified,
   - **resolved** - a transaction was successfully resolved. No more changes are allowed in this state,
   - **aborted** - a transaction was aborted for some reason. No more changes are allowed in this state,
+  - **failed** - a transaction failed during processing because of an error, most likely caused by the API consumer. No more changes are allowed in this state,
   - **expired** - a transaction did not proceed in the set time. No more changes are allowed in this state,
-  - **processing** - a transaction is being processed at the moment. No more changes are allowed in this state.
+  - **pending** - a transaction is being processed at the moment. No more changes are allowed in this state.

@@ -1,9 +1,9 @@
 {
-  "type": "blockchain-transfer",
-  "currency": "XBT",
-  "value": "0.00234500",
-  "description": "Monthly XBT blockchain transfer",
   "address": "0xd357F9aAF13b868a8A99B489144a1A22438E3598",
+  "currency": "XBT",
+  "description": "Monthly XBT blockchain transfer",
+  "label": "monthly-withdrawal",
   "speed": "fastest",
-  "label": "monthly-withdrawal"
+  "type": "blockchain-transfer",
+  "amount": "0.00234500",
 }

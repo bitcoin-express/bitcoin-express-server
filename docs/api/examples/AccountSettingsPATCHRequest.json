@@ -1,0 +1,5 @@
+{
+  "default_payment_timeout": "3600",
+  "home_issuer": "be.ap.rmp.net",
+  "provide_receipt_via_email": false,
+}
