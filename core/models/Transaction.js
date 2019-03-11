@@ -259,7 +259,7 @@ const TRANSACTION_ALLOWED_PROPERTIES = new Map([
     [ TRANSACTION_TYPE__PAYMENT, new Set(['type', 'status', 'transaction_id', 'created', 'completed', 'updated',
           'payment_confirmation', 'payment_details', 'payment_ack', 'acceptable_issuers', 'seller', 'payment_url',
           'account_id', 'currency', 'amount', 'callback_url', 'notification', 'return_url', 'order_id', 'description',
-          'email_customer_contact', 'polices', 'expires', 'time_budget', 'ack_passthrough',
+          'email_customer_contact', 'polices', 'expires', 'time_budget', 'ack_passthrough', 'total_fee', 'net_value',
     ]),
     ],
     [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'transaction_id', 'status', 'type', 'currency', 'amount',
@@ -295,7 +295,7 @@ const TRANSACTION_REQUIRED_PROPERTIES = new Map([
  * @const
  */
 const TRANSACTION_HIDDEN_PROPERTIES = new Map([
-    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'seller', 'payment_url', 'account_id', ]), ],
+    [ TRANSACTION_TYPE__PAYMENT, new Set([ 'acceptable_issuers', 'seller', 'payment_url', 'account_id', 'updated', ]), ],
     [ TRANSACTION_TYPE__BLOCKCHAIN_TRANSFER, new Set([ 'account_id', ]), ],
     [ TRANSACTION_TYPE__COIN_FILE_TRANSFER, new Set([ 'account_id', ]), ],
 ]);
@@ -335,6 +335,14 @@ const _transaction_properties_validators = {
     callback_url: Settings.VALIDATORS.callback_url,
     amount: (value) => {
         if (!value) { throw new Error ('Required field'); }
+        if (!checks.isFloat(value) || value > 9999999999) { throw new Error('Invalid format'); }
+        if (parseFloat(value) <= 0) { throw new Error('Invalid value'); }
+    },
+    total_fee: (value) => {
+        if (!checks.isFloat(value) || value > 9999999999) { throw new Error('Invalid format'); }
+        if (parseFloat(value) <= 0) { throw new Error('Invalid value'); }
+    },
+    net_value: (value) => {
         if (!checks.isFloat(value) || value > 9999999999) { throw new Error('Invalid format'); }
         if (parseFloat(value) <= 0) { throw new Error('Invalid value'); }
     },
@@ -628,7 +636,7 @@ class Transaction {
      * @param {Date} after - return only records created after this date
      * @param {String} order - direction to order records in - either ascending or descending
      * @param {String} order_by - field to order records by - either created or completed
-     * @param {boolean} only_valid - return only records in non-terminal statuses: resolved, initial, processing
+     * @param {boolean} only_valid - return only records in non-terminal statuses: resolved, initial, pending, deferred
      * @returns {Promise<Transaction[]>}
      * @static
      * @async
@@ -721,6 +729,7 @@ class Transaction {
                 query.status = { $in: [
                         TRANSACTION_STATUS__INITIAL,
                         TRANSACTION_STATUS__RESOLVED,
+                        TRANSACTION_STATUS__DEFERRED,
                         TRANSACTION_STATUS__PENDING, ]
                 };
             }
@@ -854,7 +863,7 @@ class PaymentTransaction extends CoreTransaction {
             this[_transaction_data].transaction_id = uuidv4();
             this[_transaction_data].status = TRANSACTION_STATUS__INITIAL;
             this[_transaction_data].account_id = init_data.account.account_id;
-            this[_transaction_data].acceptable_issuers = init_data.account.settings.acceptable_issuers;
+            this[_transaction_data].acceptable_issuers = `(${init_data.account.settings.home_issuer})`;
 
             this.return_url = init_data.return_url || init_data.account.settings.return_url || undefined;
             this[_transaction_data].seller = this.return_url ? new URL(this.return_url).hostname : init_data.account.domain;
@@ -928,6 +937,7 @@ class PaymentTransaction extends CoreTransaction {
             [ 'transaction_id', 'transaction_id', ],
             [ 'order_id', 'order_id', ],
             [ 'acceptable_issuers', 'acceptable_issuers', ],
+            [ 'time_budget', 'time_budget', ],
         ]);
     }
 
@@ -995,11 +1005,16 @@ class PaymentTransaction extends CoreTransaction {
         // Assuming we've found a transaction and it's not in a terminal state...
         if (existing_transaction &&
             existing_transaction.status !== Transaction.STATUS__FAILED &&
+            existing_transaction.status !== Transaction.STATUS__ABORTED &&
             existing_transaction.status !== Transaction.STATUS__EXPIRED
         ) {
             //...if it's still proceeding we need to throw...
             if (existing_transaction.status === Transaction.STATUS__PENDING) {
                 throw new errors.InvalidValueError({ message: `Transaction with order_id ${this.order_id} is currently being processed.`});
+            }
+            //...if it's deferred we need to throw...
+            else if (existing_transaction.status === Transaction.STATUS__DEFERRED) {
+                throw new errors.InvalidValueError({ message: `Transaction with order_id ${this.order_id} is deferred and can't be modified. Abort it in order to modify.`});
             }
             //...if it's already resolved we need to throw...
             else if (existing_transaction.status === Transaction.STATUS__RESOLVED) {
@@ -1250,7 +1265,7 @@ class PaymentTransaction extends CoreTransaction {
         // prevent pending Transactions from hanging and make them available for the Wallet again
         let pending_to_deferred_timeout = undefined;
         try {
-            let timeout = (config.get('server.api.time_budget') + config.get('server.api.time_budget_trigger_buffer')) * 1000;
+            let timeout = (this.time_budget + config.get('server.api.time_budget_trigger_buffer')) * 1000;
 
             pending_to_deferred_timeout = setTimeout(() => {
                 let query = {
@@ -1512,13 +1527,22 @@ class PaymentTransaction extends CoreTransaction {
                         coin_data.order_id = this.order_id;
                     }
 
+                    this.net_value = verify_info.verifiedValue;
+                    this.total_fee = verify_info.totalFee;
+
                     // TODO: add coins encryption before saving them in the database
 
                     await db.insert('coins', coin_data);
 
                     payment_ack.return_url = this.return_url;
                     payment_ack.notification = this.notification;
+                    payment_ack.reference.id = this.reference;
+                    payment_ack.reference.issuer = this.acceptable_issuers[0];
                     payment_ack.status = PaymentAck.STATUS__OK;
+
+                    if (this.ack_passthrough) {
+                        payment_ack.ack_passthrough = this.ack_passthrough;
+                    }
 
                     this.status = Transaction.STATUS__RESOLVED;
                     this[_transaction_data].payment_ack = payment_ack;

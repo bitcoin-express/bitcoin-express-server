@@ -96,7 +96,7 @@ exports.isEmail = email => {
         if (!email_parser.parseOneAddress(email)) { throw new Error('Invalid email format'); }
 
         // Length restrictions that suits our needs
-        if (email.length < 3 || email.length > 256) { throw new Error('Invalid email length'); }
+        if (email.length < 5 || email.length > 256) { throw new Error('Invalid email length'); }
     }
     catch (e) {
         return false;

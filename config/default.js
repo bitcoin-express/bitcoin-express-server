@@ -159,7 +159,7 @@ module.exports = {
         domain: undefined,
 
         // Merchant's name given to the account
-        name: undefined,
+        account_name: undefined,
 
         settings: {
             // If there is no currency set on user's account or in payment request use this as a default
@@ -174,11 +174,11 @@ module.exports = {
             // Is a merchant providing an option to send a refund via email
             provide_refund_via_email: false,
 
+            // Is Gateway providing an option to send a refund via email after a failed verification at its Issuer
+            provide_issuer_refund_via_email: false,
+
             // A default issuer to work with
             home_issuer: 'be.ap.rmp.net',
-
-            // Issuers that the Merchant accepts Coins from
-            acceptable_issuers: [ 'eu.carrotpay.com', 'be.ap.rmp.net', ],
 
             // Settings that can be configured on the account level but do not require default values.
             // These are used for checking by set Settings fail-safe mechanisms
@@ -195,14 +195,14 @@ module.exports = {
     _register_required_keys: [ 'domain', ],
 
     // Keys that are allowed to be provided during registration of a new account
-    _register_allowed_keys: [ 'domain', 'name', 'email_customer_contact', 'email_account_contact', ],
+    _register_allowed_keys: [ 'domain', 'account_name', 'email_customer_contact', 'email_account_contact', ],
 
     // Settings that are essential for application to run correctly. It's an array of keys' full paths.
     _system_required_keys: [ 'server.db.mongodb.replica_set', 'server.db.user', 'server.db.password', 'server.db.scheme', 'server.db.address', 'server.db.name', 'server.api.endpoint_url', 'server.api.endpoint_path',
     'server.ssl.key_file_passphrase', 'server.session.secret', ],
 
     // Account settings that are accessible/visible by users but can't be overwritten
-    _account_readonly_settings: [ ],
+    _account_readonly_settings: [ 'provide_issuer_refund_via_email', ],
 
     // Account settings that are hidden and not visible by users in any way
     _account_hidden_settings: [ ],

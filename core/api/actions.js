@@ -87,7 +87,18 @@ exports.postTransactions = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
-        Transaction.checkAPIProperties(req.body);
+        let body = {};
+
+        // Payment type request has a different form so we have transform it to suit other types as well
+        if (req.body.PaymentRequest) {
+            body = req.body.PaymentRequest.PaymentDetails;
+            body.type = 'payment';
+        }
+        else {
+            body = req.body;
+        }
+
+        Transaction.checkAPIProperties(body);
 
         let transaction = undefined;
 
@@ -96,7 +107,7 @@ exports.postTransactions = async (req, res, next) => {
             // the Transaction' class constructor. We do not have to check what keys were passed as Transaction will
             // simply ignore everything that is not on the allowed keys list and checks required keys on calling
             // "create"
-            transaction = await new Transaction({ ...req.body, account: req.params._account, }).create();
+            transaction = await new Transaction({ ...body, account: req.params._account, }).create();
         }
         catch (e) {
             console.log('api postTransactions warning', e);
@@ -366,7 +377,7 @@ exports.deleteTransactionByIdPayment = async (req, res, next) => {
         only_valid: false,
     };
 
-    let transaction, response = new JSONResponseEnvelope({});
+    let transaction, response;
 
     try {
         // Try to find a query that we are trying to pay for...
@@ -375,6 +386,11 @@ exports.deleteTransactionByIdPayment = async (req, res, next) => {
 
         // ...and if you can't - prepare the PaymentAck object with a proper, specified for this situation, status
         if (!transaction) {
+            response = new PaymentAck({
+                status: PaymentAck.STATUS__REJECTED,
+                wallet_id: req.body.wallet_id,
+            });
+
             throw new Error('Invalid transaction id');
         }
 
@@ -383,7 +399,11 @@ exports.deleteTransactionByIdPayment = async (req, res, next) => {
 
         console.log('api deleteTransactionByIdPayment post save');
 
-        response.success = true;
+        response = new PaymentAck({
+            status: PaymentAck.STATUS__FAILED,
+            wallet_id: req.body.wallet_id,
+        });
+
         res.status(200);
     }
     catch (e) {

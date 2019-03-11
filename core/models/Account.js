@@ -117,7 +117,7 @@ const _account_properties_validators = {
     domain: (domain) => { if (domain && !checks.isDomain(domain)) { throw new Error('Invalid domain format'); }},
     email_account_contact: (email_account_contact) => { if (email_account_contact && !checks.isEmail(email_account_contact)) { throw new Error('Invalid email_account_contact format'); }},
     email_customer_contact: (email_customer_contact) => { if (email_customer_contact && !checks.isEmail(email_customer_contact)) { throw new Error('Invalid email_customer_contact format'); }},
-    name: (name) => { if (name && (name.length < 1 || name.length > 128)) { throw new Error('Invalid name format'); }},
+    account_name: (name) => { if (name && (name.length < 1 || name.length > 128)) { throw new Error('Invalid name format'); }},
     settings: (settings) => { if (!(settings instanceof Settings)) { throw new Error('Must be instance of Settings'); }},
 };
 
