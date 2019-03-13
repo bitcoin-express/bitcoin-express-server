@@ -3,14 +3,13 @@
 type: array
 items:
   type: !include Domain.raml
-  description: An issuer's domain.
+  description: |
+    The Merchant's ***home_issuer*** domain, wrapped in brackets **["(< **home_issuer** >)"]**.
+    This delegates the responsibility for providing a list of acceptable issuers to the _Home Issuer_, meaning all issuers that the _Home Issuer_ accepts will be accepted by the Merchant as well.
+
+    If ***home_issuer*** is not explicitly set then ***acceptable_issuers*** will use the Gateway's default value set by the Gateway's operator.
 minItems: 1
 maxItems: 1
 description: |
   List of Issuers' domains that the Merchant accepts Coins from.
-
-  By default it takes the form of the Merchant's ***home_issuer***, wrapped in brackets **["(< **home_issuer** >)"]**.
-  This delegates the responsibility for providing a list of acceptable issuers to the _Home Issuer_, meaning all issuers that the _Home Issuer_ accepts will be accepted by the Merchant as well.
-
-  If ***home_issuer*** is not explicitly set then ***acceptable_issuers*** will use the Gateway's default value set by the Gateway's operator.
 example: ["(eu.carrotpay.com)"]

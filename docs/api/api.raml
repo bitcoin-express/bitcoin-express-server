@@ -39,10 +39,10 @@ securitySchemes:
           description: |
             Authentication token is generated on account's creation. There are two forms of auth tokens available:
             - standard - passed in ***auth_token*** key in the Account creation object,
-            - admin - passed in ***admin_ayth_token*** key in the Account creation object.
+            - admin - passed in ***admin_auth_token*** key in the Account creation object.
 
-            Standard key is used for normal operations that should not result in Coin loss and admin key is used for
-            Coins involving operations like transfer or encryption.
+            Use auth_token for general access to the account (such as viewing data). Use admin_auth_token for functions
+            that case Coins to be extracted from the account (such as transferring funds to a blockchain).
       responses:
 annotationTypes:
   deprecated: nil
@@ -123,7 +123,11 @@ types:
   Transaction__TransactionPayment__PaymentRequestResponse:
     displayName: PaymentAck
     type: !include schemas/TPaymentAck.raml
+  Transaction__TransactionPayment__PaymentDelete:
+    displayName: PaymentAck
+    type: !include schemas/TPaymentAckDelete.raml
   Account: !include schemas/Account.raml
+  AccountPatch: !include schemas/AccountPatch.raml
   AccountCore: !include schemas/AccountCore.raml
   AccountCorePatch: !include schemas/AccountCorePatch.raml
   AccountSettings: !include schemas/AccountSettings.raml
@@ -243,7 +247,7 @@ securedBy: AuthToken
       Rules are as follow:
       - a new transaction with a given ***order_id*** cannot be created if a transaction with the same ***order_id*** already exists in the **resolved** status. It is to prevent the same order to be paid twice,
       - a new transaction with a given ***order_id*** cannot be created if a transaction with the same ***order_id*** already exists in the **pending** or **deferred** status. It is to prevent the same order to be paid again while the payment for it is already being processed,
-      - if a transaction with a given ***order_id*** already exists and is in the **initial** status a new transaction will not be created but instead the old transaction will be updated with the new set of data and new ***expire*** date will be set. ***transaction_id*** will remain the same,
+      - if a transaction with a given ***order_id*** already exists and is in the **initial** status a new transaction will be created and the old one will be automatically aborted,
       - if a transaction with a given ***order_id*** does not exist or it is in either **aborted**, **failed** or **expired** status a new transaction will be created.
     body:
       application/json:
@@ -335,7 +339,7 @@ securedBy: AuthToken
           200:
             body:
               application/json:
-                type: Transaction__TransactionPayment__PaymentRequestResponse
+                type: Transaction__TransactionPayment__PaymentDelete
                 example: !include examples/TransactionPaymentDELETEResponse.json
 /order:
   description: |
@@ -438,7 +442,7 @@ securedBy: AuthToken
   patch:
     is: [JSON202Envelope, JSON400Envelope, 401Response]
     description: |
-      Set new values for the Merchant's account provided in the requests. Only modified values may be sent in the request.
+      Set one or more new configuration settings for this account.
 
       This endpoint has only an access to the main fields of the account. In order to modify account's settings use */account/settings* endpoint.
     body:
@@ -457,7 +461,7 @@ securedBy: AuthToken
                 required: true
                 type: array
                 items:
-                  type: Account
+                  type: AccountPatch
             example: !include examples/AccountsPOSTResponse.json
       400:
         description: |

@@ -1,17 +1,15 @@
 #%RAML 1.0 DataType
 
-type: object
+type: !include TPaymentDetails__Common.raml
 displayName: PaymentDetails
 properties:
-  amount: !include primitives/Amount.raml
-  currency: !include primitives/Currency.raml
-  description: !include primitives/Description.raml
-  email_customer_contact?: !include primitives/EmailCustomerContact.raml
-  expires?: !include primitives/ExpireDate.raml
-  order_id?: !include primitives/OrderId.raml
-  polices: !include primitives/Polices.raml
-  time_budget?: !include primitives/TimeBudget.raml
   ack_passthrough?: !include primitives/AckPassthrough.raml
   callback_url?: !include primitives/CallbackURL.raml
   notification?: !include primitives/Notification.raml
   return_url?: !include primitives/ReturnURL.raml
+  time_budget?: !include primitives/TimeBudget.raml
+  type:
+    type: !include primitives/TransactionType.raml
+    default: payment
+    enum:
+

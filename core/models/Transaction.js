@@ -335,8 +335,8 @@ const _transaction_properties_validators = {
     callback_url: Settings.VALIDATORS.callback_url,
     amount: (value) => {
         if (!value) { throw new Error ('Required field'); }
-        if (!checks.isFloat(value) || value > 9999999999) { throw new Error('Invalid format'); }
-        if (parseFloat(value) <= 0) { throw new Error('Invalid value'); }
+        if (!checks.isFloat(value)) { throw new Error('Invalid format'); }
+        if (parseFloat(value) > 99999999.99999999 || parseFloat(value) < 0.00000001) { throw new Error('Invalid value'); }
     },
     total_fee: (value) => {
         if (!checks.isFloat(value) || value > 9999999999) { throw new Error('Invalid format'); }
@@ -380,7 +380,10 @@ const _transaction_properties_validators = {
             throw new Error ('Invalid format');
         }
     },
-    time_budget: BaseModel.VALIDATORS.time_budget,
+    time_budget: (seconds) => {
+        if (!checks.isInteger(seconds)) { throw new errors.InvalidValueError(); }
+        if (seconds < 5 || seconds > 300) { throw new errors.InvalidValueError(); }
+    },
     ack_passthrough: PaymentAck.VALIDATORS.ack_passthrough,
 };
 
@@ -866,7 +869,7 @@ class PaymentTransaction extends CoreTransaction {
             this[_transaction_data].acceptable_issuers = `(${init_data.account.settings.home_issuer})`;
 
             this.return_url = init_data.return_url || init_data.account.settings.return_url || undefined;
-            this[_transaction_data].seller = this.return_url ? new URL(this.return_url).hostname : init_data.account.domain;
+            this[_transaction_data].seller = init_data.account.domain;
             this.callback_url = init_data.callback_url || init_data.account.settings.callback_url || undefined;
 
             this[_transaction_data].created = new Date();
@@ -937,7 +940,6 @@ class PaymentTransaction extends CoreTransaction {
             [ 'transaction_id', 'transaction_id', ],
             [ 'order_id', 'order_id', ],
             [ 'acceptable_issuers', 'acceptable_issuers', ],
-            [ 'time_budget', 'time_budget', ],
         ]);
     }
 
@@ -1002,54 +1004,58 @@ class PaymentTransaction extends CoreTransaction {
             }
         }
 
+        let db_session = db.getClient().startSession();
+        await db_session.startTransaction();
+        this.initDBSession(db_session);
+
         // Assuming we've found a transaction and it's not in a terminal state...
         if (existing_transaction &&
             existing_transaction.status !== Transaction.STATUS__FAILED &&
             existing_transaction.status !== Transaction.STATUS__ABORTED &&
             existing_transaction.status !== Transaction.STATUS__EXPIRED
         ) {
-            //...if it's still proceeding we need to throw...
+            //...if it's still pending we need to throw...
             if (existing_transaction.status === Transaction.STATUS__PENDING) {
+                this.closeDBSession();
+                await db_session.endSession();
                 throw new errors.InvalidValueError({ message: `Transaction with order_id ${this.order_id} is currently being processed.`});
             }
             //...if it's deferred we need to throw...
             else if (existing_transaction.status === Transaction.STATUS__DEFERRED) {
+                this.closeDBSession();
+                await db_session.endSession();
                 throw new errors.InvalidValueError({ message: `Transaction with order_id ${this.order_id} is deferred and can't be modified. Abort it in order to modify.`});
             }
             //...if it's already resolved we need to throw...
             else if (existing_transaction.status === Transaction.STATUS__RESOLVED) {
+                this.closeDBSession();
+                await db_session.endSession();
                 throw new errors.InvalidValueError({ message: `Transaction with order_id ${this.order_id} is already resolved.`});
             }
-            //...if it's still in the initial status we can update it...
+            //...if it's still in the initial status we have to abort it first...
             else if (existing_transaction.status === Transaction.STATUS__INITIAL) {
-                let changes = {};
-
-                // As we want to save the history of changes we need to find out what properties were updated...
-                for (let property of TRANSACTION_ALLOWED_PROPERTIES.get(TRANSACTION_TYPE__PAYMENT)) {
-                    if (this[property] !== existing_transaction[property]) {
-                        changes[property] = this[property] || '';
-                    }
+                try {
+                    this.status = Transaction.STATUS__ABORTED;
+                    await this.save();
                 }
-
-                //...and if there were any - store them in a non-exposed property of the transaction object
-                if (Object.keys(changes).length) {
-                    if (!this[_transaction_data]._updates_history) {
-                        this[_transaction_data]._updates_history = [];
-                    }
-
-                    changes._updated = new Date();
-                    this[_transaction_data]._updates_history.push(changes);
+                catch (e) {
+                    await db_session.abortTransaction();
+                    this.closeDBSession();
+                    await db_session.endSession();
+                    throw e;
                 }
-
-                this[_transaction_data].created = existing_transaction.created;
-                this[_transaction_data].transaction_id = existing_transaction.transaction_id;
-
-                await this.save();
             }
         }
-        //... and if we didn't find a transaction in a non-terminal state - create a new one
-        else {
+        //... and now we can create a new one
+        try {
             await super.create();
+            await db_session.commitTransaction();
+        }
+        catch (e) {
+            await db_session.abortTransaction();
+            this.closeDBSession();
+            await db_session.endSession();
+            throw e;
         }
 
         try {

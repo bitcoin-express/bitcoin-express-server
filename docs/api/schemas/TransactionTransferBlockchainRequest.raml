@@ -5,4 +5,8 @@ properties:
   speed?: !include primitives/Speed.raml
   address: !include primitives/BlockchainAddress.raml
   label?: !include primitives/Label.raml
+  type:
+    type: !include primitives/TransactionType.raml
+    default: blockchain-transfer
+    enum:
 example: !include ../examples/TransactionTransferBlockchainRequest.json

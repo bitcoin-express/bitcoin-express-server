@@ -1,14 +1,5 @@
 #%RAML 1.0 DataType
 
 displayName: PaymentRequest
-properties:
-  PaymentRequest:
-    type: object
-    required: true
-    description: Wrapper as defined in Payment specification.
-    properties:
-      payment_details_version:
-        type: integer
-        default: 1
-      PaymentDetails: !include TPaymentDetails__Request.raml
+type: !include TPaymentDetails__Request.raml
 example: !include ../examples/TransactionsPOSTRequest.json

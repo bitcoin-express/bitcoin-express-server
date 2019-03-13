@@ -5,6 +5,10 @@ uses:
 
 type: !include TransactionCore.raml
 properties:
+  type:
+    type: !include primitives/TransactionType.raml
+    default: coin-file-transfer
+    enum:
   currency:
     type: !include primitives/Currency.raml
     required: true

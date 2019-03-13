@@ -87,15 +87,9 @@ exports.postTransactions = async (req, res, next) => {
     let response = new JSONResponseEnvelope({});
 
     try {
-        let body = {};
-
         // Payment type request has a different form so we have transform it to suit other types as well
-        if (req.body.PaymentRequest) {
-            body = req.body.PaymentRequest.PaymentDetails;
-            body.type = 'payment';
-        }
-        else {
-            body = req.body;
+        if (!req.body.type) {
+            req.body.type = 'payment';
         }
 
         Transaction.checkAPIProperties(body);
@@ -107,7 +101,7 @@ exports.postTransactions = async (req, res, next) => {
             // the Transaction' class constructor. We do not have to check what keys were passed as Transaction will
             // simply ignore everything that is not on the allowed keys list and checks required keys on calling
             // "create"
-            transaction = await new Transaction({ ...body, account: req.params._account, }).create();
+            transaction = await new Transaction({ ...req.body, account: req.params._account, }).create();
         }
         catch (e) {
             console.log('api postTransactions warning', e);
@@ -273,10 +267,10 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
     try {
         try {
             // Check if only allowed fields were send in the request...
-            PaymentConfirmation.checkAPIProperties(req.body);
+            PaymentConfirmation.checkAPIProperties(req.body.Payment);
             // ...and if yes, try to initialise a new PaymentConfirmation object using the request's body in order to extract necessary
             // and/or allowed keys. Throw an error if it fails...
-            payment_confirmation = new PaymentConfirmation(req.body);
+            payment_confirmation = new PaymentConfirmation(req.body.Payment);
             // ... and check if all required fields are filled as well. Again - throw an error if they aren't.
             payment_confirmation.checkRequiredProperties();
         }

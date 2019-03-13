@@ -5,15 +5,19 @@ displayName: PaymentAck
 description: |
   An object (as defined by the Payment specification) returned from the Gateway to Wallet containing information about the transaction's payment status.
 properties:
-  status: !include primitives/PaymentConfirmationStatus.raml
-  ack_passthrough?: !include primitives/AckPassthrough.raml
-  coins?:
-    type: !include primitives/Base64Coins.raml
-    description: |
-      Under exceptional circumstances, the Merchant may return base64 encoded Coin strings. For details check Payment specification.
-  notification?: !include primitives/Notification.raml
-  retry_after?: !include primitives/RetryAfter.raml
-  return_url?: !include primitives/ReturnURL.raml
-  seller?: !include primitives/Seller.raml
-  wallet_id?: !include primitives/WalletId.raml
-  reference?: !include primitives/Reference.raml
+  PaymentAck:
+    type: object
+    description: Object wrapper as defined in Payment Specification
+    properties:
+      status: !include primitives/PaymentConfirmationStatus.raml
+      ack_passthrough?: !include primitives/AckPassthrough.raml
+      coins?:
+        type: !include primitives/Base64Coins.raml
+        description: |
+          Under exceptional circumstances, the Merchant may return base64 encoded Coin strings. For details check Payment specification.
+      notification?: !include primitives/Notification.raml
+      retry_after?: !include primitives/RetryAfter.raml
+      return_url?: !include primitives/ReturnURL.raml
+      seller?: !include primitives/Seller.raml
+      wallet_id?: !include primitives/WalletId.raml
+      reference?: !include primitives/Reference.raml

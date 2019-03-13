@@ -12,7 +12,6 @@ properties:
   currency: !include primitives/Currency.raml
   status: !include primitives/TransactionStatus.raml
   transaction_id: !include primitives/TransactionId.raml
-  type: !include primitives/TransactionType.raml
   callback_url?: !include primitives/CallbackURL.raml
   payment_details?: !include TPaymentDetails.raml
   polices:
@@ -23,3 +22,7 @@ properties:
   notification?: !include primitives/Notification.raml
   order_id?: !include primitives/OrderId.raml
   return_url?: !include primitives/ReturnURL.raml
+  type:
+    type: !include primitives/TransactionType.raml
+    default: payment
+    enum:

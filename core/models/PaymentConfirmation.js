@@ -33,7 +33,7 @@ const PAYMENT_CONFIRMATION_CLIENT_TYPES = new Set ([ 'web', 'app', ]);
  * - send_issuer_refund_to - object defining if and where the Issuer should send a refund to the Buyer - if supported.
  * @type {Set}
  */
-const PAYMENT_CONFIRMATION_OPTION = new Set([ 'language_preference', 'send_receipt_to', 'send_refund_to', 'send_issuer_refund_to', ]);
+const PAYMENT_CONFIRMATION_OPTION = new Set([ 'language_preference', 'send_receipt_to', 'send_refund_to', 'send_issuer_refund_to', 'notification', ]);
 
 
 /**
@@ -69,7 +69,7 @@ const _db_session = Symbol('_db_session');
  * @private
  * @const
  */
-const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id', 'client', 'options', 'notification', 'created', 'updated', 'verify_info', 'transaction_id', 'order_id', 'verify_tid', 'verify_expiry', 'time_budget', ]);
+const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id', 'client', 'options', 'created', 'updated', 'verify_info', 'transaction_id', 'order_id', 'verify_tid', 'verify_expiry', ]);
 
 
 /**
@@ -78,7 +78,7 @@ const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id',
  * @private
  * @const
  */
-const PAYMENT_CONFIRMATION_API_PROPERTIES = new Set([ 'coins', 'wallet_id', 'client', 'options', 'notification', 'time_budget', ]);
+const PAYMENT_CONFIRMATION_API_PROPERTIES = new Set([ 'coins', 'wallet_id', 'client', 'options', ]);
 
 
 /**
@@ -209,11 +209,11 @@ const _confirmation_properties_validators = {
             }
         }
 
+        if (options.notification) {
+            if (typeof notification !== "string" || notification.length < 1 || notification.length > 256) { throw new Error ('Invalid format'); }
+        }
+
     },
-    notification: notification => {
-        if (typeof notification !== "string" || notification.length < 1 || notification.length > 256) { throw new Error ('Invalid format'); }
-    },
-    time_budget: BaseModel.VALIDATORS.time_budget,
 };
 
 // We are sealing the structure to prevent any modifications
