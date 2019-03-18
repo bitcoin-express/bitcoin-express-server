@@ -1,7 +1,9 @@
 {
-  "status": "ok",
-  "wallet_id": "123123123",
-  "return_url": "https://my.site.url/download?prod=123&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6&order_id=IN12345",
-  "seller": "my.domain.url",
-  "ack_passthrough": "String passed by the Merchant"
+  "PaymentAck": {
+    "status": "ok",
+    "wallet_id": "123123123",
+    "return_url": "https://my.site.url/download?prod=123&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6&order_id=IN12345",
+    "seller": "my.domain.url",
+    "ack_passthrough": "String passed by the Merchant"
+  }
 }
