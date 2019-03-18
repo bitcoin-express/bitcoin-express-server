@@ -1,0 +1,15 @@
+{
+  "wallet_id": "12344321",
+  "options": {
+    "send_receipt_to": {
+      "email":"buyer@mail.url"
+    },
+    "send_refund_to": {
+      "email":"buyer@mail.url",
+      "password":"hX,LsQ9z",
+      "reference":"12344321"
+    },
+    "language_preference": "en-GB"
+  },
+  "memo": "Please send it to 123 Street, Town, City, Country"
+}

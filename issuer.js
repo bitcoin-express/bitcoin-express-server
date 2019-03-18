@@ -2,6 +2,8 @@ var https = require('https');
 var { coinSelection } = require('./issuer/coinSelection')
 var db = require('./db');
 
+
+// TODO: move it system config - or other suitable place
 // Set issuer data for payment coins verification
 var options = {
   host: 'be.ap.rmp.net',
@@ -15,6 +17,7 @@ var options = {
 exports.get = function (endpoint, host=null) {
   options.host = host || options.host;
   options.method = 'GET';
+  //TODO: this should be configurable, especially version
   options.path = `/Bitcoin-express/v1/issuer/${endpoint}`;
   return issuerRequest(options, endpoint);
 }
@@ -22,6 +25,7 @@ exports.get = function (endpoint, host=null) {
 exports.post = function (endpoint, data, host=null) {
   options.host = host || options.host;
   options.method = 'POST';
+//TODO: this should be configurable, especially version
   options.path = `/Bitcoin-express/v1/issuer/${endpoint}`;
   options.headers['Content-Length'] = Buffer.byteLength(JSON.stringify(data));
   return issuerRequest(options, endpoint, data);

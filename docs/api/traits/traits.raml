@@ -1,0 +1,96 @@
+#%RAML 1.0 Traits
+
+JSON200Envelope:
+  responses:
+    200:
+      body:
+        application/json:
+          properties:
+            success:
+              type: boolean
+              required: true
+              description: Indicator if command was successfully executed.
+            messages:
+              type: Message[]
+              required: true
+              minItems: 0
+              description: Messages to be processed on API consumer's end.
+            body:
+              description: Actual data returned by the method.
+              minItems: 0
+              required: true
+              type: array
+              items:
+                type: object
+JSON201Envelope:
+  responses:
+    201:
+      body:
+        application/json:
+          properties:
+            success:
+              type: boolean
+              required: true
+              description: Indicator if command was successfully executed.
+            messages:
+              type: Message[]
+              required: true
+              minItems: 0
+              description: Messages to be processed on API consumer's end.
+            body:
+              description: Actual data returned by the method.
+              minItems: 0
+              required: true
+              type: array
+              items:
+                type: object
+JSON202Envelope:
+  responses:
+    202:
+      body:
+        application/json:
+          properties:
+            success:
+              type: boolean
+              required: true
+              description: Indicator if command was successfully executed.
+            messages:
+              type: Message[]
+              required: true
+              minItems: 0
+              description: Messages to be processed on API consumer's end.
+            body:
+              description: Actual data returned by the method.
+              minItems: 0
+              required: true
+              type: array
+              items:
+                type: object
+
+JSON400Envelope:
+  responses:
+    400:
+      body:
+        application/json:
+          properties:
+            success:
+              type: boolean
+              required: true
+              description: Indicator if command was successfully executed.
+            messages:
+              type: Message[]
+              required: true
+              minItems: 0
+              description: Messages to be processed on API consumer's end.
+            body:
+              description: Actual data returned by the method.
+              minItems: 0
+              required: true
+              type: array
+              items:
+                type: object
+
+401Response:
+  responses:
+    401:
+      description: Authentication token was not provided or it's invalid.

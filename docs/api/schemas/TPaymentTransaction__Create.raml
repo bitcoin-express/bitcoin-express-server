@@ -1,0 +1,28 @@
+#%RAML 1.0 DataType
+
+type: object
+displayName: PaymentTransaction
+properties:
+  amount: !include primitives/Amount.raml
+  description: !include primitives/Description.raml
+  email_customer_contact?: !include primitives/EmailCustomerContact.raml
+  expires: !include primitives/ExpireDate.raml
+  ack_passthrough?: !include primitives/AckPassthrough.raml
+  created: !include primitives/CreateDate.raml
+  currency: !include primitives/Currency.raml
+  status: !include primitives/TransactionStatus.raml
+  transaction_id: !include primitives/TransactionId.raml
+  callback_url?: !include primitives/CallbackURL.raml
+  payment_details?: !include TPaymentDetails.raml
+  polices:
+    type: !include primitives/Polices.raml
+    properties:
+      issuer_refund_via_email: !include primitives/ProvideIssuerRefundViaEmail.raml
+  time_budget: !include primitives/TimeBudget.raml
+  notification?: !include primitives/Notification.raml
+  order_id?: !include primitives/OrderId.raml
+  return_url?: !include primitives/ReturnURL.raml
+  type:
+    type: !include primitives/TransactionType.raml
+    default: payment
+    enum:

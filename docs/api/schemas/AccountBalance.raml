@@ -1,0 +1,16 @@
+#%RAML 1.0 DataType
+
+properties:
+  currency:
+    type: !include primitives/Currency.raml
+    required: true
+    description: Currency for which this balance is for.
+  value:
+    type: !include primitives/Value.raml
+    required: true
+    description: Total value of coins in a given currency.
+  number_of_coins:
+    type: !include primitives/NumberOfCoins.raml
+    required: true
+    description: Number of coins in a given currency.
+example: !include ../examples/AccountBalance.json

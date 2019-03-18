@@ -1,0 +1,8 @@
+#%RAML 1.0 DataType
+
+properties:
+  status: !include primitives/PaymentConfirmationStatus.raml
+  wallet_id?: !include primitives/WalletId.raml
+  return_url?: !include primitives/ReturnURL.raml
+  memo?: !include primitives/Notification.raml
+example: !include ../examples/TransactionPaymentConfirmationResponse.json

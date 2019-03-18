@@ -1,0 +1,16 @@
+{
+  "success":true,
+  "body":[
+    {
+      "currency": "XBT",
+      "value": "0.00120000",
+      "number_of_coins": 121
+    },
+    {
+      "currency": "ETH",
+      "value": "0.00200000",
+      "number_of_coins": 63
+    }
+  ],
+  "messages":[]
+}

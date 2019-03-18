@@ -1,0 +1,17 @@
+{
+  "ack_passthrough": "String passed by the Merchant",
+  "amount": "0.000889",
+  "callback_url": "https://my.site.url/post-order?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+  "currency": "XBT",
+  "description": "The art of asking",
+  "email_customer_contact": "sales@my.site.url",
+  "expires": "2018-08-28T06:25:26Z",
+  "order_id": "IN1234",
+  "polices": {
+    "receipt_via_email": true,
+    "refund_via_email": false
+  },
+  "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+  "time_budget": "60",
+  "type": "payment"
+}

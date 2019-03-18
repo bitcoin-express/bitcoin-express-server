@@ -1,0 +1,13 @@
+#%RAML 1.0 DateType
+
+type: datetime | integer
+description: |
+  Either:
+  - date in ISO 6801 format (e.g. 2018-12-18T22:22:22Z) - indicates till when this transaction is valid and can be proceeded
+  - an integer - represents the number of seconds from now till when this transaction is valid and can be proceeded
+
+  If not explicitly set then the default value from the Marchant account's settings is taken.
+default: 3600
+examples:
+  date: 2018-12-18T22:22:22Z
+  integer: 7200

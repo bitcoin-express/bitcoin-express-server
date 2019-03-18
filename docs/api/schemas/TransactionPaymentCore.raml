@@ -1,0 +1,49 @@
+#%RAML 1.0 DataType
+
+type: !include TransactionCore.raml
+properties:
+  order_id?: !include primitives/OrderId.raml
+  value: !include primitives/Value.raml
+  currency:
+    type: !include primitives/Currency.raml
+    required: false
+    description: |
+      The currency used in this transaction.
+
+      If it is not explicitly set then the ***default_payment_currency*** setting from the Merchant account's config will be taken.
+  description: !include primitives/Description.raml
+  notification?: !include primitives/Notification.raml
+  return_url?: !include primitives/ReturnURL.raml
+  callback_url?: !include primitives/CallbackURL.raml
+  email_customer_contact:
+    type: !include primitives/EmailCustomerContact.raml
+    required: false
+    description: |
+      An email address that can be used to contact the Merchant about the order.
+
+      If it is not explicitly set then the ***email_customer_contact*** setting from the Merchant account's config will be taken.
+  polices:
+    type: object
+    required: false
+    description: |
+      Chosen modifications of transaction's behavior. Options in this section influence the transaction flow and change how the transaction will be processed.
+    example: |
+      {
+        "receipt_via_email": true,
+        "refund_via_email": false
+      }
+    properties:
+      receipt_via_email:
+        type: !include primitives/ProvideReceiptViaEmail.raml
+        required: false
+        description: |
+          Indicator if the Merchant provides an option to send a receipt via email after successfull transaction.
+
+          If it is not explicitly set then the ***provide_receipt_via_email*** setting from the Merchant account's config will be taken.
+      refund_via_email:
+        type: !include primitives/ProvideRefundViaEmail.raml
+        required: false
+        description: |
+          Information if the Merchant provides a refund option via email. The actual refund mechanism is to be implemented on the Merchant's end.
+
+          If it is not explicitly set then the ***provide_refund_via_email*** setting from the Merchant account's config will be taken.

@@ -1,0 +1,63 @@
+{
+  "_from": "raml2html-modern-theme",
+  "_id": "raml2html-modern-theme@1.0.3",
+  "_inBundle": false,
+  "_integrity": "sha512-YV9p694xzizlZwkw2IE2luM5Fv0q4MrZeaZ1W5fTpzPw2Nbid4Se9IeCWLI53vFv67heN6qqtF2V8TP2GOSSOg==",
+  "_location": "/raml2html-modern-theme",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "raml2html-modern-theme",
+    "name": "raml2html-modern-theme",
+    "escapedName": "raml2html-modern-theme",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER"
+  ],
+  "_resolved": "https://registry.npmjs.org/raml2html-modern-theme/-/raml2html-modern-theme-1.0.3.tgz",
+  "_shasum": "e434ed4dd977ef6265e5a5cebffa24131f8f8cc0",
+  "_spec": "raml2html-modern-theme",
+  "_where": "/Users/Pirax/@Projects/EBDots/Bitcoin-Express/MerchantGateway/repository/docs/api",
+  "author": {
+    "name": "Jiri Hybek",
+    "email": "jiri@hybek.cz",
+    "url": "https://jiri.hybek.cz/"
+  },
+  "bugs": {
+    "url": "https://github.com/jirihybek/raml2html-modern-theme/issues"
+  },
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "Modern theme for raml2html utility.",
+  "devDependencies": {
+    "node-sass": "^4.11.0",
+    "raml2html": "^7.2.0",
+    "watch": "^1.0.2"
+  },
+  "homepage": "https://github.com/jirihybek/raml2html-modern-theme#readme",
+  "keywords": [
+    "raml",
+    "raml2html",
+    "modern",
+    "design",
+    "theme"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "raml2html-modern-theme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jirihybek/raml2html-modern-theme.git"
+  },
+  "scripts": {
+    "build": "cat ./scss/main.scss | node-sass > ./dist/style.css",
+    "prepublish": "npm run build",
+    "test": "raml2html -v --template ./index.nunjucks -i ./demo/raml-examples/others/world-music-api/api.raml -o ./demo/api.html",
+    "test:w": "watch -p \"/dist/\" -p \"/demo/\" \"npm run build-sass && npm run test\" ./"
+  },
+  "version": "1.0.3"
+}

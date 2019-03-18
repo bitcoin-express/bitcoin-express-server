@@ -1,0 +1,22 @@
+#%RAML 1.0 DataType
+
+type: object
+displayName: PaymentAck
+description: |
+  An object (as defined by the Payment specification) returned from the Gateway to Wallet containing information about the transaction's payment status.
+properties:
+  PaymentAck:
+    type: object
+    description: Object wrapper as defined in Payment Specification
+    properties:
+      status:
+        type: !include primitives/PaymentConfirmationStatus.raml
+        enum:
+          - failed
+          - rejected
+        description: |
+          Result of aborting transaction, consistent with transaction payment. ***failed*** status indicates the transaction
+          was successfully aborted and no longer can be processed. ***rejected*** status means that there was an error during
+          aborting transaction.
+      seller?: !include primitives/Seller.raml
+      wallet_id?: !include primitives/WalletId.raml

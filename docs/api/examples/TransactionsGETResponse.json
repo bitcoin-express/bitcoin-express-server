@@ -1,0 +1,95 @@
+{
+  "body":[
+    {
+      "ack_passthrough": "String passed by the Merchant",
+      "amount": "0.00088900",
+      "callback_url": "https://my.site.url/post-order?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+      "completed": "2018-08-28T05:45:10Z",
+      "created": "2018-08-28T05:25:26Z",
+      "currency": "XBT",
+      "description": "The art of asking",
+      "email_customer_contact": "sales@my.site.url",
+      "expires": "2018-08-28T06:25:26Z",
+      "net_value": "0.00088446",
+      "notification": "",
+      "order_id": "IN1234",
+      "polices": {
+        "issuer_refund_via_email": true,
+        "receipt_via_email": true,
+        "refund_via_email": false
+      },
+      "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+      "status": "resolved",
+      "time_budget": "60",
+      "total_fee": "0.00000454",
+      "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
+      "type": "payment",
+      "payment_details": {
+        "acceptable_issuers": [ "eu.carrotpay.com" ],
+        "amount": "0.00088900",
+        "created": "2018-08-28T05:25:26Z",
+        "currency": "XBT",
+        "description": "The art of asking",
+        "email_customer_contact": "sales@my.site.url",
+        "expires": "2018-08-28T06:25:26Z",
+        "order_id": "IN1234",
+        "payment_url": "https://my.gateway.url/transaction/97e00590-aa8a-11e8-a18f-4d64691098e6/payment",
+        "polices": {
+          "issuer_refund_via_email": true,
+          "receipt_via_email": true,
+          "refund_via_email": false
+        },
+        "seller": "my.site.url",
+        "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6"
+      },
+      "payment": {
+        "coins": [ "ewogICJhIjoiV1d4QVE3Tz...DkxNjgxIiwKICAieCI6IjAiCn0=" ],
+        "client": "web",
+        "notification": "Please send it to 123 Street, Town, City, Country",
+        "options": {
+          "send_receipt_to": {
+            "email":"buyer@mail.url"
+          },
+          "send_refund_to": {
+            "email":"buyer@mail.url",
+            "password":"hX,LsQ9z",
+            "reference":"12344321"
+          },
+          "language_preference": "en-GB"
+        },
+        "order_id": "IN1234",
+        "transaction_id": "97e00590-aa8a-11e8-a18f-4d64691098e6",
+        "wallet_id": "123123123",
+        "verify_info": {
+          "actualValue":"0.00088900",
+          "changeValue":"0.00000000",
+          "currency":"XBT",
+          "exchangedValue":"0.00000000",
+          "faceValue":"0.00088900",
+          "fees":[
+            {
+              "domain":"eu.carrotpay.com",
+              "totalFee":"0.00000454",
+              "valueFee":"0.00000454"
+            }
+          ],
+          "issuePolicy":"single",
+          "reference":"67972259-4d91-4a88-b0b0-f525a4c2ce29",
+          "targetValue":"0.00088900",
+          "totalFee":"0.00000454",
+          "verifiedValue":"0.00088446"
+        }
+      },
+      "payment_ack": {
+        "ack_passthrough": "String passed by the Merchant",
+        "reference": "67972259-4d91-4a88-b0b0-f525a4c2ce29",
+        "return_url": "https://my.site.url/pay?order=IN1234&transaction_id=97e00590-aa8a-11e8-a18f-4d64691098e6",
+        "seller": "my.site.url",
+        "status": "ok",
+        "wallet_id": "123123123"
+      }
+    }
+  ],
+  "messages": [],
+  "success": true
+}

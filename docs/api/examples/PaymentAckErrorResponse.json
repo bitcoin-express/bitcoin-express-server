@@ -1,0 +1,15 @@
+{
+  "success":false,
+  "body":[
+    {
+      "status": "payment-unknown",
+      "wallet_id": "123456789"
+    }
+  ],
+  "messages":[
+    {
+      "type":"error",
+      "body":"Example of error message"
+    }
+  ]
+}

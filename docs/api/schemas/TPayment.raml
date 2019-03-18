@@ -1,0 +1,24 @@
+#%RAML 1.0 DataType
+
+displayName: Payment
+type: object
+properties:
+  Payment:
+    type: object
+    description: Object wrapper as defined in Payment Specification
+    properties:
+      coins: !include primitives/Base64Coins.raml
+      client?: !include primitives/ClientType.raml
+      options?:
+        description: |
+            Additional information and flags for the transaction.
+            These options may influence the transaction's process but are not required for the transaction to be processed.
+        properties:
+          language_preference?: !include primitives/LanguagePreference.raml
+          send_receipt_to?: !include primitives/SendReceiptTo.raml
+          send_refund_to?: !include primitives/SendRefundTo.raml
+          send_issuer_refund_to?: !include primitives/SendIssuerRefundTo.raml
+          notification?: !include primitives/Memo.raml
+      order_id?: !include primitives/OrderId.raml
+      wallet_id?: !include primitives/WalletId.raml
+      transaction_id?: !include primitives/TransactionId.raml

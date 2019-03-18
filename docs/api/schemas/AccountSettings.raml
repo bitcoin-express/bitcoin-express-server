@@ -1,0 +1,8 @@
+#%RAML 1.0 DataType
+
+type: !include AccountSettingsCore.raml
+example: !include ../examples/AccountSettings.json
+description: Object with all settings available to the Merchant.
+properties:
+  return_url?: !include primitives/ReturnURL.raml
+  callback_url?: !include primitives/CallbackURL.raml

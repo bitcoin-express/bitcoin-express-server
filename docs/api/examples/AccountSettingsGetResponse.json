@@ -1,0 +1,13 @@
+{
+  "success":true,
+  "body":[{
+      "callback_url": "",
+      "default_payment_currency": "XBT",
+      "default_payment_timeout": "3600",
+      "home_issuer": "be.ap.rmp.net",
+      "provide_receipt_via_email": false,
+      "provide_refund_via_email": false,
+      "return_url": ""
+  }],
+  "messages":[]
+}

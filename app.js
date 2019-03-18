@@ -1,7 +1,10 @@
 const express = require('express');
 const session = require('express-session');
 const config = require('config');
-
+const api = require(config.get('system.root_dir') + '/core/api');
+const { Transaction } = require(config.get('system.root_dir') + '/core/models/Transaction');
+const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponses');
+const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
 
 // Check if all keys, essential for application running, are set in config files.
 // If not - prevent application from running.
@@ -10,7 +13,6 @@ for (let key of config.get('_system_required_keys')) {
     throw new Error(`Missing required configuration key: ${key}`);
   }
 }
-
 
 var fs = require('fs');
 var bodyParser = require('body-parser');
@@ -33,34 +35,29 @@ else {
     };
 }
 
-var exphbs = require('express-handlebars');
+const exphbs = require('express-handlebars');
+const { createPaymentRequest } = require("./requests/createPaymentRequest");
+const { getBalance } = require("./requests/getBalance");
+const { getCoins } = require("./requests/getCoins");
+const { getPaymentStatus } = require("./requests/getPaymentStatus");
+const { getTransactions } = require("./requests/getTransactions");
+const { payment } = require("./requests/payment");
+const { redeem } = require("./requests/redeem");
+const { register } = require("./requests/register");
+const { setConfig } = require("./requests/setConfig");
 
-var { createPaymentRequest } = require("./requests/createPaymentRequest");
-var { getBalance } = require("./requests/getBalance");
-var { getCoins } = require("./requests/getCoins");
-var { getPaymentStatus } = require("./requests/getPaymentStatus");
-var { getTransactions } = require("./requests/getTransactions");
-var { payment } = require("./requests/payment");
-var { redeem } = require("./requests/redeem");
-var { register } = require("./requests/register");
-var { setConfig } = require("./requests/setConfig");
 
-
-var db = require('./db');
-
-var {
-  authMiddleware,
-  corsMiddleware,
-} = require('./middlewares');
+const db = require(config.get('system.root_dir') + '/db');
+const middleware = require(config.get('system.root_dir') + '/core/middlewares');
+const api_helpers = require(config.get('system.root_dir') + '/core/api/helpers');
+const app = express();
 
 var { panelRoute } = require('./routes');
-
-var app = express();
 
 Date.prototype.addSeconds = function (s) {
   this.setSeconds(this.getSeconds() + parseInt(s));
   return this;
-}
+};
 
 
 // Prepare templating for Control Panel
@@ -72,14 +69,15 @@ app.engine('handlebars', exphbs({
   }
 }));
 app.set('view engine', 'handlebars');
+app.set('x-powered-by', false);
 app.use(express.static(__dirname + '/assets'));
 
 
 // Middelwares and config for REST API
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(corsMiddleware);
-app.use(authMiddleware);
+// TODO: To think: should this be used for /panel route as well as it is now? is there a security threat?
+app.use(middleware.corsMiddleware);
 app.use(session({
   secret: config.get('server.session.secret'),
   resave: true,
@@ -87,44 +85,97 @@ app.use(session({
 }));
 
 
-
 // Connect to Mongo on start
 db.connect(config.get('server.db.uri'), function (err) {
-  if (err) {
-    console.log('Unable to connect to MongoDB.', err);
-    process.exit(1)
-    return;
-  }
+    if (err) {
+        console.log('Unable to connect to MongoDB.', err);
+        process.exit(1);
+        return;
+    }
 
-  app.get('/', (req, res) => {
-    res.render('index');
-  });
-  app.all('/panel/*', panelRoute);
+    app.get('/', (req, res) => { res.render('index'); });
+    app.all('/panel/*', api_helpers.noAuthentication, panelRoute);
 
-  app.post('/createPaymentRequest', createPaymentRequest);
-  app.get('/getBalance', getBalance);
-  app.post('/getCoins', getCoins);
-  app.get('/getPaymentStatus', getPaymentStatus);
-  app.get('/getTransactions', getTransactions);
-  app.post('/payment', payment);
-  app.post('/redeem', redeem);
-  app.post('/register', register);
-  app.post('/setConfig', setConfig);
+    app.post('/createPaymentRequest', api_helpers.requireAuthentication, createPaymentRequest);
+    app.get('/getBalance', api_helpers.requireAuthentication, getBalance);
+    app.post('/getCoins', api_helpers.requireAuthentication, getCoins);
+    app.get('/getPaymentStatus', api_helpers.requireAuthentication, getPaymentStatus);
+    app.get('/getTransactions', api_helpers.requireAuthentication, getTransactions);
+    app.post('/payment', api_helpers.noAuthentication, payment);
+    app.post('/redeem', api_helpers.requireAuthentication, redeem);
+    app.post('/register', api_helpers.noAuthentication, register);
+    app.post('/setConfig', api_helpers.requireAuthentication, setConfig);
 
-  web_server.handler.createServer(web_server.options, app).listen(config.get('server.port'), function() {
-    console.log(`Listening on port ${config.get('server.port')}...`);
-  });
+    for (let route_config of api.routes.values()) {
+        app.route(route_config.path)[route_config.method](...route_config.actions);
+    }
 
-  setInterval(() => {
-    var now = new Date().addSeconds(30); // 30 sec
-    var query = {
-      expires: { $lt: now },
-      status: { $in: ["initial", "timeout"] },
-    };
-    db.remove("payments", query).then((resp) => {
-      console.log('SCHEDULER - Removing expired requests before ' + now.toUTCString(), 'Items removed: '+resp.n);
-    }).catch((err) => {
-      console.log('SCHEDULER ERROR - Removing expired requests before ' + now.toUTCString(), err);
+    app.use(function(req, res, next) {
+        let response = new JSONResponseEnvelope();
+        response.messages.push(new Message({ type: Message.TYPE__ERROR, body: "Path not found", }));
+
+        res.status(404).send(response);
     });
-  }, 5 * 60 * 1000); // interval of 5 min
-})
+
+    app.use(function(err, req, res, next) {
+        console.log('Unhandled router error', err);
+
+        let response = new JSONResponseEnvelope();
+        response.messages.push(new Message({ type: Message.TYPE__ERROR, body: "Internal error", }));
+
+        res.status(err.status || 500).send(response);
+    });
+
+    web_server.handler.createServer(
+        web_server.options, app).listen(config.get('server.port'), function() {
+            console.log(`Listening on port ${config.get('server.port')}...`);
+        }
+    );
+
+    console.log('Migrating hanging pending Transactions to deferred...');
+
+    db.findAndModify('transactions',
+        { type: { $eq: Transaction.TYPE__PAYMENT, }, status: { $eq: Transaction.STATUS__PENDING, }, },
+        { status: Transaction.STATUS__DEFERRED, }).
+    then((result) => {
+        console.log('Pending Transactions migrated to deferred: ', result);
+    }).
+    catch((error) => {
+        console.log('Error during pending to deferred migration: ', error);
+    });
+
+    console.log('Done.');
+
+    setTimeout(() => {
+        let query = {
+            type: { $eq: Transaction.TYPE__PAYMENT, },
+            status: { $eq: Transaction.STATUS__INITIAL, },
+            expire: { $lte: new Date(), }
+        };
+
+        db.findAndModify('transactions', query, { status: Transaction.STATUS__EXPIRED, }).
+        then((result) => {
+            console.log('Expired payment transactions: ', result);
+        }).
+        catch((error) => {
+            console.log('Error during expiring transactions: ', error);
+        });
+    }, 5 * 60 * 1000);
+
+    if (config.get('system.remove_expired_transactions')) {
+        setInterval(() => {
+            const now = new Date().addSeconds(30); // 30 sec
+
+            const query = {
+                expires: { $lt: now },
+                status: { $in: [ Transaction.STATUS__INITIAL, Transaction.STATUS__EXPIRED, ] },
+            };
+
+            db.remove('transactions', query).then((resp) => {
+                console.log('SCHEDULER - Removing expired requests before ' + now.toUTCString(), 'Items removed: ' + resp.n);
+            }).catch((err) => {
+                console.log('SCHEDULER ERROR - Removing expired requests before ' + now.toUTCString(), err);
+            });
+        }, 5 * 60 * 1000); // interval of 5 min
+    }
+});

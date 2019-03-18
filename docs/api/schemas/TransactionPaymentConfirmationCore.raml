@@ -1,0 +1,19 @@
+#%RAML 1.0 DataType
+
+properties:
+  wallet_id?: !include primitives/WalletId.raml
+  client_type?: !include primitives/ClientType.raml
+  memo?: !include primitives/Memo.raml
+  options:
+    type: object
+    required: false
+    description: |
+        Additional information and flags for the transaction.
+        These options may influence the transaction's process but are not required for the transaction to be processed.
+    properties:
+      language_preference?: !include primitives/LanguagePreference.raml
+      send_receipt_to?: !include primitives/SendReceiptTo.raml
+      send_refund_to?: !include primitives/SendRefundTo.raml
+  order_id?: !include primitives/OrderId.raml
+example: !include ../examples/TransactionPaymentBuyerConfirmationCore.json
+

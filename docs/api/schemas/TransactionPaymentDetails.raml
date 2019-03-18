@@ -1,0 +1,20 @@
+#%RAML 1.0 DataType
+
+type: !include TransactionPaymentRequestResponse.raml
+properties:
+  confirmation_details:
+    type: !include TransactionPaymentConfirmationCore.raml
+    required: false
+    description: |
+      Payment confirmation details send from the Buyer's Wallet to finalize the transaction.
+    example: !include ../examples/TranscationPaymentConfirmation.json
+  verification_details:
+    type: object
+    required: false
+    description: |
+      The data returned by the Issuer that verified _Coins_ used in the transaction. The Gateway is not modifying this data in any way.
+      Please refer to issuer specification for the detailed description of this structure.
+    example: !include ../examples/TransactionPaymentVerifyInfo.json
+  paid: !include primitives/PaidDate.raml
+example: !include ../examples/TransactionPaymentDetails.json
+

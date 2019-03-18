@@ -1,0 +1,15 @@
+#%RAML 1.0 DataType
+
+type: !include TPaymentDetails__Common.raml
+displayName: PaymentDetails
+properties:
+  ack_passthrough?: !include primitives/AckPassthrough.raml
+  callback_url?: !include primitives/CallbackURL.raml
+  notification?: !include primitives/Notification.raml
+  return_url?: !include primitives/ReturnURL.raml
+  time_budget?: !include primitives/TimeBudget.raml
+  type:
+    type: !include primitives/TransactionType.raml
+    default: payment
+    enum:
+
