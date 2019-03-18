@@ -283,7 +283,6 @@ exports.Account = class Account extends BaseModel {
         // Set required initial settings - this settings won't change its value even if the Gateway operator decides to
         // change the Gateway configuration
         this.settings.home_issuer = config.get('account.settings.home_issuer');
-        this.settings.acceptable_issuers = config.get('account.settings.acceptable_issuers');
         this.settings.default_payment_timeout = config.get('account.settings.default_payment_timeout');
         this.settings.default_payment_currency = config.get('account.settings.default_payment_currency');
 

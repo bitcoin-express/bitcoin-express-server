@@ -146,11 +146,8 @@ BaseModel.lockPropertiesOf(_settings_properties_validators);
  */
 const _settings_properties_custom_getters = {
     acceptable_issuers: (issuers) => {
-        let configured_acceptable_issuers = config.get('account.settings.acceptable_issuers');
-        let acceptable_issuers = configured_acceptable_issuers && Array.isArray(configured_acceptable_issuers) && configured_acceptable_issuers.length > 0 ?
-               configured_acceptable_issuers :
-               config.get('account.settings.home_issuer') ?
-                [ `(${config.get('account.settings.acceptable_issuers')})`, ] :
+        let acceptable_issuers = config.get('account.settings.home_issuer') ?
+                [ `(${config.get('account.settings.home_issuer')})`, ] :
                 undefined;
 
         if (!acceptable_issuers) { throw new Error('Can not determine value of acceptable_issuers'); }
