@@ -133,6 +133,9 @@ const _settings_properties_validators = {
     callback_url: (url) => {
         if (url && !checks.isURL(url)) { throw new Error('Invalid format'); }
     },
+    provide_issuer_refund_via_email: (bool) => {
+        if (bool !== undefined && typeof bool !== typeof true) { throw new Error('Invalid format'); }
+    },
 };
 
 // We are sealing the structure to prevent any modifications
@@ -212,7 +215,9 @@ exports.Settings = class Settings extends BaseModel {
         // As default settings' values are taken from the Gateway configuration we need to set only explicitly defined
         // keys
         for (let setting of Object.keys(init_data)) {
-            this[setting] = init_data[setting];
+            if (!SETTINGS_READONLY_PROPERTIES.has(setting)) {
+                this[setting] = init_data[setting];
+            }
         }
     }
 
@@ -220,7 +225,7 @@ exports.Settings = class Settings extends BaseModel {
     /**
      * Properties' names that can be set via API. This structure is used by the static method [checkAPIProperties]{@link module:core/models/BaseModel/BaseModel#checkAPIProperties}
      * to validate if passed structure has only allowed properties and can be feed to constructor.
-     * @returns {Set<Sring>>}
+     * @returns {Set<String>}
      * @static
      */
     static get API_PROPERTIES () { return SETTINGS_API_PROPERTIES; }
