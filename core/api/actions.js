@@ -544,6 +544,7 @@ exports.patchAccount = async (req, res, next) => {
         req.params._account = new_account;
 
         response.body.push(new_account);
+        response.messages.push(new Message({ body: 'Account updated.', type: Message.TYPE__INFO, }));
         response.success = true;
 
         res.status(202);
