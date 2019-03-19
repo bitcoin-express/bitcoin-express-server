@@ -629,6 +629,7 @@ exports.patchAccountSettings = async (req, res, next) => {
         await req.params._account.save();
 
         response.body.push(req.params._account.settings);
+        response.messages.push(new Message({ body: 'Settings updated.', type: Message.TYPE__INFO, }));
         response.success = true;
 
         res.status(202);
