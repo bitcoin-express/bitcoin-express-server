@@ -305,31 +305,6 @@ exports.Account = class Account extends BaseModel {
         return this;
     }
 
-
-    /**
-     * Method to save the account's settings only.
-     * As the account's settings are not stored as a separate object but rather as a sub-document of the Account's
-     * document in the database we need to have a way to save them as we can't use build-in save method.
-     * @returns {Promise<Account>}
-     * @async
-     */
-    async saveSettings () {
-        try {
-            this[_account_data] = await db.findAndModify(this[_account_interface].db_table,
-                { _id: this.account_id, },
-                { settings: this[_account_data].settings, },
-                { db_session: this[_account_interface].db_session_id, }
-            );
-
-            return this;
-        }
-        catch (e) {
-            console.log('account saveSettings', e);
-
-            throw new Error("Unable to save account's settings");
-        }
-    }
-
     toJSON() {
         let json_data = {};
 

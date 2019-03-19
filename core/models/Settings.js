@@ -163,7 +163,12 @@ const _settings_properties_custom_getters = {
 for (let property of SETTINGS_ALLOWED_PROPERTIES) {
     if (!_settings_properties_custom_getters.hasOwnProperty(property)) {
         _settings_properties_custom_getters[property] = function () {
-            return config.get(`account.settings.${property}`);
+            if (this[_settings_data][property]) {
+                return this[_settings_data][property];
+            }
+            else {
+                return config.get(`account.settings.${property}`);
+            }
         };
     }
 }

@@ -626,7 +626,7 @@ exports.patchAccountSettings = async (req, res, next) => {
         // it to the account and run the [saveSettings]{@link module:core/models/Account/Account.saveSettings} method
         // in order to store them in the database
         req.params._account.settings = new_settings;
-        req.params._account.saveSettings();
+        await req.params._account.save();
 
         response.body.push(req.params._account.settings);
         response.success = true;
