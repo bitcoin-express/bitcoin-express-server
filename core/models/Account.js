@@ -95,7 +95,7 @@ const ACCOUNT_REQUIRED_PROPERTIES = new Set(config.get('_register_required_keys'
  * @private
  * @const
  */
-const ACCOUNT_HIDDEN_PROPERTIES = new Set([ 'updated', 'created', ]);
+const ACCOUNT_HIDDEN_PROPERTIES = new Set([ 'updated', 'created', 'account_id', ]);
 
 
 /**
