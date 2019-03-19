@@ -888,6 +888,9 @@ class PaymentTransaction extends CoreTransaction {
                 refund_via_email: init_data.polices && init_data.polices.hasOwnProperty('refund_via_email') ?
                                   init_data.polices.refund_via_email :
                                   init_data.account.settings.provide_refund_via_email,
+                issuer_refund_via_email: init_data.polices && init_data.polices.hasOwnProperty('issuer_refund_via_email') ?
+                                  init_data.polices.issuer_refund_via_email :
+                                  init_data.account.settings.provide_issuer_refund_via_email,
             };
 
             this.currency = init_data.currency || init_data.account.settings.default_payment_currency;
