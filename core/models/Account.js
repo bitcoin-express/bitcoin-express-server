@@ -187,8 +187,8 @@ exports.Account = class Account extends BaseModel {
             settings: new Settings(),
         };
 
-        for (let property of config.get('_register_allowed_keys')) {
-            if (!this[property] && init_data[property]) {
+        for (let property of ACCOUNT_ALLOWED_PROPERTIES.values()) {
+            if (!this[property] && init_data[property]) {console.log('w srodku');
                 this[property] = init_data[property];
             }
         }
@@ -328,5 +328,26 @@ exports.Account = class Account extends BaseModel {
 
             throw new Error("Unable to save account's settings");
         }
+    }
+
+    toJSON() {
+        let json_data = {};
+
+        for (let property of ACCOUNT_ALLOWED_PROPERTIES.values()) {
+            if (ACCOUNT_HIDDEN_PROPERTIES.has(property)) {
+                continue;
+            }
+
+            if (!this[property]) {
+                if (ACCOUNT_REQUIRED_PROPERTIES.has(property)) {
+                    json_data[property] = null;
+                }
+            }
+            else {
+                json_data[property] = this[property];
+            }
+        }
+
+        return json_data;
     }
 };
