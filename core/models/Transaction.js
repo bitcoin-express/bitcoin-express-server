@@ -512,8 +512,6 @@ class Transaction {
         let filtered_properties = Object.assign({}, properties);
         delete filtered_properties.type;
 
-
-        console.log(transaction_class.prototype);
         transaction_class.checkAPIProperties(filtered_properties);
     }
 
