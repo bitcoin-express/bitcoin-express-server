@@ -92,7 +92,7 @@ exports.postTransactions = async (req, res, next) => {
             req.body.type = 'payment';
         }
 
-        Transaction.checkAPIProperties(body);
+        Transaction.checkAPIProperties(req.body);
 
         let transaction = undefined;
 
