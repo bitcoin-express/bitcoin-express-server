@@ -397,7 +397,8 @@ exports.deleteTransactionByIdPayment = async (req, res, next) => {
 
         response = new PaymentAck({
             status: PaymentAck.STATUS__FAILED,
-            wallet_id: req.body.wallet_id,
+            wallet_id: transaction && transaction.payment && transaction.payment.Payment && transaction.payment.Payment.wallet_id,
+            seller: transaction.seller
         });
 
         res.status(200);
@@ -407,7 +408,8 @@ exports.deleteTransactionByIdPayment = async (req, res, next) => {
 
         response = new PaymentAck({
             status: PaymentAck.STATUS__REJECTED,
-            wallet_id: req.body.wallet_id,
+            wallet_id: transaction && transaction.payment && transaction.payment.Payment && transaction.payment.Payment.wallet_id,
+            seller: transaction && transaction.seller,
         });
 
         res.status(400);
