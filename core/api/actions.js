@@ -195,6 +195,10 @@ exports.getTransactionByOrderId = async (req, res, next) => {
             order_id: req.params.order_id,
         },
 
+        // We want newest transaction
+        order_by: "created",
+        order: "descending",
+
         limit: 1,
 
         // In order to also return transactions that are not "valid" we need to disable this check
