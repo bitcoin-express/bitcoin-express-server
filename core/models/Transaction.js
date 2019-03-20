@@ -1034,8 +1034,9 @@ class PaymentTransaction extends CoreTransaction {
             //...if it's still in the initial status we have to abort it first...
             else if (existing_transaction.status === Transaction.STATUS__INITIAL) {
                 try {
-                    this.status = Transaction.STATUS__ABORTED;
-                    await this.save();
+                    existing_transaction.status = Transaction.STATUS__ABORTED;
+                    await existing_transaction.save();
+
                 }
                 catch (e) {
                     await db_session.abortTransaction();
