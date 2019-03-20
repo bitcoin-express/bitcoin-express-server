@@ -299,8 +299,4 @@ exports.PaymentAck = class PaymentAck extends BaseModel {
      * @static
      */
     static get STATUS__DEFERRED () { return PAYMENT_ACK_STATUS__DEFERRED; }
-
-    toJSON() {
-        return { PaymentAck: this };
-    }
 };

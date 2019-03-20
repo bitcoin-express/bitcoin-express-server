@@ -346,7 +346,7 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         res.status(400);
     }
 
-    return res.send(new JSONResponse(response).prepareResponse(res));
+    return res.send(new JSONResponse({ PaymentAck: response, }).prepareResponse(res));
 };
 
 
@@ -393,9 +393,7 @@ exports.deleteTransactionByIdPayment = async (req, res, next) => {
         }
 
         transaction.status = Transaction.STATUS__ABORTED;
-        transaction.save({ overwrite_non_final_state_only: true, });
-
-        console.log('api deleteTransactionByIdPayment post save');
+        await transaction.save({ overwrite_non_final_state_only: true, });
 
         response = new PaymentAck({
             status: PaymentAck.STATUS__FAILED,
@@ -406,10 +404,16 @@ exports.deleteTransactionByIdPayment = async (req, res, next) => {
     }
     catch (e) {
         console.log('api deleteTransactionByIdPayment', e);
+
+        response = new PaymentAck({
+            status: PaymentAck.STATUS__REJECTED,
+            wallet_id: req.body.wallet_id,
+        });
+
         res.status(400);
     }
 
-    return res.send(new JSONResponse(response).prepareResponse(res));
+    return res.send(new JSONResponse({ PaymentAck: response, }).prepareResponse(res));
 };
 
 
