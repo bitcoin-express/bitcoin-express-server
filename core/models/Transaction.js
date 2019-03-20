@@ -1660,7 +1660,7 @@ class PaymentTransaction extends CoreTransaction {
         }
 
         //...Payment specification also requires 'payment' section instead of 'payment_confirmation' so we have to rename it...
-        if (data.payment_confirmation) {
+        if (data.hasOwnProperty('payment_confirmation')) {
             data.payment = data.payment_confirmation;
             delete data.payment_confirmation;
         }
