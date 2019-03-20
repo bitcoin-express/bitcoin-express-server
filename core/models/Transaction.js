@@ -441,6 +441,7 @@ const _transaction_properties_custom_setters = {
     callback_url: function (value) {
         // While setting the callback url we want it to have transaction_id added to it's query string together with
         // order_id - if present.
+
         if (value !== undefined) {
             let url = new URL(value);
             url.searchParams.set('transaction_id', this.transaction_id);
@@ -860,15 +861,16 @@ class PaymentTransaction extends CoreTransaction {
         // values
         if (!init_data[_initialise_empty_object]) {
             this[_transaction_data].transaction_id = uuidv4();
+            this[_transaction_data].order_id = init_data.order_id || undefined;
             this[_transaction_data].status = TRANSACTION_STATUS__INITIAL;
             this[_transaction_data].account_id = init_data.account.account_id;
             this[_transaction_data].acceptable_issuers = `(${init_data.account.settings.home_issuer})`;
+            this[_transaction_data].seller = init_data.account.domain;
+            this[_transaction_data].created = new Date();
 
             this.return_url = init_data.return_url || init_data.account.settings.return_url || undefined;
-            this[_transaction_data].seller = init_data.account.domain;
             this.callback_url = init_data.callback_url || init_data.account.settings.callback_url || undefined;
 
-            this[_transaction_data].created = new Date();
             this.expires = init_data.expires ?
                            (
                                init_data.expires instanceof Date ?
