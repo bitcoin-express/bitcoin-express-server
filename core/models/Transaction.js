@@ -455,8 +455,6 @@ const _transaction_properties_custom_setters = {
         this[_transaction_data]['callback_url'] = value;
     },
     status: function (value) {
-        console.log('w status', value, this[_transaction_data].status);
-
         this[_transaction_interface].__prev_status = this[_transaction_data].status;
         this[_transaction_data].status = value;
 
@@ -726,7 +724,7 @@ class Transaction {
             }
             // If status is not forced - by default - shows only valid, not expired/aborted transactions. If it's false transactions
             // in all statuses will be returned.
-            else if (only_valid) {
+            else if (String(only_valid) === "true") {
                 query.status = { $in: [
                         TRANSACTION_STATUS__INITIAL,
                         TRANSACTION_STATUS__RESOLVED,
