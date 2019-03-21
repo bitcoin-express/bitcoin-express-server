@@ -3,5 +3,7 @@
   "default_payment_timeout": "3600",
   "provide_receipt_via_email": true,
   "provide_refund_via_email": false,
-  "home_issuer": "eu.carrotpay.com"
+  "provide_issuer_refund_via_email": true,
+  "home_issuer": "eu.carrotpay.com",
+  "_locked_settings": [ "provide_issuer_refund_via_email" ]
 }

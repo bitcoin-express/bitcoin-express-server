@@ -6,3 +6,9 @@ description: Object with all settings available to the Merchant.
 properties:
   return_url?: !include primitives/ReturnURL.raml
   callback_url?: !include primitives/CallbackURL.raml
+  _locked_settings:
+    type: array
+    description: a list of read-only settings
+    items:
+      type: string
+      description: name of a read-only setting

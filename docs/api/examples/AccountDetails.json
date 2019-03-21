@@ -5,6 +5,7 @@
   "email_customer_contact": "sales@my.site.url",
   "name": "My Online Shop",
   "settings": {
+    "_locked_settings": [ "provide_issuer_refund_via_email" ],
     "default_payment_currency": "XBT",
     "default_payment_timeout": "3600",
     "provide_receipt_via_email": true,
