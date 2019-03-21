@@ -1,10 +1,16 @@
+const config = require('config');
 const express = require('express');
 const session = require('express-session');
-const config = require('config');
+const exphbs = require('express-handlebars');
+const fs = require('fs');
+const bodyParser = require('body-parser');
+
 const api = require(config.get('system.root_dir') + '/core/api');
 const { Transaction } = require(config.get('system.root_dir') + '/core/models/Transaction');
 const { JSONResponseEnvelope } = require(config.get('system.root_dir') + '/core/models/JSONResponses');
 const { Message } = require(config.get('system.root_dir') + '/core/models/Message');
+
+const { panelRoute } = require('./routes');
 
 // Check if all keys, essential for application running, are set in config files.
 // If not - prevent application from running.
@@ -13,9 +19,6 @@ for (let key of config.get('_system_required_keys')) {
     throw new Error(`Missing required configuration key: ${key}`);
   }
 }
-
-var fs = require('fs');
-var bodyParser = require('body-parser');
 
 const web_server = {
   handler: undefined,
@@ -35,24 +38,10 @@ else {
     };
 }
 
-const exphbs = require('express-handlebars');
-const { createPaymentRequest } = require("./requests/createPaymentRequest");
-const { getBalance } = require("./requests/getBalance");
-const { getCoins } = require("./requests/getCoins");
-const { getPaymentStatus } = require("./requests/getPaymentStatus");
-const { getTransactions } = require("./requests/getTransactions");
-const { payment } = require("./requests/payment");
-const { redeem } = require("./requests/redeem");
-const { register } = require("./requests/register");
-const { setConfig } = require("./requests/setConfig");
-
-
 const db = require(config.get('system.root_dir') + '/db');
 const middleware = require(config.get('system.root_dir') + '/core/middlewares');
 const api_helpers = require(config.get('system.root_dir') + '/core/api/helpers');
 const app = express();
-
-var { panelRoute } = require('./routes');
 
 Date.prototype.addSeconds = function (s) {
   this.setSeconds(this.getSeconds() + parseInt(s));
@@ -95,16 +84,6 @@ db.connect(config.get('server.db.uri'), function (err) {
 
     app.get('/', (req, res) => { res.render('index'); });
     app.all('/panel/*', api_helpers.noAuthentication, panelRoute);
-
-    app.post('/createPaymentRequest', api_helpers.requireAuthentication, createPaymentRequest);
-    app.get('/getBalance', api_helpers.requireAuthentication, getBalance);
-    app.post('/getCoins', api_helpers.requireAuthentication, getCoins);
-    app.get('/getPaymentStatus', api_helpers.requireAuthentication, getPaymentStatus);
-    app.get('/getTransactions', api_helpers.requireAuthentication, getTransactions);
-    app.post('/payment', api_helpers.noAuthentication, payment);
-    app.post('/redeem', api_helpers.requireAuthentication, redeem);
-    app.post('/register', api_helpers.noAuthentication, register);
-    app.post('/setConfig', api_helpers.requireAuthentication, setConfig);
 
     for (let route_config of api.routes.values()) {
         app.route(route_config.path)[route_config.method](...route_config.actions);
