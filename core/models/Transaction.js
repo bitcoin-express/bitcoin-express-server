@@ -23,6 +23,7 @@ const utils = require(config.get('system.root_dir') + '/issuer/utils');
 const issuer = require(config.get('system.root_dir') + '/issuer');
 const endpoints = require(config.get('system.root_dir') + '/core/api/endpoints');
 const errors = require(config.get('system.root_dir') + '/core/models/Errors');
+const helpers = require(config.get('system.root_dir') + '/core/helpers');
 
 const { Settings } = require(config.get('system.root_dir') + '/core/models/Settings');
 const { Account } = require(config.get('system.root_dir') + '/core/models/Account');
@@ -864,7 +865,7 @@ class PaymentTransaction extends CoreTransaction {
             this[_transaction_data].order_id = init_data.order_id || undefined;
             this[_transaction_data].status = TRANSACTION_STATUS__INITIAL;
             this[_transaction_data].account_id = init_data.account.account_id;
-            this[_transaction_data].acceptable_issuers = `(${init_data.account.settings.home_issuer})`;
+            this[_transaction_data].acceptable_issuers = [ `(${init_data.account.settings.home_issuer})`, ];
             this[_transaction_data].seller = init_data.account.domain;
             this[_transaction_data].created = new Date();
 
@@ -1268,7 +1269,6 @@ class PaymentTransaction extends CoreTransaction {
 
         console.log('transaction migrated to pending state');
 
-
         // We want to automatically defer the Transaction after depleting time_budget extended by a time buffer to
         // prevent pending Transactions from hanging and make them available for the Wallet again
         let pending_to_deferred_timeout = undefined;
@@ -1426,6 +1426,7 @@ class PaymentTransaction extends CoreTransaction {
             let issuer_call_result = await _handleIssuerCall(
                 [ 'begin', { issuerRequest: { fn: "verify", } }, account.settings.home_issuer, ],
                 async (issuer_response) => {
+
                     if (!issuer_response.issuerResponse.headerInfo || !issuer_response.issuerResponse.headerInfo.tid) {
                         payment_ack.status = PaymentAck.STATUS__DEFERRED;
                         payment_ack.retry_after = config.get('server.api.soft_error_retry_delay');
@@ -1469,7 +1470,36 @@ class PaymentTransaction extends CoreTransaction {
         // TODO: make a class
         let coin_data = {};
 
+
         console.log('before verify');
+/*
+        const _handleIssuerCall2 = async (issuer_call_args, ok_handler) => {
+            return await ok_handler({
+                issuerResponse: {
+                    verifyInfo: {
+                        actualValue: "0.00005",
+                        changeValue: "0.00000000",
+                        currency: "XBT",
+                        exchangedValue: "0.00000000",
+                        faceValue: "0.00005",
+                        fees: [
+                            {
+                                domain: "eu.carrotpay.com",
+                                totalFee: "0.00000454",
+                                valueFee: "0.00000454"
+                            }
+                        ],
+                        issuePolicy: "single",
+                        reference: "67972259-4d91-4a88-b0b0-f525a4c2ce29",
+                        targetValue: "0.00005",
+                        totalFee: "0.00000454",
+                        verifiedValue: "0.00088446"
+                    },
+                    coin: "ewogICJhIjoiV1d4QVE3TzFtaHNNcUJpU0lPOWtKQmFIV1NrV2plN0oiLAogICJjIjoiWEJUIiwKICAiZCI6IjE5Mi4xNjguMC43OjgwODAiLAogICJlIjoiMjAyMC0xMS0xOFQyMDoyMzowNC4wOFoiLAogICJpIjoiMzM0NzI1NjIyNTM5MzM5ODEyNyIsCiAgInYiOiIwLjAwMDkxNjgxIiwKICAieCI6IjAiCn0="
+                }
+            });
+        };
+*/
 
         try {
             let issuer_call_result = await _handleIssuerCall(
@@ -1494,6 +1524,7 @@ class PaymentTransaction extends CoreTransaction {
                     if (!issuer_response.issuerResponse.coin && !issuer_response.issuerResponse.verifyInfo) {
                         payment_ack.status = PaymentAck.STATUS__FAILED;
 
+                        // TODO: fix this condition, it seems wrong because of the if above
                         if (issuer_response.issuerResponse.coin) {
                             payment_ack.coins = [ issuer_response.issuerResponse.coin, ];
                         }
@@ -1542,14 +1573,29 @@ class PaymentTransaction extends CoreTransaction {
 
                     await db.insert('coins', coin_data);
 
-                    payment_ack.return_url = this.return_url;
-                    payment_ack.notification = this.notification;
-                    payment_ack.reference.id = this.reference;
-                    payment_ack.reference.issuer = this.acceptable_issuers[0];
-                    payment_ack.status = PaymentAck.STATUS__OK;
+                    if (this.return_url) {
+                        payment_ack.return_url = this.return_url;
+                    }
+
+                    if (this.notification) {
+                        payment_ack.notification = this.notification;
+                    }
 
                     if (this.ack_passthrough) {
                         payment_ack.ack_passthrough = this.ack_passthrough;
+                    }
+
+                    payment_ack.reference = {
+                        id: verify_info.reference,
+                        issuer: helpers.extractIssuer(this.acceptable_issuers[0]),
+                    };
+                    payment_ack.status = PaymentAck.STATUS__OK;
+                    if (this.return_url) {
+                        payment_ack.return_url = this.return_url;
+                    }
+
+                    if (this.notification) {
+                        payment_ack.notification = this.notification;
                     }
 
                     this.status = Transaction.STATUS__RESOLVED;
@@ -1563,25 +1609,14 @@ class PaymentTransaction extends CoreTransaction {
 
             console.log('post verify, all good');
 
-            payment_ack.return_url = this.return_url;
-            payment_ack.notification = this.notification;
-            payment_ack.status = PaymentAck.STATUS__OK;
-
-            this[_transaction_data].payment_ack = payment_ack;
-            this.status = Transaction.STATUS__RESOLVED;
-
             let error_payment_ack = await _persistTransaction();
+
             if (error_payment_ack) { return error_payment_ack; }
-
             clearTimeout(pending_to_deferred_timeout);
-
-            await db_session.commitTransaction();
-
             if (issuer_call_result) {
             //     TODO: send recovered Coins back to the Buyer
                 return issuer_call_result;
             }
-
             console.log('saved, calling end')
 
             // Try to finish transaction on the Issuers end...

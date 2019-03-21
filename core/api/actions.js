@@ -255,7 +255,16 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         transaction_id: req.params.transaction_id,
 
         // We can pay only por a transaction in the initial state
-        status: Transaction.STATUS__INITIAL,
+        custom_query: {
+            status: {
+                $in: [
+                    Transaction.STATUS__INITIAL,
+                    Transaction.STATUS__DEFERRED,
+                    Transaction.STATUS__RESOLVED,
+                    Transaction.STATUS__FAILED,
+                ],
+            }
+        },
 
         // Only payment type transactions are supporting this operation
         type: Transaction.TYPE__PAYMENT,
@@ -296,7 +305,13 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
 
             throw new Error('Invalid transaction id');
         }
+        else if ([ Transaction.STATUS__RESOLVED, Transaction.STATUS__FAILED, ].includes(transaction.status)) {
+            if (transaction.payment_ack) {
+                response = transaction.payment_ack;
+            }
 
+            throw new Error('Transaction in terminal state');
+        }
 
         // Feed payment_confirmation with transaction_id and order_id as these are required to be included in the
         // response
@@ -305,15 +320,18 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
             payment_confirmation.order_id = transaction.order_id;
         }
 
+        let time_budget = transaction.time_budget ? transaction.time_budget : confid.get('server.api.time_budget');
 
         let time_budget_counter = new Promise(
             (resolve) => setTimeout(
-                () => { console.log('w time_buget_counter'); resolve(new PaymentAck({
-                    status: PaymentAck.STATUS__DEFERRED,
-                    retry_after: config.get('server.api.soft_error_retry_delay'),
-                    wallet_id: payment_confirmation.wallet_id,
-                })); },
-                1 * 1000
+                () => {
+                        resolve(new PaymentAck({
+                        status: PaymentAck.STATUS__DEFERRED,
+                        retry_after: config.get('server.api.soft_error_retry_delay'),
+                        wallet_id: payment_confirmation.wallet_id,
+                        }));
+                    },
+                time_budget * 1000
             )
         );
 

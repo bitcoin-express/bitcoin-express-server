@@ -145,7 +145,7 @@ const _confirmation_properties_validators = {
         if (!options) { return true; }
         if (typeof options !== "object") { throw new Error('Invalid format'); }
         if (!Object.keys(options).every((option) => PAYMENT_CONFIRMATION_OPTION.has(option))) { throw new Error ('Invalid key'); }
-        if (options.language_preference && language.preference > 10) { throw new Error ('Invalid format'); }
+        if (options.language_preference && options.language_preference > 10) { throw new Error ('Invalid format'); }
 
         if (options.send_receipt_to) {
             if (typeof options.send_receipt_to !== "object") {
@@ -179,8 +179,7 @@ const _confirmation_properties_validators = {
                 throw new Error ('Invalid format');
             }
 
-            if (options.send_refund_to.reference && (typeof options.send_refund_to.reference !== "string" ||
-                options.send_refund_to.reference.length < 8 || options.send_refund_to.reference.length > 64)) {
+            if (options.send_refund_to.reference && typeof options.send_refund_to.reference !== "string") {
                 throw new Error ('Invalid format');
             }
         }
@@ -210,9 +209,8 @@ const _confirmation_properties_validators = {
         }
 
         if (options.notification) {
-            if (typeof notification !== "string" || notification.length < 1 || notification.length > 256) { throw new Error ('Invalid format'); }
+            if (typeof options.notification !== "string" || options.notification.length < 1 || options.notification.length > 256) { throw new Error ('Invalid format'); }
         }
-
     },
 };
 

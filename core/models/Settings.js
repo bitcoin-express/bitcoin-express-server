@@ -116,14 +116,7 @@ const _settings_properties_validators = {
     acceptable_issuers: (issuers) => {
         if (!Array.isArray(issuers)) { throw new Error('Invalid format'); }
 
-        let trusted_issuer_regex = /^\((\S+)\)$/i;
-        if (!issuers.every((issuer) => {
-            let issuer_domain = trusted_issuer_regex.exec(issuer);
-            issuer = Array.isArray(issuer_domain) ? issuer_domain[1] : issuer;
-
-            return checks.isDomain(issuer);
-
-        })) {
+        if (!issuers.every((issuer) => { return checks.isDomain(helpers.extractIssuer(issuer)); })) {
             throw new Error('Invalid format');
         }
     },

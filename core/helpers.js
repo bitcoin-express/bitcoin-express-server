@@ -45,3 +45,9 @@ exports.decrypt = function (private_key, encoded_encryption_output) {
  * @returns {Promise}
  */
 exports.sleep = (waitTimeInMs) => new Promise(resolve => setTimeout(resolve, waitTimeInMs));
+
+exports.extractIssuer = (issuer) => {
+    let trusted_issuer_regex = /^\((\S+)\)$/i;
+    let issuer_domain = trusted_issuer_regex.exec(issuer);
+    return Array.isArray(issuer_domain) ? issuer_domain[1] : issuer;
+};
