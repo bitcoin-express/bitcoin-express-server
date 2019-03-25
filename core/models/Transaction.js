@@ -331,6 +331,7 @@ const _transaction_properties_validators = {
     },
     expires: (date) => {
         if (!(date instanceof Date)) { throw new Error ('Invalid format'); }
+        if (moment(date).isBefore(moment())) { throw new Error ('Invalid value'); }
     },
     return_url: Settings.VALIDATORS.return_url,
     callback_url: Settings.VALIDATORS.callback_url,
