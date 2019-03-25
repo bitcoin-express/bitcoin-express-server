@@ -876,9 +876,11 @@ class PaymentTransaction extends CoreTransaction {
                            (
                                init_data.expires instanceof Date ?
                                init_data.expires :
-                               new Date(init_data.expires)
+                               checks.isInteger(init_data.expires) ?
+                               moment().add(init_data.expires, 'seconds').toDate() :
+                               moment(init_data.expires).toDate()
                            ) :
-                           new Date(this.created.getTime() + init_data.account.settings.default_payment_timeout * 1000);
+                           moment(this.created).add(init_data.account.settings.default_payment_timeout, 'seconds').toDate();
 
             this.email_customer_contact = init_data.email_customer_contact || init_data.account.email_customer_contact;
 

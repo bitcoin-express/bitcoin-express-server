@@ -3,6 +3,14 @@
 type: !include TPaymentDetails__Common.raml
 displayName: PaymentDetails
 properties:
+  expire?:
+    type: !include primitives/ExpireDate.raml
+    description: |
+      Either:
+      - date in ISO 6801 format (e.g. 2018-12-18T22:22:22Z) - indicates till when this transaction is valid and can be proceeded
+      - an integer - represents the number of seconds from now till when this transaction is valid and can be proceeded
+
+      If not explicitly set then the default value from the Marchant account's settings is taken.
   ack_passthrough?: !include primitives/AckPassthrough.raml
   callback_url?: !include primitives/CallbackURL.raml
   notification?: !include primitives/Notification.raml
