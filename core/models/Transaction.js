@@ -1686,11 +1686,10 @@ class PaymentTransaction extends CoreTransaction {
         // Let's populate all fields on the root level...
         let data = super.toJSON();
 
-
         //...as Payment specification demands 'payment_details' section - let's create one...
         data.payment_details = {};
         for (let property of PaymentTransaction.PAYMENT_DETAILS_PROPERTIES.entries()) {
-            if (this[property[1]] !== undefined) {
+            if (this[property[1]] !== undefined && this[property[1]] !== null) {
                 data.payment_details[property[0]] = this[property[1]];
             }
         }
@@ -1699,6 +1698,13 @@ class PaymentTransaction extends CoreTransaction {
         if (data.hasOwnProperty('payment_confirmation')) {
             data.payment = data.payment_confirmation;
             delete data.payment_confirmation;
+        }
+
+        //...Return only non-null values
+        for (let key of Object.keys(data)) {
+            if (data[key] === null) {
+                delete data[key];
+            }
         }
 
         return data;
