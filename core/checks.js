@@ -18,7 +18,7 @@ const email_parser = require('email-addresses');
  * @returns {boolean}
  */
 exports.isInteger = number => {
-    return !isNaN(parseInt(number));
+    return Boolean(String(number).match(/^\d+$/));
 };
 
 
