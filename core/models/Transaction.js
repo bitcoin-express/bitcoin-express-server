@@ -942,6 +942,7 @@ class PaymentTransaction extends CoreTransaction {
             [ 'transaction_id', 'transaction_id', ],
             [ 'order_id', 'order_id', ],
             [ 'acceptable_issuers', 'acceptable_issuers', ],
+            [ 'time_budget', 'time_budget', ],
         ]);
     }
 
