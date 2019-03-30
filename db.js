@@ -186,7 +186,7 @@ exports.find = function(name, query, { offset=null, limit=null, db_session=undef
   });
 };
 
-exports.findAndModify = function(name, query, modification, { return_original=false, db_session=undefined }={return_original: false, db_session: undefined}) {
+exports.findOneAndModify = function(name, query, modification, { return_original=false, db_session=undefined }={return_original: false, db_session: undefined}) {
   if (!db_handler) {
     return Promise.reject(new Error("No DB"));
   }
@@ -209,6 +209,17 @@ exports.findAndModify = function(name, query, modification, { return_original=fa
   });
 };
 
+exports.updateMany = function(collection, query, modification, { db_session=undefined, }={ db_session: undefined, }) {
+    if (!db_handler) {
+        return Promise.reject(new Error("No DB"));
+    }
+
+    return db_handler.collection(collection).updateMany(
+        query,
+        { $set: modification },
+        { session: db_session, },
+    );
+};
 
 exports.close = function(done) {
   if (db_handler) {
