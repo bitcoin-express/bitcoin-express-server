@@ -532,7 +532,7 @@ exports.BaseModel = class BaseModel {
             // Make sure to always include the "updated" field
             this[this[_privates].data].updated = new Date();
 
-            let modify_result = await db.findAndModify(this[this[_privates].interface].db_table,
+            let modify_result = await db.findOneAndModify(this[this[_privates].interface].db_table,
                 // What field to look for...
                 save_query,
                 // ...what data to change...

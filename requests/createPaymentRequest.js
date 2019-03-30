@@ -99,7 +99,7 @@ exports.createPaymentRequest = function (req, res) {
 
       // Reset payment to initial status
       paymentRequest.status = "initial";
-      return db.findAndModify('transactions', query, paymentRequest).then((response) => {
+      return db.findOneAndModify('transactions', query, paymentRequest).then((response) => {
         if (!response) {
           return false;
         }
@@ -158,7 +158,7 @@ exports.createPaymentRequest = function (req, res) {
         };
 
         console.log("Payment expired - " + query.payment_id);
-        db.findAndModify('transactions', query, { status: "timeout" });
+        db.findOneAndModify('transactions', query, { status: "timeout" });
       }, secs);
 
       res.setHeader('Content-Type', 'application/json');

@@ -79,7 +79,7 @@ exports.setConfig = function (req, res) {
   }
 
   var query = { "_id": req.body.account_id };
-  db.findAndModify("accounts", query, data).then((result) => {
+  db.findOneAndModify("accounts", query, data).then((result) => {
     if (!result) {
       res.status(400).send("Not modified, account not found");
       return;

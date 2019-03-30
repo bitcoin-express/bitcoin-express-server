@@ -1079,7 +1079,7 @@ class PaymentTransaction extends CoreTransaction {
 
                 console.log("Transaction expired - " + this.transaction_id);
                 try {
-                    db.findAndModify('transactions', query, {
+                    db.findOneAndModify('transactions', query, {
                         status: Transaction.STATUS__EXPIRED,
                         updated: new Date(),
                     });
@@ -1288,7 +1288,7 @@ class PaymentTransaction extends CoreTransaction {
                 console.log("Pending Transaction deferred - " + this.transaction_id);
 
                 try {
-                    db.findAndModify('transactions', query, {
+                    db.findOneAndModify('transactions', query, {
                         status: Transaction.STATUS__DEFERRED,
                         updated: new Date(),
                     });

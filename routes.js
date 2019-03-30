@@ -69,7 +69,7 @@ exports.panelRoute = function(req, res, next) {
       } = req.session;
       console.log(account_id);
       var query = { "_id": ObjectId(account_id) };
-      db.findAndModify("accounts", query, req.query);
+      db.findOneAndModify("accounts", query, req.query);
 
     case "/panel/home":
       var {
