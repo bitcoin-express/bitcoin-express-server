@@ -14,8 +14,11 @@
  * @param {function} next - function to be called to proceed with the Express' chain of execution
  */
 exports.corsMiddleware = function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, BE-MG-Auth-Token");
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, BE-MG-Auth-Token");
+    res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS");
+    res.header("Access-Control-Max-Age", "86400");
 
-  next();
+    if (req.method === 'OPTIONS') { res.send(200); }
+    else { next(); }
 };
