@@ -113,11 +113,11 @@ db.connect(config.get('server.db.uri'), function (err) {
 
     console.log('Migrating hanging pending Transactions to deferred...');
 
-    db.findAndModify('transactions',
+    db.updateMany('transactions',
         { type: { $eq: Transaction.TYPE__PAYMENT, }, status: { $eq: Transaction.STATUS__PENDING, }, },
         { status: Transaction.STATUS__DEFERRED, }).
     then((result) => {
-        console.log('Pending Transactions migrated to deferred: ', result);
+        console.log('Pending Transactions migrated to deferred: ', result.modifiedCount);
     }).
     catch((error) => {
         console.log('Error during pending to deferred migration: ', error);
@@ -129,17 +129,17 @@ db.connect(config.get('server.db.uri'), function (err) {
         let query = {
             type: { $eq: Transaction.TYPE__PAYMENT, },
             status: { $eq: Transaction.STATUS__INITIAL, },
-            expire: { $lte: new Date(), }
+            expires: { $lte: new Date(), }
         };
 
-        db.findAndModify('transactions', query, { status: Transaction.STATUS__EXPIRED, }).
+        db.updateMany('transactions', query, { status: Transaction.STATUS__EXPIRED, }).
         then((result) => {
-            console.log('Expired payment transactions: ', result);
+            console.log('Expired payment transactions: ', result.modifiedCount);
         }).
         catch((error) => {
             console.log('Error during expiring transactions: ', error);
         });
-    }, 5 * 60 * 1000);
+    }, 5 * 1000);
 
     if (config.get('system.remove_expired_transactions')) {
         setInterval(() => {
