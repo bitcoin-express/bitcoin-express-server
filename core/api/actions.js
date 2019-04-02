@@ -699,7 +699,7 @@ exports.getAccountBalance = async (req, res, next) => {
     let currency = req.query.currency ? req.query.currency :  undefined;
 
     try {
-        let coins = await db.getCoinList(String(currency), String(req.params._account_id));
+        let coins = await db.getCoinList(currency, String(req.params._account_id));
 
         for (let currency of Object.keys(coins)) {
             // Each row represents coins in a different currency...
