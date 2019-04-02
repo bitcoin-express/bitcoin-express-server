@@ -78,7 +78,7 @@ const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id',
  * @private
  * @const
  */
-const PAYMENT_CONFIRMATION_API_PROPERTIES = new Set([ 'coins', 'wallet_id', 'client', 'options', ]);
+const PAYMENT_CONFIRMATION_API_PROPERTIES = new Set([ 'coins', 'wallet_id', 'client', 'options', 'order_id', 'transaction_id', ]);
 
 
 /**
