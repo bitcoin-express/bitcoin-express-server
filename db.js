@@ -96,7 +96,7 @@ exports.findOne = function(name, query, { db_session=undefined, }={ db_session: 
 
 exports.getCoinList = function (currency, account_id, { db_session=undefined, }={ db_session: undefined, }) {
   let query = {
-    account_id: account_id
+    account_id: ObjectId(account_id),
   };
 
   if (currency) {
