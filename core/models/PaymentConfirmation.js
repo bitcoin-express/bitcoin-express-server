@@ -69,7 +69,7 @@ const _db_session = Symbol('_db_session');
  * @private
  * @const
  */
-const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id', 'client', 'options', 'created', 'updated', 'verify_info', 'transaction_id', 'order_id', 'verify_tid', 'verify_expiry', ]);
+const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id', 'client', 'options', 'created', 'updated', 'verify_info', 'transaction_id', 'order_id', 'verify_tid', 'verify_expiry', 'time_budget', ]);
 
 
 /**
@@ -78,7 +78,7 @@ const PAYMENT_CONFIRMATION_ALLOWED_PROPERTIES = new Set ([ 'coins', 'wallet_id',
  * @private
  * @const
  */
-const PAYMENT_CONFIRMATION_API_PROPERTIES = new Set([ 'coins', 'wallet_id', 'client', 'options', 'order_id', 'transaction_id', ]);
+const PAYMENT_CONFIRMATION_API_PROPERTIES = new Set([ 'coins', 'wallet_id', 'client', 'options', 'order_id', 'transaction_id', 'time_budget', ]);
 
 
 /**
@@ -120,6 +120,7 @@ const _confirmation_properties_validators = {
     verify_expiry: verify_expiry => { if (!checks.isDate(verify_expiry)) { throw new Error ('Invalid format'); } },
     transaction_id: transaction_id => true,
     order_id: order_id => true,
+    time_budget: BaseModel.VALIDATORS.time_budget,
     coins: coins => {
         if (!coins) { throw new Error ('Field required'); }
         if (!Array.isArray(coins)) { throw new Error ('Invalid format'); }

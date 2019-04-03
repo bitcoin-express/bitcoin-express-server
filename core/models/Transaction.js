@@ -382,10 +382,7 @@ const _transaction_properties_validators = {
             throw new Error ('Invalid format');
         }
     },
-    time_budget: (seconds) => {
-        if (!checks.isInteger(seconds)) { throw new errors.InvalidValueError(); }
-        if (seconds < 5 || seconds > 300) { throw new errors.InvalidValueError(); }
-    },
+    time_budget: BaseModel.VALIDATORS.time_budget,
     ack_passthrough: PaymentAck.VALIDATORS.ack_passthrough,
 };
 
