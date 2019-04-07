@@ -23,8 +23,18 @@ h1{
   width:300px;
   border-radius:6px;
   margin: 0 auto 0 auto;
-  padding:0px 20px 70px 20px;
-  border: #2980b9 4px solid; 
+  padding:0px 20px 0px 20px;
+  border: #2980b9 4px solid;
+}
+
+.box p {
+    color: black;
+    word-wrap: break-word;
+    font-weight: bold;
+}
+
+.box p.important {
+    color: red;
 }
 
 .email{
