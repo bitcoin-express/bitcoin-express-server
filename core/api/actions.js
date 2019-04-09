@@ -278,6 +278,8 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
     let transaction, payment_confirmation, payment_ack, response = '';
 
     try {
+        res.status(200);
+
         try {
             // Check if only allowed fields were send in the request...
             PaymentConfirmation.checkAPIProperties(req.body.Payment);
@@ -305,13 +307,6 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
 
             throw new Error('Invalid transaction id');
         }
-        else if ([ Transaction.STATUS__RESOLVED, Transaction.STATUS__FAILED, ].includes(transaction.status)) {
-            if (transaction.payment_ack) {
-                response = transaction.payment_ack;
-            }
-
-            throw new Error('Transaction in terminal state');
-        }
 
         // Feed payment_confirmation with transaction_id and order_id as these are required to be included in the
         // response
@@ -325,12 +320,12 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         let time_budget_counter = new Promise(
             (resolve) => setTimeout(
                 () => {
-                        resolve(new PaymentAck({
+                    resolve(new PaymentAck({
                         status: PaymentAck.STATUS__DEFERRED,
                         retry_after: config.get('server.api.soft_error_retry_delay'),
                         wallet_id: payment_confirmation.wallet_id,
-                        }));
-                    },
+                    }));
+                },
                 time_budget * 1000
             )
         );
@@ -347,11 +342,11 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
         if (!payment_ack || payment_ack.status !== PaymentAck.STATUS__OK) {
             throw new Error ('Unable to resolve the transaction');
         }
-
-        res.status(200);
     }
     catch (e) {
         console.log('api postTransactionByIdPayment', e);
+
+        res.status(400);
 
         // In case the exception was generated before an actual response was formed we need to create one to be
         // compliant to the Bitcoin-Express Payment specification
@@ -360,8 +355,6 @@ exports.postTransactionByIdPayment = async (req, res, next) => {
                 status: PaymentAck.STATUS__FAILED,
             });
         }
-
-        res.status(400);
     }
 
     return res.send(new JSONResponse({ PaymentAck: response, }).prepareResponse(res));

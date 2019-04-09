@@ -1130,6 +1130,11 @@ class PaymentTransaction extends CoreTransaction {
                     //...and if it is not or Coins are not available at all - go to catch block...
                     throw new Error();
                 }
+                else if (!this.payment_ack || Object.keys(this.payment_ack).length === 0) {
+                    //...if it is - return the original payment_ack.
+                    payment_ack.status = PaymentAck.STATUS__FAILED;
+                    return payment_ack;
+                }
                 else {
                     //...if it is - return the original payment_ack.
                     return this.payment_ack;
