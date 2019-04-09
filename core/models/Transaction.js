@@ -1123,7 +1123,7 @@ class PaymentTransaction extends CoreTransaction {
         }
 
         //...or if it is in a terminal state...
-        if (this.status === Transaction.STATUS__RESOLVED && this.status === Transaction.STATUS__FAILED) {
+        if (this.status === Transaction.STATUS__RESOLVED || this.status === Transaction.STATUS__FAILED) {
             try {
                 //..check if request is made with the same Coins...
                 if (this.payment_confirmation.coins.sort().toString() !== payment_confirmation.coins.sort().toString()) {
