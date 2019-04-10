@@ -568,7 +568,7 @@ exports.patchAccount = async (req, res, next) => {
         response.messages.push(new Message({ body: 'Account updated.', type: Message.TYPE__INFO, }));
         response.success = true;
 
-        res.status(202);
+        res.status(200);
     }
     catch (e) {
         console.log('api patchAccount', e);
@@ -653,7 +653,7 @@ exports.patchAccountSettings = async (req, res, next) => {
         response.messages.push(new Message({ body: 'Settings updated.', type: Message.TYPE__INFO, }));
         response.success = true;
 
-        res.status(202);
+        res.status(200);
     }
     catch (e) {
         console.log('api getAccountSettings', e);

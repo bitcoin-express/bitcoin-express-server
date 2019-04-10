@@ -320,7 +320,7 @@ securedBy: AuthToken
             example: !include examples/TransactionPaymentPOSTRequest.json
             type: Transaction__TransactionPayment__PaymentRequest
         responses:
-          202:
+          200:
             body:
               application/json:
                 example: !include examples/TransactionPaymentPOSTResponse.json
@@ -440,7 +440,7 @@ securedBy: AuthToken
           This status code will be returned in case of any error encountered during retrieving the account.
           Check ***messages*** to get more information about the reason behind this error.
   patch:
-    is: [JSON202Envelope, JSON400Envelope, 401Response]
+    is: [JSON200Envelope, JSON400Envelope, 401Response]
     description: |
       Set one or more new configuration settings for this account.
 
@@ -452,7 +452,7 @@ securedBy: AuthToken
           domain?: !include schemas/primitives/Domain.raml
         minProperties: 1
     responses:
-      202:
+      200:
         body:
           application/json:
             properties:
@@ -489,7 +489,7 @@ securedBy: AuthToken
             This status code will be returned in case of any error encountered during retrieving settings.
             Check ***messages*** to get more information about the reason behind this error.
     patch:
-      is: [JSON202Envelope, JSON400Envelope, 401Response]
+      is: [JSON200Envelope, JSON400Envelope, 401Response]
       description: |
         Set new values for the Merchant's account settings provided in the requests.
 
@@ -501,7 +501,7 @@ securedBy: AuthToken
           minProperties: 1
           example: !include examples/AccountSettingsPATCHRequest.json
       responses:
-        202:
+        200:
           body:
             application/json:
               properties:
